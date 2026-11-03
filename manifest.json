@@ -1,0 +1,24 @@
+{
+  "name": "Novaprint - Estampado Textil & Gestión de Taller",
+  "short_name": "Novaprint",
+  "description": "Sistema de gestión integral para microempresa de estampado: Ventas, Clientes, Inventarios y Control de Fabricación.",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#F8FAFC",
+  "theme_color": "#2563EB",
+  "icons": [
+    {
+      "src": "assets/img/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "assets/img/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
+

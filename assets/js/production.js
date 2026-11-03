@@ -1,0 +1,473 @@
+/**
+ * assets/js/production.js — Módulo de Lógica de Negocio de Producción para Novaprint
+ * Gestión de inventarios, compras, proveedores y control de fabricación en taller.
+ */
+
+(function (global) {
+  'use strict';
+
+  function normalizarTexto(texto) {
+    if (!texto) return '';
+    return String(texto)
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .trim();
+  }
+
+  // ==========================================
+  // INVENTARIO Y ALERTAS (SPEC 002)
+  // ==========================================
+
+  function evaluarEstadoStock(currentStock, minStock) {
+    const cur = Number(currentStock) || 0;
+    const min = Number(minStock) || 0;
+    return cur <= min ? 'critico' : 'normal';
+  }
+
+  function aplicarCompraAInventario(inventario = [], itemsComprados = []) {
+    if (!Array.isArray(inventario)) return [];
+    if (!Array.isArray(itemsComprados) || itemsComprados.length === 0) {
+      return JSON.parse(JSON.stringify(inventario));
+    }
+
+    const mapaCompras = {};
+    itemsComprados.forEach(it => {
+      const id = it.inventoryItemId;
+      const cant = Math.max(0, Number(it.quantity) || 0);
+      const costo = Math.max(0, Number(it.unitCost) || 0);
+      if (id) {
+        if (!mapaCompras[id]) mapaCompras[id] = { quantity: 0, unitCost: costo };
+        mapaCompras[id].quantity += cant;
+        if (costo > 0) mapaCompras[id].unitCost = costo;
+      }
+    });
+
+    return inventario.map(item => {
+      const compra = mapaCompras[item.id];
+      if (compra) {
+        return {
+          ...item,
+          currentStock: (Number(item.currentStock) || 0) + compra.quantity,
+          unitCost: compra.unitCost > 0 ? compra.unitCost : item.unitCost,
+          updatedAt: new Date().toISOString()
+        };
+      }
+      return { ...item };
+    });
+  }
+
+  const TASA_IVA_CHILE = 0.19;
+
+  function calcularTotalesCompra(items = [], opciones = {}) {
+    const aplicarIva = Boolean(opciones && opciones.aplicarIva);
+    const montoDelivery = Math.max(0, Number(opciones && opciones.montoDelivery) || 0);
+
+    let totalUnidades = 0;
+    let subtotalNeto = 0;
+
+    if (Array.isArray(items)) {
+      items.forEach(it => {
+        const q = Math.max(0, Number(it.quantity) || 0);
+        const c = Math.max(0, Number(it.unitCost) || 0);
+        totalUnidades += q;
+        subtotalNeto += Math.round(q * c);
+      });
+    }
+
+    const applyIva = aplicarIva;
+    const ivaPercent = applyIva ? 19 : 0;
+    const ivaAmount = applyIva ? Math.round(subtotalNeto * TASA_IVA_CHILE) : 0;
+    const applyDelivery = montoDelivery > 0;
+    const deliveryAmount = montoDelivery;
+    const totalAmount = subtotalNeto + ivaAmount + deliveryAmount;
+
+    return {
+      totalUnidades,
+      subtotalNeto,
+      applyIva,
+      ivaPercent,
+      ivaAmount,
+      applyDelivery,
+      deliveryAmount,
+      totalAmount
+    };
+  }
+
+  function calcularValorizacionInventario(inventario = []) {
+    if (!Array.isArray(inventario) || inventario.length === 0) {
+      return { totalUnidades: 0, totalMonetario: 0 };
+    }
+
+    let totalUnidades = 0;
+    let totalMonetario = 0;
+
+    inventario.forEach(it => {
+      const q = Math.max(0, Number(it.currentStock) || 0);
+      const c = Math.max(0, Number(it.unitCost) || 0);
+      totalUnidades += q;
+      totalMonetario += Math.round(q * c);
+    });
+
+    return { totalUnidades, totalMonetario };
+  }
+
+  function filtrarInventario(inventario = [], { textoBusqueda = '', categoria = 'todos', soloCriticos = false } = {}) {
+    const query = normalizarTexto(textoBusqueda);
+
+    return inventario.filter(it => {
+      if (categoria && categoria !== 'todos' && it.category !== categoria) {
+        return false;
+      }
+
+      if (soloCriticos) {
+        if (evaluarEstadoStock(it.currentStock, it.minStock) !== 'critico') {
+          return false;
+        }
+      }
+
+      if (!query) return true;
+
+      const coincideNombre = normalizarTexto(it.name).includes(query);
+      const coincideCodigo = normalizarTexto(it.code).includes(query);
+      const coincideCat = normalizarTexto(it.category).includes(query);
+      const coincideProv = normalizarTexto(it.supplierName).includes(query);
+
+      return coincideNombre || coincideCodigo || coincideCat || coincideProv;
+    });
+  }
+
+  function filtrarProveedores(proveedores = [], { textoBusqueda = '', categoria = 'todos' } = {}) {
+    const query = normalizarTexto(textoBusqueda);
+
+    return proveedores.filter(p => {
+      if (categoria && categoria !== 'todos' && p.category !== categoria) {
+        return false;
+      }
+
+      if (!query) return true;
+
+      const coincideNombre = normalizarTexto(p.name).includes(query);
+      const coincideContacto = normalizarTexto(p.contact).includes(query);
+      const coincideTel = normalizarTexto(p.phone).includes(query);
+      const coincideCat = normalizarTexto(p.category).includes(query);
+
+      return coincideNombre || coincideContacto || coincideTel || coincideCat;
+    });
+  }
+
+  function generarIdCompra(secuencia, fecha = new Date()) {
+    const d = new Date(fecha);
+    const año = d.getFullYear();
+    const mes = String(d.getMonth() + 1).padStart(2, '0');
+    const dia = String(d.getDate()).padStart(2, '0');
+    const sec = String(secuencia || 1).padStart(3, '0');
+    return `CMP-${año}${mes}${dia}-${sec}`;
+  }
+
+  // ==========================================
+  // CONTROL DE FABRICACIÓN EN TALLER (SPEC 003)
+  // ==========================================
+
+  const ETAPAS_FABRICACION = [
+    'Diseño',
+    'Preparación',
+    'Estampado',
+    'Control Calidad',
+    'Terminado'
+  ];
+
+  /**
+   * Obtiene la siguiente etapa lógica del flujo de taller
+   */
+  function obtenerSiguienteEtapa(etapaActual) {
+    const idx = ETAPAS_FABRICACION.indexOf(etapaActual);
+    if (idx === -1 || idx === ETAPAS_FABRICACION.length - 1) {
+      return null;
+    }
+    return ETAPAS_FABRICACION[idx + 1];
+  }
+
+  /**
+   * Clasifica los proyectos en las 5 columnas del tablero de taller
+   */
+  function clasificarProyectosPorEtapa(proyectos = []) {
+    const estructura = {
+      'Diseño': [],
+      'Preparación': [],
+      'Estampado': [],
+      'Control Calidad': [],
+      'Terminado': []
+    };
+
+    if (!Array.isArray(proyectos)) return estructura;
+
+    proyectos.forEach(prj => {
+      const etapa = prj.stage || 'Diseño';
+      if (estructura[etapa]) {
+        estructura[etapa].push(prj);
+      } else {
+        estructura['Diseño'].push(prj);
+      }
+    });
+
+    return estructura;
+  }
+
+  /**
+   * Construye un proyecto/orden de fabricación a partir de un pedido confirmado
+   */
+  function crearProyectoDesdePedido(pedido, asignadoA = 'Taller Central') {
+    const now = new Date();
+    const año = now.getFullYear();
+    const mes = String(now.getMonth() + 1).padStart(2, '0');
+    const dia = String(now.getDate()).padStart(2, '0');
+    const id = `PRJ-${año}${mes}${dia}-${Math.random().toString(36).substr(2, 4).toUpperCase()}`;
+
+    // Consolidar tipos de prendas y técnicas únicas
+    const tiposPrendas = [...new Set((pedido.items || []).map(i => i.garmentType))].join(' / ') || 'Textiles';
+    const tecnicas = [...new Set((pedido.items || []).map(i => i.technique))].join(' / ') || 'Estampado';
+    const ubicaciones = [...new Set((pedido.items || []).map(i => i.printLocation).filter(Boolean))].join(', ') || 'Pecho';
+
+    return {
+      id,
+      code: `FAB-${pedido.id ? pedido.id.replace('NP-', '') : Date.now().toString(36).toUpperCase()}`,
+      orderId: pedido.id || null,
+      clientName: pedido.clientName || 'Cliente General',
+      name: `Lote ${tiposPrendas} — ${pedido.clientName || 'Cliente'}`,
+      garmentType: tiposPrendas,
+      quantity: pedido.totals?.totalQuantity || (pedido.items || []).reduce((acc, i) => acc + (i.quantity || 0), 0) || 1,
+      printTechnique: tecnicas,
+      printLocation: ubicaciones,
+      stage: 'Diseño',
+      startDate: now.toISOString().split('T')[0],
+      targetDate: pedido.dates?.deliveryDate || now.toISOString().split('T')[0],
+      assignedTo: asignadoA,
+      notes: pedido.notes || '',
+      createdAt: now.toISOString(),
+      updatedAt: now.toISOString()
+    };
+  }
+
+  /**
+   * Filtra proyectos de fabricación
+   */
+  function filtrarProyectosFabricacion(proyectos = [], { textoBusqueda = '', etapa = 'todos', tecnica = 'todos' } = {}) {
+    const query = normalizarTexto(textoBusqueda);
+
+    return proyectos.filter(p => {
+      if (etapa && etapa !== 'todos' && p.stage !== etapa) {
+        return false;
+      }
+
+      if (tecnica && tecnica !== 'todos' && !normalizarTexto(p.printTechnique).includes(normalizarTexto(tecnica))) {
+        return false;
+      }
+
+      if (!query) return true;
+
+      const coincideNombre = normalizarTexto(p.name).includes(query);
+      const coincideCodigo = normalizarTexto(p.code).includes(query);
+      const coincideCliente = normalizarTexto(p.clientName).includes(query);
+      const coincidePrenda = normalizarTexto(p.garmentType).includes(query);
+      const coincideTecnica = normalizarTexto(p.printTechnique).includes(query);
+
+      return coincideNombre || coincideCodigo || coincideCliente || coincidePrenda || coincideTecnica;
+    });
+  }
+
+  function generarIdFabricacion(secuencia, fecha = new Date()) {
+    const d = new Date(fecha);
+    const año = d.getFullYear();
+    const mes = String(d.getMonth() + 1).padStart(2, '0');
+    const dia = String(d.getDate()).padStart(2, '0');
+    const sec = String(secuencia || 1).padStart(3, '0');
+    return `FAB-${año}${mes}${dia}-${sec}`;
+  }
+
+  /**
+   * Spec 004 — Cruza una prenda de pedido con el inventario por prenda, color y talla
+   */
+  function verificarDisponibilidadPrenda(inventario = [], itemPedido = {}) {
+    if (!Array.isArray(inventario)) inventario = [];
+    const prendaBuscada = normalizarTexto(itemPedido.garmentType);
+    const colorBuscado = normalizarTexto(itemPedido.color);
+    const tallaBuscada = normalizarTexto(itemPedido.size);
+    const cantidadRequerida = Math.max(0, Number(itemPedido.quantity) || 0);
+
+    const encontrado = inventario.find(inv => {
+      const matchPrenda = normalizarTexto(inv.garmentType) === prendaBuscada || normalizarTexto(inv.name).includes(prendaBuscada);
+      const matchColor = normalizarTexto(inv.color) === colorBuscado || normalizarTexto(inv.name).includes(colorBuscado);
+      const matchTalla = normalizarTexto(inv.size) === tallaBuscada || normalizarTexto(inv.name).includes(tallaBuscada);
+      return matchPrenda && matchColor && matchTalla;
+    }) || null;
+
+    if (!encontrado) {
+      return {
+        encontrado: false,
+        itemInventario: null,
+        stockActual: 0,
+        cantidadRequerida,
+        faltante: cantidadRequerida,
+        estado: 'no_registrado'
+      };
+    }
+
+    const stockActual = Math.max(0, Number(encontrado.currentStock) || 0);
+    const faltante = Math.max(0, cantidadRequerida - stockActual);
+    const estado = faltante === 0 ? 'suficiente' : 'faltante';
+
+    return {
+      encontrado: true,
+      itemInventario: encontrado,
+      stockActual,
+      cantidadRequerida,
+      faltante,
+      estado
+    };
+  }
+
+  /**
+   * Spec 004 — Evalúa todas las prendas de un pedido y calcula los materiales a comprar
+   */
+  function calcularFaltantesPedido(inventario = [], itemsPedido = []) {
+    if (!Array.isArray(inventario)) inventario = [];
+    if (!Array.isArray(itemsPedido)) itemsPedido = [];
+
+    const detalle = [];
+    const faltantesParaCompra = [];
+    let totalPrendasFaltantes = 0;
+
+    itemsPedido.forEach(it => {
+      const verif = verificarDisponibilidadPrenda(inventario, it);
+      detalle.push({ ...verif, itemPedido: it });
+
+      if (verif.faltante > 0) {
+        totalPrendasFaltantes += verif.faltante;
+        if (verif.itemInventario) {
+          const inv = verif.itemInventario;
+          faltantesParaCompra.push({
+            inventoryId: inv.id,
+            code: inv.code,
+            name: inv.name,
+            garmentType: it.garmentType || inv.garmentType,
+            color: it.color || inv.color,
+            size: it.size || inv.size,
+            supplierId: inv.supplierId || '',
+            supplierName: inv.supplierName || 'Proveedor General',
+            quantityNeeded: verif.faltante,
+            unitCost: Number(inv.unitCost) || 0,
+            subtotal: verif.faltante * (Number(inv.unitCost) || 0)
+          });
+        } else {
+          // Spec 008: Prenda no registrada en inventario aún
+          const pB = normalizarTexto(it.garmentType);
+          let unitCost = 2800;
+          if (pB.includes('poleron')) unitCost = 11000;
+          else if (pB.includes('buzo')) unitCost = 12000;
+          else if (pB.includes('gorra')) unitCost = 3500;
+          else if (pB.includes('polera')) unitCost = 2800;
+
+          faltantesParaCompra.push({
+            inventoryId: null,
+            isNew: true,
+            code: '',
+            name: `${it.garmentType || 'Prenda'} Lisa - ${it.color || 'Estándar'} Talla ${it.size || 'L'}`,
+            garmentType: it.garmentType || 'Polera',
+            color: it.color || 'Negro',
+            size: it.size || 'L',
+            supplierId: '',
+            supplierName: '',
+            quantityNeeded: verif.faltante,
+            unitCost,
+            subtotal: verif.faltante * unitCost
+          });
+        }
+      }
+    });
+
+    return {
+      tieneFaltantes: totalPrendasFaltantes > 0,
+      totalPrendasFaltantes,
+      detalle,
+      faltantesParaCompra
+    };
+  }
+
+  /**
+   * Spec 004 — Descuenta del inventario físico las prendas usadas en un pedido
+   */
+  function descontarInventarioPorPedido(inventario = [], itemsPedido = []) {
+    if (!Array.isArray(inventario)) inventario = [];
+    if (!Array.isArray(itemsPedido)) itemsPedido = [];
+
+    const descontados = [];
+    const noEncontrados = [];
+    const nuevoInventario = inventario.map(item => ({ ...item }));
+
+    itemsPedido.forEach(it => {
+      const prendaBuscada = normalizarTexto(it.garmentType);
+      const colorBuscado = normalizarTexto(it.color);
+      const tallaBuscada = normalizarTexto(it.size);
+      const cantidad = Math.max(0, Number(it.quantity) || 0);
+
+      const invItem = nuevoInventario.find(inv => {
+        const matchPrenda = normalizarTexto(inv.garmentType) === prendaBuscada || normalizarTexto(inv.name).includes(prendaBuscada);
+        const matchColor = normalizarTexto(inv.color) === colorBuscado || normalizarTexto(inv.name).includes(colorBuscado);
+        const matchTalla = normalizarTexto(inv.size) === tallaBuscada || normalizarTexto(inv.name).includes(tallaBuscada);
+        return matchPrenda && matchColor && matchTalla;
+      });
+
+      if (invItem) {
+        const stockAnterior = Math.max(0, Number(invItem.currentStock) || 0);
+        const nuevoStock = Math.max(0, stockAnterior - cantidad);
+        const cantidadDescontada = stockAnterior - nuevoStock;
+        invItem.currentStock = nuevoStock;
+        descontados.push({
+          id: invItem.id,
+          code: invItem.code,
+          name: invItem.name,
+          stockAnterior,
+          cantidadDescontada,
+          nuevoStock
+        });
+      } else {
+        noEncontrados.push(it);
+      }
+    });
+
+    return {
+      nuevoInventario,
+      descontados,
+      noEncontrados
+    };
+  }
+
+  const modulo = {
+    TASA_IVA_CHILE,
+    evaluarEstadoStock,
+    aplicarCompraAInventario,
+    calcularTotalesCompra,
+    calcularValorizacionInventario,
+    filtrarInventario,
+    filtrarProveedores,
+    generarIdCompra,
+    // Spec 003: Fabricación
+    ETAPAS_FABRICACION,
+    obtenerSiguienteEtapa,
+    clasificarProyectosPorEtapa,
+    crearProyectoDesdePedido,
+    filtrarProyectosFabricacion,
+    generarIdFabricacion,
+    // Spec 004: Enlace Pedidos ➔ Inventario y Faltantes
+    verificarDisponibilidadPrenda,
+    calcularFaltantesPedido,
+    descontarInventarioPorPedido
+  };
+
+  if (typeof module !== 'undefined' && module.exports) {
+    module.exports = modulo;
+  }
+  global.NovaprintProduction = modulo;
+
+})(typeof window !== 'undefined' ? window : globalThis);

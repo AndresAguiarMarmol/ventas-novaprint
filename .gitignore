@@ -1,0 +1,15 @@
+# Windows shortcuts & artifacts
+*.lnk
+Thumbs.db
+Desktop.ini
+
+# OS
+.DS_Store
+
+# IDEs
+.vscode/
+.idea/
+
+# Node
+node_modules/
+npm-debug.log*

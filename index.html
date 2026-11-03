@@ -1,36 +1,17 @@
 <!DOCTYPE html>
-<html lang="es" class="scroll-smooth">
-
+<html lang="es">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Andres Aguiar | Analista de Sistemas TI - Curriculum & Portfolio</title>
-  <meta name="description"
-    content="Portfolio y Curriculum Vitae de Andres Aguiar, Analista de Sistemas con más de 40 años de trayectoria en TI, gestión de operaciones, desarrollo en Python/SQL y liderazgo en soporte corporativo.">
-  <meta name="author" content="Andres Aguiar">
-
-  <!-- Open Graph / Meta Social -->
-  <meta property="og:type" content="website">
-  <meta property="og:title" content="Andres Aguiar | Analista de Sistemas">
-  <meta property="og:description"
-    content="Más de 40 Años de Trayectoria en Tecnología de Información, Operaciones y Desarrollo de Software.">
-
-  <!-- Google Fonts: Inter -->
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
-    rel="stylesheet">
-
-  <!-- Tailwind CSS via CDN con soporte Dark Mode por clase -->
+  <title>Novaprint — Estampado Textil & Gestión de Taller</title>
+  
+  <!-- Tailwind CSS vía CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
     tailwind.config = {
       darkMode: 'class',
       theme: {
         extend: {
-          fontFamily: {
-            sans: ['Inter', 'sans-serif'],
-          },
           colors: {
             brand: {
               50: '#eff6ff',
@@ -39,7 +20,7 @@
               600: '#2563eb',
               700: '#1d4ed8',
               800: '#1e40af',
-              900: '#1e3a8a',
+              900: '#1e3a8a'
             }
           }
         }
@@ -47,834 +28,1287 @@
     }
   </script>
 
-  <!-- Lucide Icons -->
+  <!-- Lucide Icons vía CDN -->
   <script src="https://unpkg.com/lucide@latest"></script>
 
-  <!-- Estilos Personalizados -->
+  <!-- Fuentes e Iconos -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+
+  <!-- Estilos Personalizados y Reglas de Impresión -->
   <link rel="stylesheet" href="assets/css/custom.css">
+
+  <!-- Favicon e Iconos de la Aplicación -->
+  <link rel="icon" type="image/png" sizes="32x32" href="assets/img/favicon-32x32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="assets/img/favicon-16x16.png">
+  <link rel="shortcut icon" href="favicon.ico">
+  <link rel="apple-touch-icon" sizes="180x180" href="assets/img/apple-touch-icon.png">
+
+  <!-- Web App Manifest (PWA) -->
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#2563EB">
 </head>
+<body class="min-h-screen flex flex-col antialiased selection:bg-blue-500 selection:text-white">
 
-<body
-  class="bg-slate-50 dark:bg-[#0b0f19] text-slate-900 dark:text-slate-100 antialiased selection:bg-blue-500 selection:text-white transition-colors duration-200">
-
-  <!-- =======================================================================
-       Header & Barra de Navegación
-       ======================================================================= -->
-  <header class="fixed top-0 left-0 right-0 z-40 glass-nav">
-    <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
-
-      <!-- Logotipo / Identidad -->
-      <a href="#" class="flex items-center gap-2.5 group">
-        <span
-          class="w-10 h-10 rounded-xl bg-gradient-to-tr from-blue-600 to-indigo-500 text-white flex items-center justify-center font-bold text-sm shadow-sm group-hover:scale-105 transition-transform">
-          AA
-        </span>
-        <div class="flex flex-col">
-          <span
-            class="font-bold text-sm sm:text-base leading-tight group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
-            Andres Aguiar
-          </span>
-          <span class="text-[11px] text-slate-500 dark:text-slate-400 font-medium" data-i18n="nav_tagline">Analista de Sistemas</span>
+  <!-- ENCABEZADO PRINCIPAL -->
+  <header class="bg-white border-b border-gray-200 sticky top-0 z-30 shadow-xs">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex justify-between items-center h-16">
+        <!-- Logo y Marca -->
+        <div class="flex items-center gap-3">
+          <img src="assets/img/logo.png" alt="Novaprint Logo" class="w-10 h-10 rounded-xl object-contain shadow-xs border border-gray-100">
+          <div>
+            <h1 class="text-xl font-black text-gray-900 tracking-tight flex items-center gap-2">
+              NOVAPRINT
+              <span class="text-[10px] bg-blue-100 text-blue-700 font-bold px-2 py-0.5 rounded-full uppercase tracking-wider">Taller & Ventas</span>
+            </h1>
+            <p class="text-xs text-gray-500 hidden sm:block">Poleras • Polerones • Buzos • Gorras</p>
+          </div>
         </div>
-      </a>
 
-      <!-- Navegación de Escritorio -->
-      <nav class="hidden md:flex items-center gap-5 text-sm font-medium text-slate-600 dark:text-slate-300">
-        <a href="#resumen" class="nav-link hover:text-blue-600 dark:hover:text-blue-400 transition-colors" data-i18n="nav_summary">Resumen 30s</a>
-        <a href="#pilares"
-          class="nav-link hover:text-blue-600 dark:hover:text-blue-400 transition-colors" data-i18n="nav_pillars">Especialidad</a>
-        <a href="#proyectos" class="nav-link hover:text-blue-600 dark:hover:text-blue-400 transition-colors" data-i18n="nav_projects_title">Casos de Éxito</a>
-        <a href="#skills" class="nav-link hover:text-blue-600 dark:hover:text-blue-400 transition-colors" data-i18n="nav_skills">Stack Técnico</a>
-        <a href="#trayectoria"
-          class="nav-link hover:text-blue-600 dark:hover:text-blue-400 transition-colors" data-i18n="nav_experience">Trayectoria</a>
-        <a href="#certificaciones"
-          class="nav-link hover:text-blue-600 dark:hover:text-blue-400 transition-colors" data-i18n="nav_certs">Formación</a>
-        <a href="#contacto" class="nav-link hover:text-blue-600 dark:hover:text-blue-400 transition-colors" data-i18n="nav_contact">Contacto</a>
+        <!-- Acciones Rápidas -->
+        <div class="flex items-center gap-2 sm:gap-3">
+          <button id="btn-new-order" type="button" class="inline-flex items-center gap-2 px-3.5 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs sm:text-sm font-bold rounded-lg shadow-sm transition-all">
+            <span>+ Nuevo Pedido</span>
+          </button>
+          <button id="btn-new-client" type="button" class="inline-flex items-center gap-2 px-3 py-2 bg-gray-100 hover:bg-gray-200 text-gray-800 text-xs sm:text-sm font-semibold rounded-lg transition-all hidden sm:inline-flex">
+            <span>+ Cliente</span>
+          </button>
+          <button id="btn-open-settings" type="button" class="p-2 text-gray-500 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-all" title="Ajustes y Respaldo">
+            ⚙️
+          </button>
+        </div>
+      </div>
+
+      <!-- Barra de Navegación por Módulos (Tabs) -->
+      <nav class="flex space-x-2 sm:space-x-4 border-t border-gray-100 overflow-x-auto py-1 scrollbar-none text-xs sm:text-sm font-medium">
+        <button class="nav-tab-btn py-2.5 px-3 border-b-2 border-blue-600 text-blue-600 font-bold whitespace-nowrap" data-view="orders">
+          📦 Ventas: Pedidos
+        </button>
+        <button class="nav-tab-btn py-2.5 px-3 border-b-2 border-transparent text-gray-500 hover:text-gray-900 whitespace-nowrap" data-view="clients">
+          👥 Ventas: Clientes
+        </button>
+        <button class="nav-tab-btn py-2.5 px-3 border-b-2 border-transparent text-gray-500 hover:text-gray-900 whitespace-nowrap" data-view="inventory">
+          🧵 Producción: Inventarios
+        </button>
+        <button class="nav-tab-btn py-2.5 px-3 border-b-2 border-transparent text-gray-500 hover:text-gray-900 whitespace-nowrap" data-view="purchases">
+          🛒 Compras de Insumos
+        </button>
+        <button class="nav-tab-btn py-2.5 px-3 border-b-2 border-transparent text-gray-500 hover:text-gray-900 whitespace-nowrap" data-view="suppliers">
+          🏭 Proveedores
+        </button>
+        <button class="nav-tab-btn py-2.5 px-3 border-b-2 border-transparent text-gray-500 hover:text-gray-900 whitespace-nowrap" data-view="fabrication">
+          ⚡ Control de Fabricación
+        </button>
       </nav>
-
-      <!-- Botones de Acción (Idioma, Tema & CV) -->
-      <div class="flex items-center gap-2 sm:gap-3">
-        <!-- Selector Idioma ES / EN -->
-        <button id="lang-toggle" type="button" aria-label="Cambiar idioma (Español / English)" title="Cambiar idioma"
-          class="px-2.5 py-1.5 rounded-xl text-xs font-bold text-slate-700 dark:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-800 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 border border-slate-200 dark:border-slate-700 flex items-center gap-1.5 cursor-pointer">
-          <i data-lucide="globe" class="w-3.5 h-3.5 text-blue-500"></i>
-          <span id="lang-toggle-text">EN</span>
-        </button>
-
-        <!-- Selector Modo Oscuro -->
-        <button id="theme-toggle" type="button" aria-label="Cambiar modo de tema"
-          class="p-2 rounded-xl text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-800 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer">
-          <i data-lucide="moon" class="w-5 h-5 hidden dark:block"></i>
-          <i data-lucide="sun" class="w-5 h-5 block dark:hidden"></i>
-        </button>
-
-        <!-- Botón Descarga / Imprimir CV -->
-        <button type="button"
-          class="btn-print-cv hidden sm:inline-flex items-center gap-2 px-4 py-2 text-xs md:text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 active:bg-blue-800 rounded-xl shadow-sm hover:shadow transition-all cursor-pointer">
-          <i data-lucide="download" class="w-4 h-4"></i>
-          <span data-i18n="nav_download_cv">Descargar CV</span>
-        </button>
-
-        <!-- Botón Menú Móvil -->
-        <button id="mobile-menu-btn" type="button" aria-label="Abrir menú" aria-expanded="false"
-          class="md:hidden p-2 rounded-xl text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-800 focus:outline-none">
-          <i data-lucide="menu" class="w-6 h-6"></i>
-        </button>
-      </div>
-    </div>
-
-    <!-- Menú Desplegable Móvil -->
-    <div id="mobile-menu"
-      class="hidden md:hidden border-b border-slate-200 dark:border-slate-800 bg-white/95 dark:bg-slate-900/95 backdrop-blur px-4 pt-2 pb-6 space-y-3">
-      <a href="#resumen"
-        class="mobile-nav-link block py-2 text-sm font-medium text-slate-700 dark:text-slate-300 hover:text-blue-600" data-i18n="nav_summary">⚡ Resumen en 30s</a>
-      <a href="#pilares"
-        class="mobile-nav-link block py-2 text-sm font-medium text-slate-700 dark:text-slate-300 hover:text-blue-600" data-i18n="nav_pillars">Especialidad</a>
-      <a href="#proyectos"
-        class="mobile-nav-link block py-2 text-sm font-medium text-slate-700 dark:text-slate-300 hover:text-blue-600" data-i18n="nav_projects_title">Casos de Éxito</a>
-      <a href="#skills"
-        class="mobile-nav-link block py-2 text-sm font-medium text-slate-700 dark:text-slate-300 hover:text-blue-600" data-i18n="nav_skills">Stack Técnico</a>
-      <a href="#trayectoria"
-        class="mobile-nav-link block py-2 text-sm font-medium text-slate-700 dark:text-slate-300 hover:text-blue-600" data-i18n="nav_experience">Trayectoria</a>
-      <a href="#certificaciones"
-        class="mobile-nav-link block py-2 text-sm font-medium text-slate-700 dark:text-slate-300 hover:text-blue-600" data-i18n="nav_certs">Certificaciones</a>
-      <a href="#contacto"
-        class="mobile-nav-link block py-2 text-sm font-medium text-slate-700 dark:text-slate-300 hover:text-blue-600" data-i18n="nav_contact">Contacto</a>
-
-      <div class="pt-3 border-t border-slate-200 dark:border-slate-800 flex items-center gap-3">
-        <button id="lang-toggle-mobile" type="button" aria-label="Cambiar idioma (Español / English)"
-          class="inline-flex items-center justify-center gap-1.5 px-3 py-2 text-xs font-bold text-slate-700 dark:text-slate-200 bg-slate-100 dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shrink-0 cursor-pointer">
-          <i data-lucide="globe" class="w-4 h-4 text-blue-500"></i>
-          <span id="lang-toggle-mobile-text">EN</span>
-        </button>
-        <button type="button"
-          class="btn-print-cv inline-flex items-center gap-2 px-4 py-2 text-xs font-semibold text-white bg-blue-600 rounded-xl flex-1 justify-center cursor-pointer">
-          <i data-lucide="download" class="w-4 h-4"></i>
-          <span data-i18n="nav_download_pdf">Descargar CV en PDF</span>
-        </button>
-      </div>
     </div>
   </header>
 
-  <!-- =======================================================================
-       Contenido Principal
-       ======================================================================= -->
-  <main class="pt-24 max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 space-y-24">
+  <!-- CONTENIDO PRINCIPAL -->
+  <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
 
-    <!-- Hero Section -->
-    <section id="hero" class="pt-6 sm:pt-12 pb-8">
-      <div class="grid grid-cols-1 lg:grid-cols-12 gap-10 items-center">
+    <!-- ========================================== -->
+    <!-- VISTA 1: VENTAS — PEDIDOS                  -->
+    <!-- ========================================== -->
+    <section id="view-orders" class="view-panel active space-y-6">
 
-        <!-- Columna Izquierda: Presentación -->
-        <div class="lg:col-span-8">
-          <!-- Badges de Estado -->
-          <div class="flex flex-wrap items-center gap-2.5 mb-6">
-            <div
-              class="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-50 dark:bg-emerald-950/70 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/60">
-              <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-              <span id="bind-status" data-i18n="hero_status">Disponible para Proyectos & Consultoría TI</span>
-            </div>
-            <div
-              class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700">
-              <i data-lucide="map-pin" class="w-3.5 h-3.5 text-blue-500"></i>
-              <span id="bind-location">Santiago, Chile</span>
-            </div>
+      <!-- Tarjetas de Métricas Rápidas (KPIs) -->
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div class="bg-white p-4 rounded-xl border border-gray-200 shadow-xs flex items-center justify-between">
+          <div>
+            <div class="text-xs text-gray-500 font-bold uppercase tracking-wider">Activos en Taller</div>
+            <div id="metric-total-active" class="text-2xl font-black text-gray-900 mt-1">0</div>
           </div>
+          <div class="w-10 h-10 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center font-bold text-lg">👕</div>
+        </div>
 
-          <!-- Titulares Principales -->
-          <h1
-            class="text-3xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight text-slate-900 dark:text-white leading-[1.12] mb-6" data-i18n="hero_headline">
-            Más de 40 años optimizando recursos de TI y desarrollando soluciones de software empresarial.
-          </h1>
+        <div class="bg-white p-4 rounded-xl border border-gray-200 shadow-xs flex items-center justify-between">
+          <div>
+            <div class="text-xs text-amber-700 font-bold uppercase tracking-wider">Entrega Hoy / 24h</div>
+            <div id="metric-urgent-today" class="text-2xl font-black text-amber-600 mt-1">0</div>
+          </div>
+          <div class="w-10 h-10 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center font-bold text-lg">⏰</div>
+        </div>
 
-          <p class="bind-summary text-base sm:text-lg text-slate-600 dark:text-slate-300 leading-relaxed mb-8" data-i18n="hero_summary">
-            Profesional experto en Tecnología de Información con más de 40 años de sólida trayectoria liderando
-            operaciones de soporte técnico, administración de plataformas y desarrollo de sistemas empresariales.
-          </p>
+        <div class="bg-white p-4 rounded-xl border border-gray-200 shadow-xs flex items-center justify-between">
+          <div>
+            <div class="text-xs text-red-700 font-bold uppercase tracking-wider">Pedidos Atrasados</div>
+            <div id="metric-delayed" class="text-2xl font-black text-red-600 mt-1">0</div>
+          </div>
+          <div class="w-10 h-10 rounded-lg bg-red-50 text-red-600 flex items-center justify-center font-bold text-lg">🚨</div>
+        </div>
 
-          <!-- Botones CTA -->
-          <div class="flex flex-wrap items-center gap-3 mb-10">
-            <a href="#proyectos"
-              class="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white font-semibold text-sm shadow-md hover:shadow-lg transition-all">
-              <span data-i18n="cta_projects">Ver Casos de Éxito</span>
-              <i data-lucide="arrow-down" class="w-4 h-4"></i>
-            </a>
-            <a href="https://wa.me/56933395447" target="_blank" rel="noopener noreferrer"
-              class="inline-flex items-center gap-2 px-5 py-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-sm shadow-md transition-colors">
-              <i data-lucide="message-circle" class="w-4 h-4"></i>
-              <span data-i18n="cta_whatsapp">WhatsApp Directo</span>
-            </a>
-            <button type="button"
-              class="btn-copy-email inline-flex items-center gap-2 px-4 py-3 rounded-xl bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-200 font-semibold text-sm hover:bg-slate-50 dark:hover:bg-slate-750 transition-colors cursor-pointer">
-              <i data-lucide="copy" class="w-4 h-4 text-blue-500"></i>
-              <span data-i18n="cta_copy_email">Copiar Correo</span>
+        <div id="kpi-card-pending-balance" class="bg-white p-4 rounded-xl border border-gray-200 shadow-xs flex items-center justify-between cursor-pointer hover:border-emerald-400 hover:shadow-md transition-all" title="Clic para filtrar pedidos con saldo por cobrar">
+          <div>
+            <div class="text-xs text-gray-500 font-bold uppercase tracking-wider">Por Cobrar</div>
+            <div id="metric-pending-balance" class="text-xl font-black text-emerald-700 mt-1">$0</div>
+          </div>
+          <div class="w-10 h-10 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center font-bold text-lg">💰</div>
+        </div>
+      </div>
+
+      <!-- Barra de Filtros y Búsqueda -->
+      <div class="bg-white p-4 rounded-xl border border-gray-200 shadow-xs flex flex-col md:flex-row gap-3 items-center justify-between">
+        <div class="w-full md:w-80 relative">
+          <input id="orders-search-input" type="text" placeholder="Buscar por cliente, prenda, técnica..." class="w-full pl-9 pr-3 py-2 text-xs sm:text-sm bg-gray-50 border border-gray-300 rounded-lg focus:bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none">
+          <span class="absolute left-3 top-2.5 text-gray-400 text-xs">🔍</span>
+        </div>
+
+        <div class="flex flex-wrap items-center gap-2 w-full md:w-auto justify-end">
+          <!-- Botón Rápido Saldo por Cobrar (Spec 009) -->
+          <button id="btn-filter-balance" type="button" class="py-2 px-3 rounded-lg text-xs font-bold border border-emerald-300 bg-emerald-50 text-emerald-800 hover:bg-emerald-100 flex items-center gap-1.5 transition-all shadow-xs cursor-pointer" title="Ver todos los pedidos con saldo pendiente de pago">
+            <span>💰 Saldo por Cobrar</span>
+            <span id="badge-count-pending-balance" class="bg-emerald-200 text-emerald-900 text-[10px] px-1.5 py-0.5 rounded-full font-black">0</span>
+          </button>
+
+          <!-- Filtro de Estado -->
+          <select id="orders-status-filter" class="text-xs sm:text-sm py-2 px-3 bg-gray-50 border border-gray-300 rounded-lg focus:outline-none font-medium">
+            <option value="todos">Todos los Estados</option>
+            <option value="con_saldo">💰 Con Saldo por Cobrar</option>
+            <option value="Cotización">Cotizaciones</option>
+            <option value="Confirmado">Confirmados</option>
+            <option value="En producción">En producción</option>
+            <option value="Listo para entrega">Listos para entrega</option>
+            <option value="Entregado">Entregados</option>
+          </select>
+
+          <!-- Selector de Modo de Visualización -->
+          <div class="inline-flex rounded-lg border border-gray-200 p-0.5 bg-gray-100">
+            <button id="btn-mode-kanban" type="button" class="px-3 py-1.5 text-xs font-bold rounded-md bg-blue-600 text-white shadow-xs transition-all">
+              Semáforo
+            </button>
+            <button id="btn-mode-table" type="button" class="px-3 py-1.5 text-xs font-bold rounded-md bg-white text-gray-700 hover:text-gray-900 transition-all">
+              Tabla
             </button>
           </div>
-
-          <!-- Indicadores Numéricos / Métricas Rápidas -->
-          <div id="hero-metrics-container"
-            class="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-4 border-t border-slate-200 dark:border-slate-800">
-            <!-- Poblado dinámicamente desde data.js -->
-          </div>
         </div>
-
-        <!-- Columna Derecha: Tarjeta Ejecutiva de Perfil -->
-        <div class="lg:col-span-4">
-          <div
-            class="bg-gradient-to-b from-white to-slate-50 dark:from-slate-800 dark:to-slate-850 p-6 sm:p-7 rounded-3xl border border-slate-200 dark:border-slate-700 shadow-xl relative overflow-hidden">
-            <div class="absolute -top-12 -right-12 w-32 h-32 bg-blue-500/10 rounded-full blur-2xl pointer-events-none">
-            </div>
-
-            <div class="flex items-center gap-4 sm:gap-5 mb-5">
-              <div
-                class="relative w-24 h-24 sm:w-28 sm:h-28 rounded-2xl overflow-hidden ring-4 ring-blue-500/20 dark:ring-blue-400/30 shadow-lg shrink-0 flex items-center justify-center bg-gradient-to-tr from-blue-600 to-indigo-600 group">
-                <img src="assets/img/foto-perfil.png?v=20260920" alt="Andres Aguiar - Analista de Sistemas"
-                  fetchpriority="high" width="354" height="472"
-                  class="bind-photo w-full h-full object-cover object-top absolute inset-0 z-10 transition-transform duration-300 group-hover:scale-105"
-                  onerror="this.style.display='none'">
-                <span class="font-bold text-2xl text-white select-none">AA</span>
-              </div>
-              <div class="min-w-0">
-                <div
-                  class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-50 dark:bg-emerald-950/70 text-emerald-700 dark:text-emerald-300 border border-emerald-200/80 dark:border-emerald-800/60 mb-1.5">
-                  <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
-                  <span data-i18n="cta_profile_badge">Perfil Oficial</span>
-                </div>
-                <h3 class="font-extrabold text-lg sm:text-xl text-slate-900 dark:text-white leading-tight truncate">
-                  Andres Aguiar</h3>
-                <p class="text-xs font-semibold text-blue-600 dark:text-blue-400" data-i18n="nav_tagline">Analista de Sistemas</p>
-                <p class="text-xs text-slate-500 dark:text-slate-400 flex items-center gap-1 mt-0.5">
-                  <i data-lucide="map-pin" class="w-3.5 h-3.5 text-slate-400 shrink-0"></i>
-                  <span class="truncate">Santiago, Chile</span>
-                </p>
-              </div>
-            </div>
-
-            <div
-              class="space-y-3 text-xs text-slate-600 dark:text-slate-300 border-t border-slate-200/80 dark:border-slate-700/80 pt-4 mb-5">
-              <div class="flex items-center justify-between">
-                <span class="text-slate-500" data-i18n="profile_label_grad">Graduación:</span>
-                <span class="font-bold text-amber-600 dark:text-amber-400" data-i18n="profile_val_grad">1° en Promoción UCLA</span>
-              </div>
-              <div class="flex items-center justify-between">
-                <span class="text-slate-500" data-i18n="profile_label_spec">Especialidad:</span>
-                <span class="font-semibold text-slate-800 dark:text-slate-200" data-i18n="profile_val_spec">Gestión TI, Web, Python & Cripto</span>
-              </div>
-              <div class="flex items-center justify-between">
-                <span class="text-slate-500" data-i18n="profile_label_phone">Teléfono:</span>
-                <a href="tel:+56933395447" class="font-bold text-blue-600 dark:text-blue-400 hover:underline">+56 9 3339
-                  5447</a>
-              </div>
-            </div>
-
-            <div class="space-y-2 pt-2 border-t border-slate-200/80 dark:border-slate-700/80">
-              <button type="button"
-                class="btn-print-cv w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs shadow transition-all cursor-pointer">
-                <i data-lucide="download" class="w-4 h-4"></i>
-                <span data-i18n="cta_download_cv">Descargar Curriculum en PDF</span>
-              </button>
-              <a href="https://www.linkedin.com/in/andres-aguiar-b4824395" target="_blank" rel="noopener noreferrer"
-                class="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 font-semibold text-xs transition-all cursor-pointer">
-                <i data-lucide="linkedin" class="w-4 h-4 text-blue-500"></i>
-                <span data-i18n="cta_view_linkedin">Ver Perfil en LinkedIn</span>
-              </a>
-            </div>
-          </div>
-        </div>
-
       </div>
+
+      <!-- VISTA KANBAN (SEMÁFORO DE URGENCIA) -->
+      <div id="orders-kanban-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <!-- Columna 1: Atrasados -->
+        <div class="bg-red-50/50 rounded-xl p-3 border border-red-200 flex flex-col gap-3">
+          <div class="flex justify-between items-center border-b border-red-200 pb-2">
+            <h3 class="text-xs font-black text-red-800 uppercase tracking-wider flex items-center gap-1.5">
+              <span>🚨 Atrasados</span>
+              <span id="count-atrasados" class="text-red-600 font-bold">(0)</span>
+            </h3>
+          </div>
+          <div id="col-atrasados" class="space-y-3 flex-1 overflow-y-auto max-h-[70vh]"></div>
+        </div>
+
+        <!-- Columna 2: Urgentes Hoy / Próximas 24h -->
+        <div class="bg-amber-50/50 rounded-xl p-3 border border-amber-200 flex flex-col gap-3">
+          <div class="flex justify-between items-center border-b border-amber-200 pb-2">
+            <h3 class="text-xs font-black text-amber-800 uppercase tracking-wider flex items-center gap-1.5">
+              <span>⏰ Hoy / Mañana</span>
+              <span id="count-urgentes" class="text-amber-600 font-bold">(0)</span>
+            </h3>
+          </div>
+          <div id="col-urgentes" class="space-y-3 flex-1 overflow-y-auto max-h-[70vh]"></div>
+        </div>
+
+        <!-- Columna 3: Esta Semana -->
+        <div class="bg-blue-50/50 rounded-xl p-3 border border-blue-200 flex flex-col gap-3">
+          <div class="flex justify-between items-center border-b border-blue-200 pb-2">
+            <h3 class="text-xs font-black text-blue-800 uppercase tracking-wider flex items-center gap-1.5">
+              <span>📅 Esta Semana</span>
+              <span id="count-semana" class="text-blue-600 font-bold">(0)</span>
+            </h3>
+          </div>
+          <div id="col-semana" class="space-y-3 flex-1 overflow-y-auto max-h-[70vh]"></div>
+        </div>
+
+        <!-- Columna 4: Listos / Entregados -->
+        <div class="bg-emerald-50/50 rounded-xl p-3 border border-emerald-200 flex flex-col gap-3">
+          <div class="flex justify-between items-center border-b border-emerald-200 pb-2">
+            <h3 class="text-xs font-black text-emerald-800 uppercase tracking-wider flex items-center gap-1.5">
+              <span>✅ Listos / Retiro</span>
+              <span id="count-listos" class="text-emerald-600 font-bold">(0)</span>
+            </h3>
+          </div>
+          <div id="col-listos" class="space-y-3 flex-1 overflow-y-auto max-h-[70vh]"></div>
+        </div>
+      </div>
+
+      <!-- VISTA TABULAR DE PEDIDOS -->
+      <div id="orders-table-container" class="hidden bg-white rounded-xl border border-gray-200 shadow-xs overflow-hidden">
+        <div class="overflow-x-auto">
+          <table class="w-full text-left border-collapse">
+            <thead>
+              <tr class="bg-gray-50 border-b border-gray-200 text-gray-500 uppercase text-[11px] font-bold tracking-wider">
+                <th class="py-3 px-3">N° Pedido</th>
+                <th class="py-3 px-3">Cliente</th>
+                <th class="py-3 px-3">F. Entrega</th>
+                <th class="py-3 px-3">Detalle Prendas</th>
+                <th class="py-3 px-3">Total / Saldo</th>
+                <th class="py-3 px-3">Estado</th>
+                <th class="py-3 px-3 text-right">Acciones</th>
+              </tr>
+            </thead>
+            <tbody id="orders-table-body" class="divide-y divide-gray-100"></tbody>
+          </table>
+        </div>
+      </div>
+
     </section>
 
-    <!-- =======================================================================
-         Resumen Ejecutivo en 30 Segundos & Tecnologías Principales
-         ======================================================================= -->
-    <section id="resumen" class="scroll-mt-20 space-y-8">
-      <!-- Contenedor del Elevator Pitch -->
-      <div id="executive-pitch-container"></div>
-
-      <!-- Insignias de Marcas Tecnológicas -->
-      <div class="pt-6 border-t border-slate-200/80 dark:border-slate-800">
-        <div class="flex items-center gap-2 mb-3">
-          <span class="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400" data-i18n="brand_tech_title">Ecosistema
-            Tecnológico Principal:</span>
-        </div>
-        <div id="brand-tech-container" class="flex flex-wrap gap-2.5"></div>
-      </div>
-    </section>
-
-    <!-- Pilares de Especialización (Core Pillars) -->
-    <section id="pilares" class="scroll-mt-20">
-      <div class="mb-10">
-        <div class="section-tag">
-          <i data-lucide="layers" class="w-3.5 h-3.5"></i>
-          <span data-i18n="tag_pillars">Áreas de dominio</span>
-        </div>
-        <h2 class="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-white mt-1" data-i18n="pillars_title">
-          Capacidades Centrales en TI
-        </h2>
-        <p class="text-sm sm:text-base text-slate-600 dark:text-slate-400 mt-2 max-w-2xl" data-i18n="pillars_subtitle">
-          Alineación precisa entre visión estratégica y ejecución técnica para garantizar proyectos sin desvíos y con
-          alta adopción de usuario.
-        </p>
-      </div>
-
-      <div id="pillars-container" class="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <!-- Se llena dinámicamente con data.js -->
-      </div>
-    </section>
-
-    <!-- =======================================================================
-         Buscador Global & Filtros en Tiempo Real
-         ======================================================================= -->
-    <section id="search-section" class="scroll-mt-20 print:hidden" aria-label="Buscador del Portfolio">
-      <div class="p-5 sm:p-6 rounded-3xl bg-white dark:bg-slate-800/90 border border-slate-200 dark:border-slate-700 shadow-sm">
-        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-3">
-          <div class="flex items-center gap-2.5">
-            <div class="w-9 h-9 rounded-xl bg-blue-100 dark:bg-blue-900/40 text-blue-600 dark:text-blue-400 flex items-center justify-center shrink-0">
-              <i data-lucide="search" class="w-5 h-5"></i>
-            </div>
-            <div>
-              <h2 class="text-base sm:text-lg font-bold text-slate-900 dark:text-white leading-tight" data-i18n="search_title">Explorar Portfolio en Tiempo Real</h2>
-              <p class="text-xs text-slate-500 dark:text-slate-400" data-i18n="search_subtitle">Filtra habilidades, proyectos STAR y experiencia profesional al instante</p>
-            </div>
-          </div>
-          <!-- Contador dinámico de resultados -->
-          <div id="search-results-counter" class="hidden text-xs font-semibold px-3 py-1.5 rounded-full bg-blue-50 dark:bg-blue-950/70 text-blue-700 dark:text-blue-300 border border-blue-200/80 dark:border-blue-800/60 self-start sm:self-auto items-center gap-1.5">
-            <span class="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse"></span>
-            <span id="search-counter-text">0 coincidencias</span>
-          </div>
+    <!-- ========================================== -->
+    <!-- VISTA 2: VENTAS — CLIENTES                 -->
+    <!-- ========================================== -->
+    <section id="view-clients" class="view-panel space-y-6">
+      <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white p-4 rounded-xl border border-gray-200 shadow-xs">
+        <div>
+          <h2 class="text-lg font-black text-gray-900">Directorio de Clientes</h2>
+          <p class="text-xs text-gray-500">Administra tus clientes, historial de pedidos y contactos para WhatsApp</p>
         </div>
 
-        <!-- Campo de entrada con botón de limpieza -->
-        <div class="relative">
-          <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400 dark:text-slate-500">
-            <i data-lucide="search" class="w-4 h-4"></i>
-          </div>
-          <input
-            type="text"
-            id="global-search-input"
-            class="w-full pl-10 pr-10 py-3 rounded-xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all shadow-inner"
-            placeholder="Buscar por tecnología, empresa, metodología o rol (ej: Python, SQL, IA, Saint, Alcasa, Soporte)..."
-            aria-label="Buscar en todo el portfolio"
-            autocomplete="off"
-            spellcheck="false"
-            data-i18n-placeholder="search_placeholder"
-            data-i18n-aria-label="search_aria_label"
-          >
-          <button
-            type="button"
-            id="btn-clear-search"
-            class="hidden absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors focus:outline-none cursor-pointer"
-            aria-label="Limpiar búsqueda"
-            title="Limpiar búsqueda"
-            data-i18n-title="search_clear_title"
-          >
-            <i data-lucide="x-circle" class="w-5 h-5"></i>
+        <div class="flex gap-2 w-full sm:w-auto">
+          <input id="clients-search-input" type="text" placeholder="Buscar por nombre, RUT, teléfono..." class="w-full sm:w-64 px-3 py-2 text-xs bg-gray-50 border border-gray-300 rounded-lg focus:outline-none focus:bg-white">
+          <button type="button" class="px-3.5 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-lg shadow-xs whitespace-nowrap" onclick="NovaprintUI.abrirModalNuevoCliente()">
+            + Nuevo Cliente
           </button>
         </div>
+      </div>
 
-        <!-- Sugerencias rápidas tipo chip -->
-        <div class="mt-3.5 flex flex-wrap items-center gap-1.5 text-xs text-slate-500 dark:text-slate-400">
-          <span class="font-medium mr-1 flex items-center gap-1">
-            <i data-lucide="sparkles" class="w-3.5 h-3.5 text-blue-500"></i>
-            <span data-i18n="search_suggestions_label">Sugerencias rápidas:</span>
-          </span>
-          <button type="button" class="search-suggestion-chip px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-blue-50 dark:bg-slate-750 dark:hover:bg-blue-950/50 text-slate-700 hover:text-blue-600 dark:text-slate-300 dark:hover:text-blue-400 border border-slate-200 dark:border-slate-700 transition-colors cursor-pointer" data-term="Python">Python</button>
-          <button type="button" class="search-suggestion-chip px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-blue-50 dark:bg-slate-750 dark:hover:bg-blue-950/50 text-slate-700 hover:text-blue-600 dark:text-slate-300 dark:hover:text-blue-400 border border-slate-200 dark:border-slate-700 transition-colors cursor-pointer" data-term="SQL">SQL Server</button>
-          <button type="button" class="search-suggestion-chip px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-blue-50 dark:bg-slate-750 dark:hover:bg-blue-950/50 text-slate-700 hover:text-blue-600 dark:text-slate-300 dark:hover:text-blue-400 border border-slate-200 dark:border-slate-700 transition-colors cursor-pointer" data-term="IA">Inteligencia Artificial</button>
-          <button type="button" class="search-suggestion-chip px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-blue-50 dark:bg-slate-750 dark:hover:bg-blue-950/50 text-slate-700 hover:text-blue-600 dark:text-slate-300 dark:hover:text-blue-400 border border-slate-200 dark:border-slate-700 transition-colors cursor-pointer" data-term="Saint">Saint ERP</button>
-          <button type="button" class="search-suggestion-chip px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-blue-50 dark:bg-slate-750 dark:hover:bg-blue-950/50 text-slate-700 hover:text-blue-600 dark:text-slate-300 dark:hover:text-blue-400 border border-slate-200 dark:border-slate-700 transition-colors cursor-pointer" data-term="Alcasa">CVG ALCASA</button>
-          <button type="button" class="search-suggestion-chip px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-blue-50 dark:bg-slate-750 dark:hover:bg-blue-950/50 text-slate-700 hover:text-blue-600 dark:text-slate-300 dark:hover:text-blue-400 border border-slate-200 dark:border-slate-700 transition-colors cursor-pointer" data-term="Soporte">Soporte Técnico</button>
+      <div id="clients-grid-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"></div>
+    </section>
+
+    <!-- ========================================== -->
+    <!-- VISTA 3: PRODUCCIÓN — INVENTARIOS           -->
+    <!-- ========================================== -->
+    <section id="view-inventory" class="view-panel space-y-6">
+      <!-- Métricas de Inventario -->
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div class="bg-white p-4 rounded-xl border border-gray-200 shadow-xs flex items-center justify-between">
+          <div>
+            <div class="text-xs text-gray-500 font-bold uppercase tracking-wider">Artículos Registrados</div>
+            <div id="metric-inv-total-items" class="text-2xl font-black text-gray-900 mt-1">0</div>
+          </div>
+          <div class="w-10 h-10 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center font-bold text-lg">📦</div>
+        </div>
+
+        <div class="bg-white p-4 rounded-xl border border-gray-200 shadow-xs flex items-center justify-between">
+          <div>
+            <div class="text-xs text-gray-500 font-bold uppercase tracking-wider">Total Unidades en Stock</div>
+            <div id="metric-inv-total-units" class="text-2xl font-black text-gray-800 mt-1">0 un.</div>
+          </div>
+          <div class="w-10 h-10 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center font-bold text-lg">👕</div>
+        </div>
+
+        <div class="bg-white p-4 rounded-xl border border-gray-200 shadow-xs flex items-center justify-between">
+          <div>
+            <div class="text-xs text-red-700 font-bold uppercase tracking-wider">Stock Crítico / Bajo</div>
+            <div id="metric-inv-critical" class="text-2xl font-black text-red-600 mt-1">0</div>
+          </div>
+          <div class="w-10 h-10 rounded-lg bg-red-50 text-red-600 flex items-center justify-center font-bold text-lg">🚨</div>
+        </div>
+
+        <div class="bg-white p-4 rounded-xl border border-gray-200 shadow-xs flex items-center justify-between">
+          <div>
+            <div class="text-xs text-gray-500 font-bold uppercase tracking-wider">Valorización de Stock</div>
+            <div id="metric-inv-total-value" class="text-xl font-black text-emerald-700 mt-1">$0</div>
+          </div>
+          <div class="w-10 h-10 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center font-bold text-lg">💵</div>
         </div>
       </div>
 
-      <!-- Estado de cero resultados -->
-      <div id="search-empty-state" class="hidden mt-6 p-8 rounded-3xl bg-white dark:bg-slate-800/90 border border-dashed border-slate-300 dark:border-slate-700 text-center">
-        <div class="w-14 h-14 rounded-2xl bg-amber-50 dark:bg-amber-950/50 text-amber-600 dark:text-amber-400 flex items-center justify-center mx-auto mb-4">
-          <i data-lucide="search-x" class="w-7 h-7"></i>
+      <!-- Barra de Filtros y Búsqueda de Inventario -->
+      <div class="bg-white p-4 rounded-xl border border-gray-200 shadow-xs flex flex-col md:flex-row gap-3 items-center justify-between">
+        <div class="flex-1 flex flex-col sm:flex-row gap-2 w-full">
+          <div class="relative flex-1">
+            <input id="inventory-search-input" type="text" placeholder="Buscar por código, prenda, insumo o proveedor..." class="w-full pl-9 pr-3 py-2 text-xs sm:text-sm bg-gray-50 border border-gray-300 rounded-lg focus:outline-none focus:bg-white">
+            <span class="absolute left-3 top-2.5 text-gray-400 text-xs">🔍</span>
+          </div>
+
+          <select id="inventory-category-filter" class="text-xs sm:text-sm py-2 px-3 bg-gray-50 border border-gray-300 rounded-lg font-medium">
+            <option value="todos">Todas las Categorías</option>
+            <option value="Prendas Lisas">Prendas Lisas (Poleras/Polerones)</option>
+            <option value="Gorras en Blanco">Gorras en Blanco</option>
+            <option value="Insumos DTF">Insumos DTF (Film/Poliamida)</option>
+            <option value="Insumos Serigrafía">Insumos Serigrafía</option>
+            <option value="Vinilo Textil">Vinilo Textil</option>
+            <option value="Hilos y Accesorios">Hilos y Accesorios</option>
+          </select>
         </div>
-        <h3 class="text-lg font-bold text-slate-900 dark:text-white mb-2"><span data-i18n="search_empty_title_prefix">No se encontraron coincidencias para</span> "<span id="search-empty-query" class="text-blue-600 dark:text-blue-400 font-semibold"></span>"</h3>
-        <p class="text-sm text-slate-600 dark:text-slate-400 max-w-md mx-auto mb-6" data-i18n="search_empty_desc">
-          Intenta verificar la ortografía o explorar mediante las sugerencias de tecnologías y áreas más consultadas:
-        </p>
-        <div class="flex flex-wrap items-center justify-center gap-2 mb-6">
-          <button type="button" class="search-suggestion-chip px-3 py-1.5 rounded-lg bg-slate-100 hover:bg-blue-50 dark:bg-slate-700 dark:hover:bg-blue-900/40 text-slate-800 dark:text-slate-200 text-xs font-semibold border border-slate-200 dark:border-slate-600 transition-colors cursor-pointer" data-term="Python">Python</button>
-          <button type="button" class="search-suggestion-chip px-3 py-1.5 rounded-lg bg-slate-100 hover:bg-blue-50 dark:bg-slate-700 dark:hover:bg-blue-900/40 text-slate-800 dark:text-slate-200 text-xs font-semibold border border-slate-200 dark:border-slate-600 transition-colors cursor-pointer" data-term="SQL">SQL</button>
-          <button type="button" class="search-suggestion-chip px-3 py-1.5 rounded-lg bg-slate-100 hover:bg-blue-50 dark:bg-slate-700 dark:hover:bg-blue-900/40 text-slate-800 dark:text-slate-200 text-xs font-semibold border border-slate-200 dark:border-slate-600 transition-colors cursor-pointer" data-term="IA">Inteligencia Artificial</button>
-          <button type="button" class="search-suggestion-chip px-3 py-1.5 rounded-lg bg-slate-100 hover:bg-blue-50 dark:bg-slate-700 dark:hover:bg-blue-900/40 text-slate-800 dark:text-slate-200 text-xs font-semibold border border-slate-200 dark:border-slate-600 transition-colors cursor-pointer" data-term="Saint">Saint ERP</button>
-          <button type="button" class="search-suggestion-chip px-3 py-1.5 rounded-lg bg-slate-100 hover:bg-blue-50 dark:bg-slate-700 dark:hover:bg-blue-900/40 text-slate-800 dark:text-slate-200 text-xs font-semibold border border-slate-200 dark:border-slate-600 transition-colors cursor-pointer" data-term="Soporte">Soporte TI</button>
+
+        <div class="flex items-center gap-3 w-full sm:w-auto justify-end">
+          <label class="flex items-center gap-1.5 text-xs font-semibold text-red-700 cursor-pointer select-none">
+            <input type="checkbox" id="inventory-critical-only" class="rounded text-red-600 focus:ring-red-500">
+            <span>🚨 Solo Stock Crítico</span>
+          </label>
+          <button id="btn-new-inventory-item" type="button" class="px-3.5 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-lg shadow-xs whitespace-nowrap">
+            + Nuevo Artículo
+          </button>
         </div>
-        <button type="button" id="btn-reset-empty-search" class="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white font-semibold text-xs shadow transition-all cursor-pointer">
-          <i data-lucide="rotate-ccw" class="w-4 h-4"></i>
-          <span data-i18n="search_empty_reset">Restablecer búsqueda y ver todo</span>
+      </div>
+
+      <!-- Tabla de Inventario -->
+      <div class="bg-white rounded-xl border border-gray-200 shadow-xs overflow-hidden">
+        <div class="overflow-x-auto">
+          <table class="w-full text-left border-collapse">
+            <thead>
+              <tr class="bg-gray-50 border-b border-gray-200 text-gray-500 uppercase text-[11px] font-bold tracking-wider">
+                <th class="py-3 px-3">Código</th>
+                <th class="py-3 px-3">Artículo / Detalle</th>
+                <th class="py-3 px-3">Stock Actual</th>
+                <th class="py-3 px-3">Alerta</th>
+                <th class="py-3 px-3">Costo Unit.</th>
+                <th class="py-3 px-3">Valor Total</th>
+                <th class="py-3 px-3 text-right">Acciones</th>
+              </tr>
+            </thead>
+            <tbody id="inventory-table-body" class="divide-y divide-gray-100"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========================================== -->
+    <!-- VISTA 4: PRODUCCIÓN — COMPRAS DE INSUMOS    -->
+    <!-- ========================================== -->
+    <section id="view-purchases" class="view-panel space-y-6">
+      <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white p-4 rounded-xl border border-gray-200 shadow-xs">
+        <div>
+          <h2 class="text-lg font-black text-gray-900">Control de Compras de Insumos & Textiles</h2>
+          <p class="text-xs text-gray-500">Registra tus compras a proveedores; el stock del inventario se incrementa automáticamente</p>
+        </div>
+
+        <button id="btn-new-purchase" type="button" class="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-lg shadow-xs whitespace-nowrap">
+          + Registrar Compra
         </button>
       </div>
+
+      <!-- Tabla de Compras -->
+      <div class="bg-white rounded-xl border border-gray-200 shadow-xs overflow-hidden">
+        <div class="overflow-x-auto">
+          <table class="w-full text-left border-collapse">
+            <thead>
+              <tr class="bg-gray-50 border-b border-gray-200 text-gray-500 uppercase text-[11px] font-bold tracking-wider">
+                <th class="py-3 px-3">N° Compra</th>
+                <th class="py-3 px-3">Proveedor</th>
+                <th class="py-3 px-3">Factura/Boleta</th>
+                <th class="py-3 px-3">Fecha</th>
+                <th class="py-3 px-3">Detalle Insumos</th>
+                <th class="py-3 px-3">Total Compra</th>
+              </tr>
+            </thead>
+            <tbody id="purchases-table-body" class="divide-y divide-gray-100"></tbody>
+          </table>
+        </div>
+      </div>
     </section>
 
-    <!-- Casos de Estudio & Proyectos Destacados -->
-    <section id="proyectos" class="scroll-mt-20">
-      <div class="flex flex-col sm:flex-row sm:items-end justify-between mb-10 gap-4">
+    <!-- ========================================== -->
+    <!-- VISTA 5: PRODUCCIÓN — PROVEEDORES           -->
+    <!-- ========================================== -->
+    <section id="view-suppliers" class="view-panel space-y-6">
+      <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white p-4 rounded-xl border border-gray-200 shadow-xs">
         <div>
-          <div class="section-tag">
-            <i data-lucide="folder-git-2" class="w-3.5 h-3.5"></i>
-            <span data-i18n="tag_projects">Casos de estudio</span>
-          </div>
-          <h2 class="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-white mt-1" data-i18n="projects_title">
-            Proyectos de Arquitectura & Software
-          </h2>
-          <p class="text-sm sm:text-base text-slate-600 dark:text-slate-400 mt-2 max-w-2xl" data-i18n="projects_subtitle">
-            Cada caso aborda el desafío bajo el enfoque STAR: Situación, Tarea técnica, Acción de análisis y Resultados
-            medibles.
-          </p>
+          <h2 class="text-lg font-black text-gray-900">Directorio de Proveedores & Distribuidores</h2>
+          <p class="text-xs text-gray-500">Proveedores mayoristas de confección textil, insumos DTF, vinilos y gorras</p>
         </div>
-        <div
-          class="text-xs text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-800/80 px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 self-start sm:self-auto" data-i18n="projects_hint">
-          💡 Haz clic en cualquier proyecto para ver el análisis completo
+
+        <div class="flex gap-2 w-full sm:w-auto">
+          <input id="suppliers-search-input" type="text" placeholder="Buscar proveedor por nombre o contacto..." class="w-full sm:w-64 px-3 py-2 text-xs bg-gray-50 border border-gray-300 rounded-lg focus:outline-none focus:bg-white">
+          <select id="suppliers-category-filter" class="text-xs py-2 px-3 bg-gray-50 border border-gray-300 rounded-lg font-medium">
+            <option value="todos">Todos los Rubros</option>
+            <option value="Prendas Lisas">Prendas Lisas</option>
+            <option value="Insumos DTF">Insumos DTF</option>
+            <option value="Gorras en Blanco">Gorras en Blanco</option>
+            <option value="Vinilo Textil">Vinilo Textil</option>
+          </select>
+          <button id="btn-new-supplier" type="button" class="px-3.5 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-lg shadow-xs whitespace-nowrap">
+            + Nuevo Proveedor
+          </button>
         </div>
       </div>
 
-      <!-- Filtro Inteligente por Rol / Especialidad -->
-      <div id="project-filters-container"
-        class="mb-8 p-3.5 rounded-2xl bg-slate-100/70 dark:bg-slate-850/60 border border-slate-200 dark:border-slate-700/80">
-      </div>
-
-      <div id="projects-container" class="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <!-- Se llena dinámicamente con data.js -->
-      </div>
+      <div id="suppliers-grid-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"></div>
     </section>
 
-    <!-- Habilidades Técnicas & Herramientas -->
-    <section id="skills" class="scroll-mt-20">
-      <div class="mb-10">
-        <div class="section-tag">
-          <i data-lucide="cpu" class="w-3.5 h-3.5"></i>
-          <span data-i18n="tag_skills">Herramientas y tecnologías</span>
-        </div>
-        <h2 class="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-white mt-1" data-i18n="skills_title">
-          Stack de Análisis & Gestión TI
-        </h2>
-        <p class="text-sm sm:text-base text-slate-600 dark:text-slate-400 mt-2 max-w-2xl" data-i18n="skills_subtitle">
-          Dominio de frameworks de trabajo, lenguajes de consulta, herramientas de modelado y protocolos de integración.
-        </p>
-      </div>
-
-      <div id="skills-container" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-        <!-- Se llena dinámicamente con data.js -->
-      </div>
-    </section>
-
-    <!-- Trayectoria Profesional (Timeline) -->
-    <section id="trayectoria" class="scroll-mt-20">
-      <div class="mb-10">
-        <div class="section-tag">
-          <i data-lucide="briefcase" class="w-3.5 h-3.5"></i>
-          <span data-i18n="tag_experience">Trayectoria profesional</span>
-        </div>
-        <h2 class="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-white mt-1" data-i18n="experience_title">
-          Evolución & Liderazgo en TI
-        </h2>
-        <p class="text-sm sm:text-base text-slate-600 dark:text-slate-400 mt-2 max-w-2xl" data-i18n="experience_subtitle">
-          Evolución de responsabilidades, proyectos gestionados y resultados en entornos de TI y consultoría.
-        </p>
-      </div>
-
-      <div class="relative">
-        <div id="experience-container" class="space-y-6">
-          <!-- Se llena dinámicamente con data.js -->
-        </div>
-      </div>
-    </section>
-
-    <!-- Certificaciones & Educación -->
-    <section id="certificaciones" class="scroll-mt-20">
-      <div class="mb-10">
-        <div class="section-tag">
-          <i data-lucide="award" class="w-3.5 h-3.5"></i>
-          <span data-i18n="tag_certs">Validación continua</span>
-        </div>
-        <h2 class="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-white mt-1" data-i18n="certs_title">
-          Certificaciones & Educación
-        </h2>
-        <p class="text-sm sm:text-base text-slate-600 dark:text-slate-400 mt-2 max-w-2xl" data-i18n="certs_subtitle">
-          Cursos recientes, certificaciones oficiales y especializaciones en Inteligencia Artificial, desarrollo web y programación moderna que avalan una actualización técnica continua.
-        </p>
-      </div>
-
-      <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        <div>
-          <h3 class="text-lg font-bold text-slate-900 dark:text-white mb-4 flex items-center gap-2">
-            <i data-lucide="award" class="w-5 h-5 text-blue-500"></i>
-            <span data-i18n="certs_courses_title">Cursos Realizados & Certificaciones</span>
-          </h3>
-          <div id="certs-container" class="space-y-3">
-            <!-- Se llena dinámicamente con data.js -->
+    <!-- ========================================== -->
+    <!-- VISTA 6: PRODUCCIÓN — FABRICACIÓN EN TALLER -->
+    <!-- ========================================== -->
+    <section id="view-fabrication" class="view-panel space-y-6">
+      <!-- Métricas del Taller -->
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div class="bg-white p-4 rounded-xl border border-gray-200 shadow-xs flex items-center justify-between">
+          <div>
+            <div class="text-xs text-gray-500 font-bold uppercase tracking-wider">Lotes en Taller</div>
+            <div id="metric-fab-total" class="text-2xl font-black text-gray-900 mt-1">0</div>
           </div>
+          <div class="w-10 h-10 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center font-bold text-lg">⚡</div>
         </div>
 
-        <div>
-          <h3 class="text-lg font-bold text-slate-900 dark:text-white mb-4 flex items-center gap-2">
-            <i data-lucide="graduation-cap" class="w-5 h-5 text-blue-500"></i>
-            <span data-i18n="certs_academic_title">Formación Académica Universitaria</span>
-          </h3>
-          <div id="education-container" class="space-y-3">
-            <!-- Se llena dinámicamente con data.js -->
+        <div class="bg-white p-4 rounded-xl border border-gray-200 shadow-xs flex items-center justify-between">
+          <div>
+            <div class="text-xs text-blue-700 font-bold uppercase tracking-wider">En Diseño / Vector</div>
+            <div id="metric-fab-design" class="text-2xl font-black text-blue-600 mt-1">0</div>
           </div>
+          <div class="w-10 h-10 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center font-bold text-lg">✏️</div>
+        </div>
+
+        <div class="bg-white p-4 rounded-xl border border-gray-200 shadow-xs flex items-center justify-between">
+          <div>
+            <div class="text-xs text-amber-700 font-bold uppercase tracking-wider">En Estampado / Plancha</div>
+            <div id="metric-fab-print" class="text-2xl font-black text-amber-600 mt-1">0</div>
+          </div>
+          <div class="w-10 h-10 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center font-bold text-lg">🔥</div>
+        </div>
+
+        <div class="bg-white p-4 rounded-xl border border-gray-200 shadow-xs flex items-center justify-between">
+          <div>
+            <div class="text-xs text-emerald-700 font-bold uppercase tracking-wider">Terminados / Listos</div>
+            <div id="metric-fab-finished" class="text-2xl font-black text-emerald-700 mt-1">0</div>
+          </div>
+          <div class="w-10 h-10 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center font-bold text-lg">✅</div>
         </div>
       </div>
-    </section>
 
-    <!-- Aptitudes, Idiomas & Intereses -->
-    <section id="aptitudes" class="scroll-mt-20">
-      <div class="mb-10">
-        <div class="section-tag">
-          <i data-lucide="user-check" class="w-3.5 h-3.5"></i>
-          <span data-i18n="tag_profile">Perfil integral</span>
-        </div>
-        <h2 class="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-white mt-1" data-i18n="aptitudes_title">
-          Aptitudes, Idiomas & Disciplina
-        </h2>
-        <p class="text-sm sm:text-base text-slate-600 dark:text-slate-400 mt-2 max-w-2xl" data-i18n="aptitudes_subtitle">
-          Competencias blandas, dominio de idiomas y disciplina personal que complementan más de cuatro décadas de
-          experiencia profesional.
-        </p>
-      </div>
-
-      <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        <!-- Aptitudes -->
-        <div class="space-y-4">
-          <h3 class="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
-            <i data-lucide="brain" class="w-5 h-5 text-indigo-500"></i>
-            <span data-i18n="aptitudes_soft_title">Aptitudes Personales</span>
-          </h3>
-          <div id="aptitudes-container" class="space-y-3">
-            <!-- Se llena dinámicamente con data.js -->
-          </div>
-        </div>
-
-        <!-- Idiomas -->
-        <div class="space-y-4">
-          <h3 class="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
-            <i data-lucide="languages" class="w-5 h-5 text-blue-500"></i>
-            <span data-i18n="aptitudes_lang_title">Idiomas</span>
-          </h3>
-          <div id="languages-container" class="space-y-3">
-            <!-- Se llena dinámicamente con data.js -->
-          </div>
-        </div>
-
-        <!-- Otros Intereses -->
-        <div class="space-y-4">
-          <h3 class="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
-            <i data-lucide="heart" class="w-5 h-5 text-rose-500"></i>
-            <span data-i18n="aptitudes_interest_title">Otros Intereses</span>
-          </h3>
-          <div id="interests-container" class="space-y-3">
-            <!-- Se llena dinámicamente con data.js -->
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <!-- Contacto & Formulario -->
-    <section id="contacto" class="scroll-mt-20 pb-16">
-      <div
-        class="bg-gradient-to-br from-blue-50 to-indigo-50/50 dark:from-slate-800/60 dark:to-slate-900/80 rounded-3xl p-8 sm:p-12 border border-blue-100 dark:border-slate-700/80 shadow-sm">
-        <div class="grid grid-cols-1 lg:grid-cols-12 gap-10 items-start">
-
-          <!-- Información y Canales Directos -->
-          <div class="lg:col-span-5 space-y-6">
-            <div>
-              <span class="text-xs font-bold uppercase tracking-widest text-blue-600 dark:text-blue-400" data-i18n="contact_channels_tag">Canales
-                Directos</span>
-              <h2 class="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-white mt-1" data-i18n="contact_title">
-                ¿Conversamos sobre tu próximo proyecto TI?
-              </h2>
-              <p class="text-sm text-slate-600 dark:text-slate-300 mt-3 leading-relaxed" data-i18n="contact_desc">
-                Disponible para proyectos de análisis de sistemas, consultoría de soporte técnico, integraciones con
-                Python / SQL y optimización de recursos tecnológicos.
-              </p>
-            </div>
-
-            <div class="space-y-4 pt-2">
-              <!-- Teléfono / WhatsApp Directo -->
-              <div class="flex items-center gap-3 text-sm text-slate-700 dark:text-slate-300">
-                <div
-                  class="w-10 h-10 rounded-xl bg-white dark:bg-slate-800 flex items-center justify-center text-emerald-600 dark:text-emerald-400 shadow-sm border border-slate-200 dark:border-slate-700">
-                  <i data-lucide="phone" class="w-5 h-5"></i>
-                </div>
-                <div>
-                  <div class="text-xs text-slate-500 dark:text-slate-400 font-medium" data-i18n="contact_phone_label">Teléfono / WhatsApp</div>
-                  <a href="https://wa.me/56933395447" target="_blank" rel="noopener noreferrer"
-                    class="bind-phone font-semibold hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors">
-                    +56 9 3339 5447
-                  </a>
-                </div>
-              </div>
-
-              <!-- Correo Electrónico -->
-              <div class="flex items-center gap-3 text-sm text-slate-700 dark:text-slate-300">
-                <div
-                  class="w-10 h-10 rounded-xl bg-white dark:bg-slate-800 flex items-center justify-center text-blue-600 dark:text-blue-400 shadow-sm border border-slate-200 dark:border-slate-700">
-                  <i data-lucide="mail" class="w-5 h-5"></i>
-                </div>
-                <div>
-                  <div class="text-xs text-slate-500 dark:text-slate-400 font-medium" data-i18n="contact_email_label">Correo Electrónico</div>
-                  <a href="mailto:andres.aguiar.marmol@gmail.com"
-                    class="bind-email font-semibold hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
-                    andres.aguiar.marmol@gmail.com
-                  </a>
-                </div>
-              </div>
-
-              <!-- LinkedIn -->
-              <div class="flex items-center gap-3 text-sm text-slate-700 dark:text-slate-300">
-                <div
-                  class="w-10 h-10 rounded-xl bg-white dark:bg-slate-800 flex items-center justify-center text-blue-600 dark:text-blue-400 shadow-sm border border-slate-200 dark:border-slate-700">
-                  <i data-lucide="linkedin" class="w-5 h-5"></i>
-                </div>
-                <div>
-                  <div class="text-xs text-slate-500 dark:text-slate-400 font-medium" data-i18n="contact_linkedin_label">Red Profesional</div>
-                  <a href="https://www.linkedin.com/in/andres-aguiar-b4824395" target="_blank" rel="noopener noreferrer"
-                    class="bind-linkedin font-semibold hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
-                    linkedin.com/in/andres-aguiar-b4824395
-                  </a>
-                </div>
-              </div>
-
-              <!-- Ubicación -->
-              <div class="flex items-center gap-3 text-sm text-slate-700 dark:text-slate-300">
-                <div
-                  class="w-10 h-10 rounded-xl bg-white dark:bg-slate-800 flex items-center justify-center text-blue-600 dark:text-blue-400 shadow-sm border border-slate-200 dark:border-slate-700">
-                  <i data-lucide="map-pin" class="w-5 h-5"></i>
-                </div>
-                <div>
-                  <div class="text-xs text-slate-500 dark:text-slate-400 font-medium" data-i18n="contact_location_label">Ubicación Actual</div>
-                  <span class="font-semibold text-slate-800 dark:text-slate-200">Santiago, Chile</span>
-                </div>
-              </div>
-            </div>
-
-            <div class="pt-4 flex flex-wrap gap-3">
-              <button type="button"
-                class="btn-copy-email inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-semibold text-slate-700 dark:text-slate-300 hover:bg-slate-50 shadow-sm transition-all cursor-pointer">
-                <i data-lucide="copy" class="w-4 h-4 text-blue-500"></i>
-                <span data-i18n="contact_copy_btn">Copiar email con 1 clic</span>
-              </button>
-              <a href="https://wa.me/56933395447" target="_blank" rel="noopener noreferrer"
-                class="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold shadow-sm transition-all">
-                <i data-lucide="message-circle" class="w-4 h-4"></i>
-                <span data-i18n="contact_whatsapp_btn">Escribir por WhatsApp</span>
-              </a>
-            </div>
+      <!-- Barra de Filtros y Búsqueda de Fabricación -->
+      <div class="bg-white p-4 rounded-xl border border-gray-200 shadow-xs flex flex-col md:flex-row gap-3 items-center justify-between">
+        <div class="flex-1 flex flex-col sm:flex-row gap-2 w-full">
+          <div class="relative flex-1">
+            <input id="fabrication-search-input" type="text" placeholder="Buscar lote por cliente, código, prenda o técnica..." class="w-full pl-9 pr-3 py-2 text-xs sm:text-sm bg-gray-50 border border-gray-300 rounded-lg focus:outline-none focus:bg-white">
+            <span class="absolute left-3 top-2.5 text-gray-400 text-xs">🔍</span>
           </div>
 
-          <!-- Formulario de Contacto -->
-          <div
-            class="lg:col-span-7 bg-white dark:bg-slate-800/90 rounded-2xl p-6 sm:p-8 border border-slate-200 dark:border-slate-700 shadow-sm">
-            <h3 class="text-lg font-bold text-slate-900 dark:text-white mb-2" data-i18n="contact_form_title">Enviar Mensaje Rápido</h3>
-            <p class="text-xs text-slate-500 dark:text-slate-400 mb-6" data-i18n="contact_form_subtitle">
-              Te responderé a la brevedad dentro de las próximas 24 horas hábiles.
-            </p>
+          <select id="fabrication-stage-filter" class="text-xs sm:text-sm py-2 px-3 bg-gray-50 border border-gray-300 rounded-lg font-medium">
+            <option value="todos">Todas las Estaciones</option>
+            <option value="Diseño">1. Diseño / Vector</option>
+            <option value="Preparación">2. Preparación Prenda</option>
+            <option value="Estampado">3. Estampado / Plancha</option>
+            <option value="Control Calidad">4. Control de Calidad</option>
+            <option value="Terminado">5. Terminado & Empacado</option>
+          </select>
+        </div>
 
-            <form id="contact-form" class="space-y-4">
-              <div>
-                <label for="form-name" class="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1" data-i18n="contact_form_name">
-                  Nombre Completo / Empresa *
-                </label>
-                <input type="text" id="form-name" required placeholder="Ej: Lic. Martín Gómez / Grupo Consultor"
-                  class="w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all"
-                  data-i18n-placeholder="contact_form_name_placeholder">
-              </div>
+        <button id="btn-new-fabrication-project" type="button" class="px-3.5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-lg shadow-xs whitespace-nowrap">
+          + Nueva Orden de Taller
+        </button>
+      </div>
 
-              <div>
-                <label for="form-email" class="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1" data-i18n="contact_form_email">
-                  Correo Electrónico de Contacto *
-                </label>
-                <input type="email" id="form-email" required placeholder="nombre@empresa.com"
-                  class="w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all"
-                  data-i18n-placeholder="contact_form_email_placeholder">
-              </div>
-
-              <div>
-                <label for="form-message" class="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1" data-i18n="contact_form_message">
-                  Mensaje o Propuesta *
-                </label>
-                <textarea id="form-message" rows="4" required
-                  placeholder="Hola Andrés, nos gustaría coordinar una entrevista técnica o conversar sobre una vacante de Analista de Sistemas..."
-                  class="w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all"
-                  data-i18n-placeholder="contact_form_message_placeholder"></textarea>
-              </div>
-
-              <button type="submit"
-                class="w-full inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white font-semibold text-sm shadow transition-colors duration-200 cursor-pointer">
-                <i data-lucide="send" class="w-4 h-4"></i>
-                <span data-i18n="contact_form_submit">Enviar Mensaje</span>
-              </button>
-            </form>
+      <!-- Tablero Kanban de 5 Estaciones de Taller -->
+      <div class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-3.5">
+        <!-- Estación 1: Diseño -->
+        <div class="bg-slate-50 rounded-xl p-3 border border-slate-200 flex flex-col gap-3 min-h-[480px]">
+          <div class="border-b border-slate-200 pb-2">
+            <h3 class="text-xs font-black text-slate-800 uppercase tracking-wider flex items-center justify-between">
+              <span>✏️ 1. Diseño / Vector</span>
+              <span id="count-fab-diseno" class="text-slate-500 font-bold">(0)</span>
+            </h3>
           </div>
+          <div id="col-fab-diseno" class="space-y-3 flex-1 overflow-y-auto max-h-[70vh]"></div>
+        </div>
 
+        <!-- Estación 2: Preparación -->
+        <div class="bg-blue-50/60 rounded-xl p-3 border border-blue-200 flex flex-col gap-3 min-h-[480px]">
+          <div class="border-b border-blue-200 pb-2">
+            <h3 class="text-xs font-black text-blue-900 uppercase tracking-wider flex items-center justify-between">
+              <span>👕 2. Preparación</span>
+              <span id="count-fab-prep" class="text-blue-600 font-bold">(0)</span>
+            </h3>
+          </div>
+          <div id="col-fab-prep" class="space-y-3 flex-1 overflow-y-auto max-h-[70vh]"></div>
+        </div>
+
+        <!-- Estación 3: Estampado / Plancha -->
+        <div class="bg-amber-50/70 rounded-xl p-3 border border-amber-200 flex flex-col gap-3 min-h-[480px]">
+          <div class="border-b border-amber-200 pb-2">
+            <h3 class="text-xs font-black text-amber-900 uppercase tracking-wider flex items-center justify-between">
+              <span>🔥 3. Estampado</span>
+              <span id="count-fab-estampado" class="text-amber-600 font-bold">(0)</span>
+            </h3>
+          </div>
+          <div id="col-fab-estampado" class="space-y-3 flex-1 overflow-y-auto max-h-[70vh]"></div>
+        </div>
+
+        <!-- Estación 4: Control de Calidad -->
+        <div class="bg-purple-50/60 rounded-xl p-3 border border-purple-200 flex flex-col gap-3 min-h-[480px]">
+          <div class="border-b border-purple-200 pb-2">
+            <h3 class="text-xs font-black text-purple-900 uppercase tracking-wider flex items-center justify-between">
+              <span>🔍 4. Calidad</span>
+              <span id="count-fab-calidad" class="text-purple-600 font-bold">(0)</span>
+            </h3>
+          </div>
+          <div id="col-fab-calidad" class="space-y-3 flex-1 overflow-y-auto max-h-[70vh]"></div>
+        </div>
+
+        <!-- Estación 5: Terminado & Empacado -->
+        <div class="bg-emerald-50/60 rounded-xl p-3 border border-emerald-200 flex flex-col gap-3 min-h-[480px]">
+          <div class="border-b border-emerald-200 pb-2">
+            <h3 class="text-xs font-black text-emerald-900 uppercase tracking-wider flex items-center justify-between">
+              <span>📦 5. Terminado</span>
+              <span id="count-fab-terminado" class="text-emerald-600 font-bold">(0)</span>
+            </h3>
+          </div>
+          <div id="col-fab-terminado" class="space-y-3 flex-1 overflow-y-auto max-h-[70vh]"></div>
         </div>
       </div>
     </section>
 
   </main>
 
-  <!-- =======================================================================
-       Modal Nativo (<dialog closedby="any">) para Detalles de Proyectos
-       Cumple estrictamente con Modern Web Guidance: nativo, light-dismiss,
-       soporte de tecla Esc y accesibilidad mediante aria-labelledby.
-       ======================================================================= -->
-  <dialog id="project-modal" closedby="any" aria-labelledby="modal-title"
-    class="p-0 border-0 rounded-2xl bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 shadow-2xl backdrop:bg-slate-950/70 backdrop:backdrop-blur-sm">
-    <div class="relative max-h-[90vh] overflow-y-auto p-6 sm:p-8">
+  <!-- ========================================== -->
+  <!-- MODALES NATIVOS (<dialog>)                 -->
+  <!-- ========================================== -->
 
-      <!-- Botón de Cerrar Modal -->
-      <button id="modal-close-btn" type="button" aria-label="Cerrar modal"
-        class="absolute top-5 right-5 p-2 rounded-xl text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500">
-        <i data-lucide="x" class="w-5 h-5"></i>
-      </button>
-
-      <!-- Encabezado del Modal -->
-      <div class="flex items-center gap-2 mb-3">
-        <span id="modal-category"
-          class="text-xs font-semibold px-3 py-1 rounded-full bg-blue-100 dark:bg-blue-900/60 text-blue-700 dark:text-blue-300"></span>
-        <span id="modal-tag"
-          class="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-950/70 text-emerald-700 dark:text-emerald-300"></span>
+  <!-- 1. MODAL DE PEDIDO MULTI-PRENDA -->
+  <dialog id="dialog-order" class="w-full max-w-4xl p-0 bg-transparent">
+    <div class="bg-white rounded-2xl shadow-2xl border border-gray-200 overflow-hidden flex flex-col max-h-[92vh]">
+      <div class="px-6 py-4 bg-gray-50 border-b border-gray-200 flex justify-between items-center">
+        <div>
+          <h3 id="order-modal-title" class="text-lg font-black text-gray-900">Registrar Pedido de Estampado</h3>
+          <span id="order-id-display" class="font-mono text-xs font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded">Correlativo Automático</span>
+        </div>
+        <button type="button" class="text-gray-400 hover:text-gray-700 text-xl font-bold p-1" onclick="document.getElementById('dialog-order').close()">✕</button>
       </div>
 
-      <h2 id="modal-title"
-        class="text-xl sm:text-2xl font-extrabold text-slate-900 dark:text-white mb-4 pr-8 leading-snug"></h2>
-
-      <!-- Resumen de Impacto Destacado -->
-      <div
-        class="p-4 rounded-xl bg-blue-50/80 dark:bg-blue-950/40 border border-blue-200/80 dark:border-blue-900/50 mb-6">
-        <div class="text-xs font-bold uppercase tracking-wider text-blue-700 dark:text-blue-400 mb-1" data-i18n="modal_impact_title">Métrica de Impacto
-          Comprobada</div>
-        <div id="modal-impact" class="text-sm font-semibold text-slate-800 dark:text-slate-200"></div>
-      </div>
-
-      <!-- Sección Desafío / Problema -->
-      <div class="space-y-6">
-        <div>
-          <h3
-            class="text-sm font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-2 flex items-center gap-2">
-            <span class="w-2 h-2 rounded-full bg-rose-500"></span>
-            <span data-i18n="modal_problem_title">El Desafío / Situación Inicial</span>
-          </h3>
-          <p id="modal-problem"
-            class="text-sm text-slate-600 dark:text-slate-300 leading-relaxed bg-slate-50 dark:bg-slate-800/50 p-4 rounded-xl border border-slate-200/70 dark:border-slate-800">
-          </p>
+      <form id="form-order" class="p-6 overflow-y-auto space-y-5 flex-1">
+        <!-- Fila 1: Cliente y Fechas -->
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div class="sm:col-span-2">
+            <label class="block text-xs font-bold text-gray-700 uppercase mb-1">Cliente *</label>
+            <div class="flex gap-2">
+              <select id="order-client-select" required class="flex-1 p-2 bg-gray-50 border border-gray-300 rounded-lg text-xs font-medium focus:outline-none focus:bg-white"></select>
+              <button type="button" class="px-2.5 py-2 bg-gray-100 hover:bg-gray-200 text-xs font-bold text-gray-700 rounded-lg" onclick="NovaprintUI.abrirModalNuevoCliente()" title="Crear cliente rápido">+ Nuevo</button>
+            </div>
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-gray-700 uppercase mb-1">Fecha de Entrega Acordada *</label>
+            <input id="order-delivery-date" type="date" required class="w-full p-2 bg-gray-50 border border-gray-300 rounded-lg text-xs font-bold text-gray-800 focus:outline-none focus:bg-white">
+          </div>
         </div>
 
-        <!-- Acción y Análisis Realizado -->
-        <div>
-          <h3
-            class="text-sm font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-2 flex items-center gap-2">
-            <span class="w-2 h-2 rounded-full bg-blue-500"></span>
-            <span data-i18n="modal_action_title">Análisis, Arquitectura & Acciones Ejecutadas</span>
-          </h3>
-          <p id="modal-action"
-            class="text-sm text-slate-600 dark:text-slate-300 leading-relaxed bg-slate-50 dark:bg-slate-800/50 p-4 rounded-xl border border-slate-200/70 dark:border-slate-800">
-          </p>
+        <!-- Fila 2: Tabla Dinámica de Prendas y Estampados -->
+        <div class="border border-gray-200 rounded-xl p-4 bg-slate-50/60 space-y-3">
+          <div class="flex justify-between items-center">
+            <div>
+              <h4 class="text-xs font-black text-gray-900 uppercase tracking-wider">Detalle de Prendas & Técnicas</h4>
+              <p class="text-[11px] text-gray-500">Agrega poleras, polerones, buzos o gorras con su técnica respectiva</p>
+            </div>
+            <button id="btn-add-garment-item" type="button" class="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-lg shadow-xs">
+              + Agregar Prenda
+            </button>
+          </div>
+
+          <div class="overflow-x-auto bg-white rounded-lg border border-gray-200">
+            <table class="w-full text-left">
+              <thead>
+                <tr class="bg-gray-100 border-b border-gray-200 text-gray-600 uppercase text-[10px] font-bold">
+                  <th class="py-2 pr-1">Prenda</th>
+                  <th class="py-2 px-1">Color</th>
+                  <th class="py-2 px-1">Talla</th>
+                  <th class="py-2 px-1">Técnica</th>
+                  <th class="py-2 px-1">Ubicación</th>
+                  <th class="py-2 px-1 text-center">Cant.</th>
+                  <th class="py-2 px-1 text-right">P. Unit</th>
+                  <th class="py-2 px-1 text-right">Subtotal</th>
+                  <th class="py-2 pl-1 text-center"></th>
+                </tr>
+              </thead>
+              <tbody id="order-items-tbody"></tbody>
+            </table>
+          </div>
         </div>
 
-        <!-- Stack y Herramientas Usadas -->
-        <div>
-          <h3 class="text-sm font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-2" data-i18n="modal_tech_title">Tecnologías &
-            Estándares de Integración</h3>
-          <div id="modal-tech" class="flex flex-wrap gap-2"></div>
+        <!-- Alerta Dinámica de Stock y Faltantes de Compra (Spec 004) -->
+        <div id="order-stock-alert-container" class="hidden"></div>
+
+        <!-- Fila 3: Finanzas, Abonos y Saldos -->
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 bg-blue-50/40 p-4 rounded-xl border border-blue-200">
+          <div>
+            <div class="flex justify-between items-center">
+              <span class="text-[11px] font-bold text-gray-500 uppercase">Prendas Totales:</span>
+              <span id="form-total-quantity" class="text-base font-black text-gray-800">0 un.</span>
+            </div>
+
+            <!-- Subtotal Bruto y Descuento por Volumen (skill.md) -->
+            <div id="form-subtotal-container" class="mt-1 hidden flex justify-between text-xs text-gray-600">
+              <span>Subtotal:</span>
+              <span id="form-subtotal-amount" class="font-semibold text-gray-700">$0</span>
+            </div>
+            <div id="form-discount-container" class="mt-1 hidden">
+              <label class="flex items-center justify-between gap-1 text-[11px] font-bold text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200 cursor-pointer">
+                <span id="form-discount-label">Desc. Volumen (10%): -$0</span>
+                <input id="form-apply-discount" type="checkbox" checked class="rounded text-blue-600 cursor-pointer" onchange="NovaprintUI.recalcularTotalesFormulario()" title="Aplicar escala de descuento por volumen">
+              </label>
+            </div>
+            <div id="form-neto-container" class="mt-1 hidden flex justify-between text-xs text-gray-600">
+              <span>Neto:</span>
+              <span id="form-neto-amount" class="font-semibold text-gray-800">$0</span>
+            </div>
+
+            <!-- Casilla IVA (19% Chile) -->
+            <div class="mt-1.5">
+              <label class="flex items-center justify-between gap-1 text-[11px] font-bold text-slate-700 bg-white px-2 py-1 rounded border border-slate-200 cursor-pointer shadow-2xs">
+                <span>¿Aplica IVA (19%)?</span>
+                <input id="order-apply-iva" type="checkbox" class="rounded text-blue-600 cursor-pointer" onchange="NovaprintUI.recalcularTotalesFormulario()" title="Calcular IVA del 19% según legislación chilena">
+              </label>
+              <div id="form-iva-row" class="hidden flex justify-between text-xs text-slate-700 mt-0.5 px-1 font-medium">
+                <span>IVA (19%):</span>
+                <span id="form-iva-amount" class="font-semibold text-blue-700">+$0</span>
+              </div>
+            </div>
+
+            <!-- Casilla & Monto Delivery (Default 0) -->
+            <div class="mt-1.5">
+              <label class="flex items-center justify-between gap-1 text-[11px] font-bold text-slate-700 bg-white px-2 py-1 rounded border border-slate-200 cursor-pointer shadow-2xs">
+                <span>¿Aplica Delivery / Envío?</span>
+                <input id="order-apply-delivery" type="checkbox" class="rounded text-blue-600 cursor-pointer" onchange="NovaprintUI.toggleOrderDeliveryInput()" title="Aplicar recargo de despacho o flete">
+              </label>
+              <div id="order-delivery-input-container" class="hidden mt-1 flex items-center gap-1.5">
+                <span class="text-xs font-bold text-gray-600">$</span>
+                <input id="order-delivery-input" type="number" min="0" step="500" value="0" placeholder="0" class="w-full p-1.5 bg-white border border-gray-300 rounded text-xs font-bold text-gray-800 focus:outline-none" oninput="NovaprintUI.recalcularTotalesFormulario()">
+              </div>
+              <div id="form-delivery-row" class="hidden flex justify-between text-xs text-slate-700 mt-0.5 px-1 font-medium">
+                <span>Delivery:</span>
+                <span id="form-delivery-amount" class="font-semibold text-blue-700">+$0</span>
+              </div>
+            </div>
+
+            <div class="text-[11px] font-bold text-gray-500 uppercase mt-2">Monto Total Pedido</div>
+            <div id="form-total-amount" class="text-2xl font-black text-blue-700">$0</div>
+          </div>
+
+          <div>
+            <label class="block text-xs font-bold text-gray-700 uppercase mb-1">Monto Abono / Anticipo ($)</label>
+            <input id="order-deposit-input" type="number" min="0" step="500" value="0" class="w-full p-2 bg-white border border-gray-300 rounded-lg text-base font-bold text-emerald-700 focus:outline-none">
+            <div class="text-[11px] text-gray-500 mt-1">Ingresa el anticipo para calcular el saldo</div>
+          </div>
+
+          <div>
+            <div class="text-[11px] font-bold text-gray-500 uppercase">Saldo Pendiente</div>
+            <div id="form-balance-amount" class="text-2xl font-black text-red-600">$0</div>
+            <div class="mt-2 flex items-center gap-1.5">
+              <span class="text-xs text-gray-500">Estado Pago:</span>
+              <span id="form-payment-status" class="px-2 py-0.5 rounded text-xs font-bold bg-red-100 text-red-800">Pendiente</span>
+            </div>
+          </div>
         </div>
 
-        <!-- Resultados Concretos -->
-        <div>
-          <h3 class="text-sm font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-2" data-i18n="modal_results_title">Entregables y
-            Resultados de Negocio</h3>
-          <ul id="modal-results"
-            class="space-y-2 bg-slate-50 dark:bg-slate-800/50 p-4 rounded-xl border border-slate-200/70 dark:border-slate-800">
-          </ul>
-        </div>
-      </div>
+        <!-- Fila 4: Estado y Observaciones -->
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div>
+            <label class="block text-xs font-bold text-gray-700 uppercase mb-1">Estado Operativo</label>
+            <select id="order-status-select" class="w-full p-2 bg-gray-50 border border-gray-300 rounded-lg text-xs font-bold text-gray-800">
+              <option value="Cotización">Cotización</option>
+              <option value="Confirmado" selected>Confirmado (En cola)</option>
+              <option value="En producción">En producción</option>
+              <option value="Listo para entrega">Listo para entrega</option>
+              <option value="Entregado">Entregado</option>
+              <option value="Cancelado">Cancelado</option>
+            </select>
+          </div>
 
-      <!-- Pie del Modal -->
-      <div class="mt-8 pt-4 border-t border-slate-200 dark:border-slate-800 flex justify-end">
-        <form method="dialog">
-          <button type="submit"
-            class="px-5 py-2.5 rounded-xl bg-slate-200 hover:bg-slate-300 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 text-sm font-semibold transition-colors cursor-pointer"
-            data-i18n="modal_close_btn">
-            Cerrar Ventana
+          <div class="sm:col-span-2">
+            <label class="block text-xs font-bold text-gray-700 uppercase mb-1">Observaciones / Especificaciones de Taller</label>
+            <input id="order-notes-input" type="text" placeholder="Ej. Archivo vectorizado aprobado, entregar doblado individual..." class="w-full p-2 bg-gray-50 border border-gray-300 rounded-lg text-xs">
+          </div>
+        </div>
+
+        <!-- Botones de Acción del Formulario -->
+        <div class="pt-4 border-t border-gray-200 flex justify-end gap-3">
+          <button type="button" class="px-4 py-2 border border-gray-300 text-gray-700 font-bold rounded-lg hover:bg-gray-100 text-xs" onclick="document.getElementById('dialog-order').close()">
+            Cancelar
           </button>
-        </form>
-      </div>
-
+          <button type="submit" class="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-lg shadow-sm text-xs">
+            💾 Guardar Pedido
+          </button>
+        </div>
+      </form>
     </div>
   </dialog>
 
-  <!-- =======================================================================
-       Pie de Página (Footer)
-       ======================================================================= -->
-  <footer class="border-t border-slate-200 dark:border-slate-800 py-10 bg-white dark:bg-slate-900/50">
-    <div
-      class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-slate-500 dark:text-slate-400">
-      <div class="flex items-center gap-2">
-        <span class="font-bold text-slate-700 dark:text-slate-300">Andres Aguiar</span>
-        <span>•</span>
-        <span data-i18n="footer_role">Curriculum & Portfolio de Analista de Sistemas TI</span>
+  <!-- 2. MODAL DE CLIENTE -->
+  <dialog id="dialog-client" class="w-full max-w-lg p-0 bg-transparent">
+    <div class="bg-white rounded-2xl shadow-2xl border border-gray-200 overflow-hidden">
+      <div class="px-6 py-4 bg-gray-50 border-b border-gray-200 flex justify-between items-center">
+        <h3 id="client-modal-title" class="text-base font-black text-gray-900">Registrar Cliente</h3>
+        <button type="button" class="text-gray-400 hover:text-gray-700 text-lg font-bold p-1" onclick="document.getElementById('dialog-client').close()">✕</button>
       </div>
-      <div class="flex items-center gap-4">
-        <button type="button" class="btn-print-cv hover:text-blue-600 transition-colors font-medium cursor-pointer" data-i18n="footer_print">
-          Imprimir / Guardar en PDF
+
+      <form id="form-client" class="p-6 space-y-4">
+        <input type="hidden" id="client-id-hidden">
+
+        <div>
+          <label class="block text-xs font-bold text-gray-700 uppercase mb-1">Nombre o Razón Social *</label>
+          <input id="client-name-input" type="text" required placeholder="Ej. Club Deportivo Los Leones" class="w-full p-2.5 bg-gray-50 border border-gray-300 rounded-lg text-xs font-medium focus:outline-none focus:bg-white">
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-bold text-gray-700 uppercase mb-1">Teléfono / WhatsApp *</label>
+            <input id="client-phone-input" type="text" placeholder="+56912345678" class="w-full p-2.5 bg-gray-50 border border-gray-300 rounded-lg text-xs focus:outline-none focus:bg-white">
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-gray-700 uppercase mb-1">RUT / Identificación</label>
+            <input id="client-rut-input" type="text" placeholder="76.123.456-7" class="w-full p-2.5 bg-gray-50 border border-gray-300 rounded-lg text-xs focus:outline-none focus:bg-white">
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-bold text-gray-700 uppercase mb-1">Correo Electrónico</label>
+            <input id="client-email-input" type="email" placeholder="contacto@cliente.cl" class="w-full p-2.5 bg-gray-50 border border-gray-300 rounded-lg text-xs focus:outline-none focus:bg-white">
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-gray-700 uppercase mb-1">Dirección / Comuna</label>
+            <input id="client-address-input" type="text" placeholder="Santiago, Chile" class="w-full p-2.5 bg-gray-50 border border-gray-300 rounded-lg text-xs focus:outline-none focus:bg-white">
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-xs font-bold text-gray-700 uppercase mb-1">Notas del Cliente</label>
+          <textarea id="client-notes-input" rows="2" placeholder="Preferencias, especificaciones habituales..." class="w-full p-2.5 bg-gray-50 border border-gray-300 rounded-lg text-xs focus:outline-none focus:bg-white"></textarea>
+        </div>
+
+        <div class="pt-3 border-t border-gray-200 flex justify-end gap-3">
+          <button type="button" class="px-4 py-2 border border-gray-300 text-gray-700 font-bold rounded-lg hover:bg-gray-100 text-xs" onclick="document.getElementById('dialog-client').close()">
+            Cancelar
+          </button>
+          <button type="submit" class="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-lg shadow-sm text-xs">
+            💾 Guardar Cliente
+          </button>
+        </div>
+      </form>
+    </div>
+  </dialog>
+
+  <!-- 3. MODAL DE TICKET / COMPROBANTE IMPRIMIBLE -->
+  <dialog id="dialog-ticket" class="w-full max-w-lg p-0 bg-transparent">
+    <div class="bg-white rounded-2xl shadow-2xl border border-gray-200 overflow-hidden flex flex-col max-h-[92vh]">
+      <div class="px-6 py-3 bg-gray-50 border-b border-gray-200 flex justify-between items-center no-print">
+        <h3 class="text-sm font-black text-gray-900">Comprobante de Venta & Taller</h3>
+        <button type="button" class="text-gray-400 hover:text-gray-700 text-lg font-bold p-1" onclick="document.getElementById('dialog-ticket').close()">✕</button>
+      </div>
+
+      <div id="ticket-container-render" class="p-4 overflow-y-auto flex-1"></div>
+
+      <div class="p-4 bg-gray-50 border-t border-gray-200 flex justify-between items-center gap-2 no-print">
+        <button id="btn-ticket-whatsapp" type="button" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-lg flex items-center gap-1.5 shadow-sm">
+          💬 Enviar WhatsApp
         </button>
-        <span>•</span>
-        <a href="#hero" class="hover:text-blue-600 transition-colors" data-i18n="footer_back_to_top">Volver arriba ↑</a>
+        <div class="flex gap-2">
+          <button id="btn-ticket-print" type="button" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-lg flex items-center gap-1.5 shadow-sm">
+            🖨️ Imprimir Ticket (Ctrl+P)
+          </button>
+          <button type="button" class="px-3 py-2 border border-gray-300 text-gray-700 text-xs font-semibold rounded-lg hover:bg-gray-100" onclick="document.getElementById('dialog-ticket').close()">
+            Cerrar
+          </button>
+        </div>
       </div>
     </div>
-  </footer>
+  </dialog>
 
-  <!-- =======================================================================
-       Barra Flotante de Contacto Rápido & Acciones (FAB)
-       ======================================================================= -->
-  <aside aria-label="Contacto rápido"
-    class="floating-contact-pill no-print flex items-center gap-1.5 p-1.5 rounded-full bg-white/95 dark:bg-slate-900/95 backdrop-blur border border-slate-200/80 dark:border-slate-700/80 shadow-2xl">
-    <a href="https://wa.me/56933395447" target="_blank" rel="noopener noreferrer" title="Escribir por WhatsApp"
-      class="p-2.5 rounded-full hover:bg-emerald-50 text-emerald-600 dark:hover:bg-emerald-950/50 transition-colors"
-      data-i18n-title="floating_whatsapp">
-      <i data-lucide="message-circle" class="w-5 h-5"></i>
-      <span class="sr-only">WhatsApp</span>
-    </a>
-    <a href="tel:+56933395447" title="Llamar por teléfono"
-      class="p-2.5 rounded-full hover:bg-blue-50 text-blue-600 dark:hover:bg-blue-950/50 transition-colors"
-      data-i18n-title="floating_call">
-      <i data-lucide="phone" class="w-5 h-5"></i>
-      <span class="sr-only">Llamar</span>
-    </a>
-    <button type="button"
-      class="btn-copy-email p-2.5 rounded-full hover:bg-slate-100 text-slate-700 dark:hover:bg-slate-800 dark:text-slate-300 transition-colors cursor-pointer"
-      title="Copiar correo electrónico"
-      data-i18n-title="floating_copy_email">
-      <i data-lucide="mail" class="w-5 h-5"></i>
-      <span class="sr-only">Copiar Correo</span>
-    </button>
-    <button type="button"
-      class="btn-print-cv p-2.5 rounded-full hover:bg-indigo-50 text-indigo-600 dark:hover:bg-indigo-950/50 transition-colors cursor-pointer"
-      title="Descargar CV en PDF"
-      data-i18n-title="floating_download_cv">
-      <i data-lucide="download" class="w-4 h-4"></i>
-      <span class="sr-only">Descargar CV</span>
-    </button>
-    <a href="#hero"
-      class="p-2.5 rounded-full hover:bg-slate-100 text-slate-400 hover:text-slate-700 dark:hover:bg-slate-800 dark:hover:text-slate-200 transition-colors"
-      title="Volver al inicio"
-      data-i18n-title="floating_top">
-      <i data-lucide="arrow-up" class="w-5 h-5"></i>
-      <span class="sr-only">Arriba</span>
-    </a>
-  </aside>
+  <!-- 4. MODAL DE HISTORIAL DE CLIENTE -->
+  <dialog id="dialog-client-history" class="w-full max-w-lg p-0 bg-transparent">
+    <div class="bg-white rounded-2xl shadow-2xl border border-gray-200 overflow-hidden">
+      <div class="px-6 py-4 bg-gray-50 border-b border-gray-200 flex justify-between items-center">
+        <div>
+          <h3 class="text-base font-black text-gray-900">Historial de Pedidos</h3>
+          <p id="history-client-name" class="text-xs text-blue-600 font-bold"></p>
+        </div>
+        <button type="button" class="text-gray-400 hover:text-gray-700 text-lg font-bold p-1" onclick="document.getElementById('dialog-client-history').close()">✕</button>
+      </div>
+      <div class="p-6">
+        <div id="history-orders-list" class="space-y-3 max-h-96 overflow-y-auto"></div>
+      </div>
+    </div>
+  </dialog>
 
-  <!-- Scripts -->
-  <script src="assets/js/data.js"></script>
-  <script src="assets/js/i18n.js"></script>
-  <script src="assets/js/search.js"></script>
+  <!-- 5. MODAL DE CONFIGURACIÓN & RESPALDO JSON -->
+  <dialog id="dialog-settings" class="w-full max-w-lg p-0 bg-transparent">
+    <div class="bg-white rounded-2xl shadow-2xl border border-gray-200 overflow-hidden">
+      <div class="px-6 py-4 bg-gray-50 border-b border-gray-200 flex justify-between items-center">
+        <h3 class="text-base font-black text-gray-900">Ajustes de Novaprint & Respaldo</h3>
+        <button type="button" class="text-gray-400 hover:text-gray-700 text-lg font-bold p-1" onclick="document.getElementById('dialog-settings').close()">✕</button>
+      </div>
+
+      <div class="p-6 space-y-6">
+        <!-- Formulario de Configuración -->
+        <form id="form-settings" class="space-y-3">
+          <h4 class="text-xs font-bold text-gray-500 uppercase">Datos del Taller para Tickets</h4>
+          <div>
+            <label class="block text-[11px] font-bold text-gray-700 uppercase">Nombre Fantasía</label>
+            <input id="settings-business-name" type="text" class="w-full p-2 bg-gray-50 border border-gray-300 rounded text-xs">
+          </div>
+          <div class="grid grid-cols-2 gap-2">
+            <div>
+              <label class="block text-[11px] font-bold text-gray-700 uppercase">RUT</label>
+              <input id="settings-rut" type="text" class="w-full p-2 bg-gray-50 border border-gray-300 rounded text-xs">
+            </div>
+            <div>
+              <label class="block text-[11px] font-bold text-gray-700 uppercase">WhatsApp Taller</label>
+              <input id="settings-phone" type="text" class="w-full p-2 bg-gray-50 border border-gray-300 rounded text-xs">
+            </div>
+          </div>
+          <div class="grid grid-cols-2 gap-2">
+            <div>
+              <label class="block text-[11px] font-bold text-gray-700 uppercase">Correo</label>
+              <input id="settings-email" type="email" class="w-full p-2 bg-gray-50 border border-gray-300 rounded text-xs">
+            </div>
+            <div>
+              <label class="block text-[11px] font-bold text-gray-700 uppercase">Dirección</label>
+              <input id="settings-address" type="text" class="w-full p-2 bg-gray-50 border border-gray-300 rounded text-xs">
+            </div>
+          </div>
+          <div>
+            <label class="block text-[11px] font-bold text-gray-700 uppercase">Pie del Comprobante</label>
+            <input id="settings-ticket-footer" type="text" class="w-full p-2 bg-gray-50 border border-gray-300 rounded text-xs">
+          </div>
+          <div class="text-right pt-2">
+            <button type="submit" class="px-4 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded text-xs font-bold">
+              Guardar Datos
+            </button>
+          </div>
+        </form>
+
+        <!-- Sección de Respaldo JSON -->
+        <div class="pt-4 border-t border-gray-200 space-y-3">
+          <h4 class="text-xs font-bold text-gray-500 uppercase">Copia de Seguridad y Restauración</h4>
+          <p class="text-xs text-gray-500">Descarga un archivo JSON con todos los pedidos, clientes y configuraciones de Novaprint para guardarlo de forma segura.</p>
+          <div class="flex flex-wrap gap-2">
+            <button id="btn-export-backup" type="button" class="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-lg flex items-center gap-1.5 shadow-xs">
+              💾 Descargar Respaldo JSON
+            </button>
+            <label class="px-3.5 py-2 bg-gray-100 hover:bg-gray-200 text-gray-800 text-xs font-bold rounded-lg cursor-pointer flex items-center gap-1.5 border border-gray-300">
+              📂 Restaurar Respaldo
+              <input id="file-import-backup" type="file" accept=".json" class="hidden">
+            </label>
+          </div>
+        </div>
+
+        <!-- Gestión de Datos & Limpieza -->
+        <div class="pt-4 border-t border-gray-200 space-y-3">
+          <h4 class="text-xs font-bold text-gray-500 uppercase">Gestión de Registros</h4>
+          <p class="text-xs text-gray-500">Puedes vaciar la base de datos para trabajar exclusivamente con tus registros reales o cargar datos de muestra para pruebas.</p>
+          <div class="flex flex-wrap gap-2">
+            <button id="btn-clear-database" type="button" class="px-3.5 py-2 bg-red-50 hover:bg-red-100 text-red-700 border border-red-200 text-xs font-bold rounded-lg flex items-center gap-1.5 transition-colors">
+              🗑️ Vaciar Base de Datos
+            </button>
+            <button id="btn-load-demo-data" type="button" class="px-3.5 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 border border-gray-300 text-xs font-bold rounded-lg flex items-center gap-1.5 transition-colors">
+              📦 Cargar Datos de Prueba
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </dialog>
+
+  <!-- 6. MODAL DE PROVEEDOR (SPEC 002) -->
+  <dialog id="dialog-supplier" class="w-full max-w-lg p-0 bg-transparent">
+    <div class="bg-white rounded-2xl shadow-2xl border border-gray-200 overflow-hidden">
+      <div class="px-6 py-4 bg-gray-50 border-b border-gray-200 flex justify-between items-center">
+        <h3 id="supplier-modal-title" class="text-base font-black text-gray-900">Registrar Proveedor</h3>
+        <button type="button" class="text-gray-400 hover:text-gray-700 text-lg font-bold p-1" onclick="document.getElementById('dialog-supplier').close()">✕</button>
+      </div>
+
+      <form id="form-supplier" class="p-6 space-y-4">
+        <input type="hidden" id="supplier-id-hidden">
+
+        <div>
+          <label class="block text-xs font-bold text-gray-700 uppercase mb-1">Nombre o Razón Social *</label>
+          <input id="supplier-name-input" type="text" required placeholder="Ej. Textiles Mayoristas Chile" class="w-full p-2.5 bg-gray-50 border border-gray-300 rounded-lg text-xs font-medium focus:outline-none focus:bg-white">
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-bold text-gray-700 uppercase mb-1">Contacto Principal</label>
+            <input id="supplier-contact-input" type="text" placeholder="Ej. Marcos Rivera" class="w-full p-2.5 bg-gray-50 border border-gray-300 rounded-lg text-xs focus:outline-none focus:bg-white">
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-gray-700 uppercase mb-1">Rubro / Categoría</label>
+            <select id="supplier-category-select" class="w-full p-2.5 bg-gray-50 border border-gray-300 rounded-lg text-xs font-medium focus:outline-none focus:bg-white">
+              <option value="Prendas Lisas">Prendas Lisas</option>
+              <option value="Insumos DTF">Insumos DTF</option>
+              <option value="Gorras en Blanco">Gorras en Blanco</option>
+              <option value="Vinilo Textil">Vinilo Textil</option>
+              <option value="Insumos Serigrafía">Insumos Serigrafía</option>
+              <option value="Hilos y Accesorios">Hilos y Accesorios</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-bold text-gray-700 uppercase mb-1">Teléfono / WhatsApp</label>
+            <input id="supplier-phone-input" type="text" placeholder="+56911223344" class="w-full p-2.5 bg-gray-50 border border-gray-300 rounded-lg text-xs focus:outline-none focus:bg-white">
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-gray-700 uppercase mb-1">Correo Electrónico</label>
+            <input id="supplier-email-input" type="email" placeholder="ventas@proveedor.cl" class="w-full p-2.5 bg-gray-50 border border-gray-300 rounded-lg text-xs focus:outline-none focus:bg-white">
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-xs font-bold text-gray-700 uppercase mb-1">Dirección / Comuna</label>
+          <input id="supplier-address-input" type="text" placeholder="Av. Recoleta 890, Santiago" class="w-full p-2.5 bg-gray-50 border border-gray-300 rounded-lg text-xs focus:outline-none focus:bg-white">
+        </div>
+
+        <div>
+          <label class="block text-xs font-bold text-gray-700 uppercase mb-1">Notas / Condiciones Comerciales</label>
+          <textarea id="supplier-notes-input" rows="2" placeholder="Precios mayoristas, plazos de entrega..." class="w-full p-2.5 bg-gray-50 border border-gray-300 rounded-lg text-xs focus:outline-none focus:bg-white"></textarea>
+        </div>
+
+        <div class="pt-3 border-t border-gray-200 flex justify-end gap-3">
+          <button type="button" class="px-4 py-2 border border-gray-300 text-gray-700 font-bold rounded-lg hover:bg-gray-100 text-xs" onclick="document.getElementById('dialog-supplier').close()">
+            Cancelar
+          </button>
+          <button type="submit" class="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-lg shadow-sm text-xs">
+            💾 Guardar Proveedor
+          </button>
+        </div>
+      </form>
+    </div>
+  </dialog>
+
+  <!-- 7. MODAL DE ARTÍCULO EN INVENTARIO (SPEC 002) -->
+  <dialog id="dialog-inventory" class="w-full max-w-xl p-0 bg-transparent">
+    <div class="bg-white rounded-2xl shadow-2xl border border-gray-200 overflow-hidden">
+      <div class="px-6 py-4 bg-gray-50 border-b border-gray-200 flex justify-between items-center">
+        <h3 id="inventory-modal-title" class="text-base font-black text-gray-900">Registrar en Inventario</h3>
+        <button type="button" class="text-gray-400 hover:text-gray-700 text-lg font-bold p-1" onclick="document.getElementById('dialog-inventory').close()">✕</button>
+      </div>
+
+      <form id="form-inventory" class="p-6 space-y-4">
+        <input type="hidden" id="inventory-id-hidden">
+
+        <div class="grid grid-cols-3 gap-3">
+          <div>
+            <label class="block text-xs font-bold text-gray-700 uppercase mb-1">Código / SKU</label>
+            <input id="inventory-code-input" type="text" placeholder="POL-NEG-L" class="w-full p-2.5 bg-gray-50 border border-gray-300 rounded-lg text-xs font-mono uppercase focus:outline-none focus:bg-white">
+          </div>
+          <div class="col-span-2">
+            <label class="block text-xs font-bold text-gray-700 uppercase mb-1">Nombre del Artículo *</label>
+            <input id="inventory-name-input" type="text" required placeholder="Polera Algodón 160g" class="w-full p-2.5 bg-gray-50 border border-gray-300 rounded-lg text-xs font-medium focus:outline-none focus:bg-white">
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-bold text-gray-700 uppercase mb-1">Categoría</label>
+            <select id="inventory-category-select" class="w-full p-2.5 bg-gray-50 border border-gray-300 rounded-lg text-xs font-medium focus:outline-none focus:bg-white">
+              <option value="Prendas Lisas">Prendas Lisas</option>
+              <option value="Gorras en Blanco">Gorras en Blanco</option>
+              <option value="Insumos DTF">Insumos DTF</option>
+              <option value="Insumos Serigrafía">Insumos Serigrafía</option>
+              <option value="Vinilo Textil">Vinilo Textil</option>
+              <option value="Hilos y Accesorios">Hilos y Accesorios</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-gray-700 uppercase mb-1">Tipo de Prenda</label>
+            <select id="inventory-garment-select" class="w-full p-2.5 bg-gray-50 border border-gray-300 rounded-lg text-xs font-medium focus:outline-none focus:bg-white">
+              <option value="Polera">Polera</option>
+              <option value="Polerón">Polerón</option>
+              <option value="Buzo">Buzo</option>
+              <option value="Gorra">Gorra</option>
+              <option value="Otro">Otro Insumo</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-3 gap-3">
+          <div>
+            <label class="block text-xs font-bold text-gray-700 uppercase mb-1">Color</label>
+            <select id="inventory-color-select" class="w-full p-2.5 bg-gray-50 border border-gray-300 rounded-lg text-xs font-medium focus:outline-none focus:bg-white" onchange="NovaprintUI.manejarCambioColorInventario(this.value)">
+            </select>
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-gray-700 uppercase mb-1">Talla / Medida</label>
+            <input id="inventory-size-input" list="inventory-size-datalist" type="text" placeholder="L / 10 / 60cm" class="w-full p-2.5 bg-gray-50 border border-gray-300 rounded-lg text-xs focus:outline-none focus:bg-white">
+            <datalist id="inventory-size-datalist">
+              <option value="4">Talla 4 (Niño)</option>
+              <option value="6">Talla 6 (Niño)</option>
+              <option value="8">Talla 8 (Niño)</option>
+              <option value="10">Talla 10 (Niño)</option>
+              <option value="12">Talla 12 (Niño)</option>
+              <option value="14">Talla 14 (Niño)</option>
+              <option value="16">Talla 16 (Niño)</option>
+              <option value="18">Talla 18 (Niño)</option>
+              <option value="XS">Talla XS</option>
+              <option value="S">Talla S</option>
+              <option value="M">Talla M</option>
+              <option value="L">Talla L</option>
+              <option value="XL">Talla XL</option>
+              <option value="XXL">Talla XXL</option>
+              <option value="Única">Talla Única</option>
+            </datalist>
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-gray-700 uppercase mb-1">Unidad</label>
+            <input id="inventory-unit-input" type="text" value="unidad" placeholder="unidad, rollo, kg" class="w-full p-2.5 bg-gray-50 border border-gray-300 rounded-lg text-xs focus:outline-none focus:bg-white">
+          </div>
+        </div>
+
+        <div class="grid grid-cols-3 gap-3 bg-blue-50/50 p-3 rounded-xl border border-blue-200">
+          <div>
+            <label class="block text-xs font-bold text-gray-700 uppercase mb-1">Stock Actual</label>
+            <input id="inventory-stock-input" type="number" min="0" value="0" class="w-full p-2 bg-white border border-gray-300 rounded-lg text-xs font-black text-gray-900 focus:outline-none">
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-red-700 uppercase mb-1">Stock Mínimo (Alerta)</label>
+            <input id="inventory-minstock-input" type="number" min="0" value="10" class="w-full p-2 bg-white border border-red-300 rounded-lg text-xs font-black text-red-700 focus:outline-none">
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-emerald-800 uppercase mb-1">Costo Unit. ($)</label>
+            <input id="inventory-cost-input" type="number" min="0" step="100" value="2800" class="w-full p-2 bg-white border border-emerald-300 rounded-lg text-xs font-black text-emerald-700 focus:outline-none">
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-xs font-bold text-gray-700 uppercase mb-1">Proveedor Habitual</label>
+          <select id="inventory-supplier-select" class="w-full p-2.5 bg-gray-50 border border-gray-300 rounded-lg text-xs font-medium focus:outline-none focus:bg-white"></select>
+        </div>
+
+        <div class="pt-3 border-t border-gray-200 flex justify-end gap-3">
+          <button type="button" class="px-4 py-2 border border-gray-300 text-gray-700 font-bold rounded-lg hover:bg-gray-100 text-xs" onclick="document.getElementById('dialog-inventory').close()">
+            Cancelar
+          </button>
+          <button type="submit" class="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-lg shadow-sm text-xs">
+            💾 Guardar en Inventario
+          </button>
+        </div>
+      </form>
+    </div>
+  </dialog>
+
+  <!-- 8. MODAL DE REGISTRAR COMPRA (SPEC 002) -->
+  <dialog id="dialog-purchase" class="w-full max-w-3xl p-0 bg-transparent">
+    <div class="bg-white rounded-2xl shadow-2xl border border-gray-200 overflow-hidden flex flex-col max-h-[92vh]">
+      <div class="px-6 py-4 bg-gray-50 border-b border-gray-200 flex justify-between items-center">
+        <div>
+          <h3 class="text-base font-black text-gray-900">Registrar Compra de Insumos</h3>
+          <p class="text-xs text-gray-500">El stock de los ítems seleccionados se incrementará automáticamente</p>
+        </div>
+        <button type="button" class="text-gray-400 hover:text-gray-700 text-lg font-bold p-1" onclick="document.getElementById('dialog-purchase').close()">✕</button>
+      </div>
+
+      <form id="form-purchase" class="p-6 overflow-y-auto space-y-5 flex-1">
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <div class="sm:col-span-2">
+            <label class="block text-xs font-bold text-gray-700 uppercase mb-1">Proveedor *</label>
+            <select id="purchase-supplier-select" required class="w-full p-2.5 bg-gray-50 border border-gray-300 rounded-lg text-xs font-medium focus:outline-none focus:bg-white"></select>
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-gray-700 uppercase mb-1">Fecha de Compra *</label>
+            <input id="purchase-date-input" type="date" required class="w-full p-2.5 bg-gray-50 border border-gray-300 rounded-lg text-xs font-bold text-gray-800">
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-bold text-gray-700 uppercase mb-1">N° Factura o Boleta</label>
+            <input id="purchase-invoice-input" type="text" placeholder="FAC-12345" class="w-full p-2.5 bg-gray-50 border border-gray-300 rounded-lg text-xs focus:outline-none focus:bg-white">
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-gray-700 uppercase mb-1">Observaciones / Guía de Despacho</label>
+            <input id="purchase-notes-input" type="text" placeholder="Recibido conforme en taller" class="w-full p-2.5 bg-gray-50 border border-gray-300 rounded-lg text-xs focus:outline-none focus:bg-white">
+          </div>
+        </div>
+
+        <!-- Tabla Dinámica de Ítems Comprados -->
+        <div class="border border-gray-200 rounded-xl p-4 bg-slate-50/60 space-y-3">
+          <div class="flex justify-between items-center">
+            <h4 class="text-xs font-black text-gray-900 uppercase tracking-wider">Artículos a Ingresar al Stock</h4>
+            <button id="btn-add-purchase-item" type="button" class="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-lg shadow-xs">
+              + Agregar Ítem
+            </button>
+          </div>
+
+          <div class="overflow-x-auto bg-white rounded-lg border border-gray-200">
+            <table class="w-full text-left">
+              <thead>
+                <tr class="bg-gray-100 border-b border-gray-200 text-gray-600 uppercase text-[10px] font-bold">
+                  <th class="py-2 pr-2">Artículo de Inventario</th>
+                  <th class="py-2 px-1 text-center">Cantidad</th>
+                  <th class="py-2 px-1 text-right">Costo Unit.</th>
+                  <th class="py-2 px-1 text-right">Subtotal</th>
+                  <th class="py-2 pl-1 text-center"></th>
+                </tr>
+              </thead>
+              <tbody id="purchase-items-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Opciones de IVA y Delivery para Compras -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 bg-slate-50 p-3 rounded-xl border border-gray-200">
+          <div>
+            <label class="flex items-center justify-between gap-1 text-xs font-bold text-gray-700 bg-white p-2.5 rounded-lg border border-gray-300 cursor-pointer shadow-2xs">
+              <span>¿Factura con IVA (19%)?</span>
+              <input id="purchase-apply-iva" type="checkbox" class="rounded text-emerald-600 cursor-pointer" onchange="NovaprintUI.recalcularTotalesCompraFormulario()" title="Aplica 19% de IVA según factura chilena">
+            </label>
+          </div>
+          <div>
+            <label class="flex items-center justify-between gap-1 text-xs font-bold text-gray-700 bg-white p-2.5 rounded-lg border border-gray-300 cursor-pointer shadow-2xs">
+              <span>¿Aplica Flete / Delivery?</span>
+              <input id="purchase-apply-delivery" type="checkbox" class="rounded text-emerald-600 cursor-pointer" onchange="NovaprintUI.togglePurchaseDeliveryInput()" title="Aplica costo de despacho de proveedor">
+            </label>
+            <div id="purchase-delivery-input-container" class="hidden mt-1.5 flex items-center gap-1.5">
+              <span class="text-xs font-bold text-gray-600">$</span>
+              <input id="purchase-delivery-input" type="number" min="0" step="500" value="0" placeholder="0" class="w-full p-1.5 bg-white border border-gray-300 rounded text-xs font-bold text-gray-800 focus:outline-none" oninput="NovaprintUI.recalcularTotalesCompraFormulario()">
+            </div>
+          </div>
+        </div>
+
+        <!-- Desglose Financiero de Compra -->
+        <div class="p-4 bg-emerald-50/70 rounded-xl border border-emerald-200 space-y-1.5 text-xs text-emerald-950">
+          <div class="flex justify-between">
+            <span class="font-medium text-emerald-800">Subtotal Neto:</span>
+            <span id="purchase-form-subtotal" class="font-bold text-emerald-900">$0</span>
+          </div>
+          <div id="purchase-form-iva-row" class="hidden flex justify-between">
+            <span class="font-medium text-emerald-800">IVA (19%):</span>
+            <span id="purchase-form-iva" class="font-bold text-emerald-700">+$0</span>
+          </div>
+          <div id="purchase-form-delivery-row" class="hidden flex justify-between">
+            <span class="font-medium text-emerald-800">Flete / Delivery:</span>
+            <span id="purchase-form-delivery" class="font-bold text-emerald-700">+$0</span>
+          </div>
+          <div class="flex justify-between items-center pt-2 border-t border-emerald-200">
+            <span class="text-sm font-black uppercase tracking-wider text-emerald-900">Monto Total Compra:</span>
+            <span id="purchase-form-total" class="text-2xl font-black text-emerald-800">$0</span>
+          </div>
+        </div>
+
+        <div class="pt-4 border-t border-gray-200 flex justify-end gap-3">
+          <button type="button" class="px-4 py-2 border border-gray-300 text-gray-700 font-bold rounded-lg hover:bg-gray-100 text-xs" onclick="document.getElementById('dialog-purchase').close()">
+            Cancelar
+          </button>
+          <button type="submit" class="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-lg shadow-sm text-xs">
+            📥 Ingresar Compra al Stock
+          </button>
+        </div>
+      </form>
+    </div>
+  </dialog>
+
+  <!-- 9. MODAL DE ORDEN DE FABRICACIÓN (SPEC 003) -->
+  <dialog id="dialog-project" class="w-full max-w-xl p-0 bg-transparent">
+    <div class="bg-white rounded-2xl shadow-2xl border border-gray-200 overflow-hidden">
+      <div class="px-6 py-4 bg-gray-50 border-b border-gray-200 flex justify-between items-center">
+        <div>
+          <h3 id="project-modal-title" class="text-base font-black text-gray-900">Registrar Orden de Taller</h3>
+          <p class="text-xs text-gray-500">Planifica la producción textil por estaciones de estampado</p>
+        </div>
+        <button type="button" class="text-gray-400 hover:text-gray-700 text-lg font-bold p-1" onclick="document.getElementById('dialog-project').close()">✕</button>
+      </div>
+
+      <form id="form-project" class="p-6 space-y-4">
+        <input type="hidden" id="project-id-hidden">
+
+        <div>
+          <label class="block text-xs font-bold text-gray-700 uppercase mb-1">Vincular con Pedido de Cliente (Opcional)</label>
+          <select id="project-order-select" class="w-full p-2.5 bg-gray-50 border border-gray-300 rounded-lg text-xs font-medium focus:outline-none focus:bg-white"></select>
+        </div>
+
+        <div class="grid grid-cols-3 gap-3">
+          <div>
+            <label class="block text-xs font-bold text-gray-700 uppercase mb-1">Código Lote</label>
+            <input id="project-code-input" type="text" placeholder="FAB-001" class="w-full p-2.5 bg-gray-50 border border-gray-300 rounded-lg text-xs font-mono uppercase focus:outline-none focus:bg-white">
+          </div>
+          <div class="col-span-2">
+            <label class="block text-xs font-bold text-gray-700 uppercase mb-1">Nombre / Título del Lote *</label>
+            <input id="project-name-input" type="text" required placeholder="Lote Poleras Evento Colegios" class="w-full p-2.5 bg-gray-50 border border-gray-300 rounded-lg text-xs font-medium focus:outline-none focus:bg-white">
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-bold text-gray-700 uppercase mb-1">Cliente / Destino</label>
+            <input id="project-client-input" type="text" placeholder="Nombre cliente o Stock Interno" class="w-full p-2.5 bg-gray-50 border border-gray-300 rounded-lg text-xs focus:outline-none focus:bg-white">
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-gray-700 uppercase mb-1">Cantidad Total a Estampar</label>
+            <input id="project-quantity-input" type="number" min="1" value="10" class="w-full p-2.5 bg-gray-50 border border-gray-300 rounded-lg text-xs font-black text-gray-900 focus:outline-none focus:bg-white">
+          </div>
+        </div>
+
+        <div class="grid grid-cols-3 gap-3">
+          <div>
+            <label class="block text-xs font-bold text-gray-700 uppercase mb-1">Tipo de Prenda</label>
+            <input id="project-garment-input" type="text" placeholder="Polera, Polerón, etc." class="w-full p-2.5 bg-gray-50 border border-gray-300 rounded-lg text-xs focus:outline-none focus:bg-white">
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-gray-700 uppercase mb-1">Técnica</label>
+            <select id="project-technique-select" class="w-full p-2.5 bg-gray-50 border border-gray-300 rounded-lg text-xs font-semibold text-blue-700 focus:outline-none focus:bg-white">
+              <option value="DTF">DTF</option>
+              <option value="Serigrafía">Serigrafía</option>
+              <option value="Sublimación">Sublimación</option>
+              <option value="Vinilo Textil">Vinilo Textil</option>
+              <option value="Bordado">Bordado</option>
+              <option value="Mixto">Mixto</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-gray-700 uppercase mb-1">Ubicación</label>
+            <input id="project-location-input" type="text" placeholder="Pecho / Espalda" class="w-full p-2.5 bg-gray-50 border border-gray-300 rounded-lg text-xs focus:outline-none focus:bg-white">
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-3 bg-indigo-50/50 p-3 rounded-xl border border-indigo-200">
+          <div>
+            <label class="block text-xs font-bold text-indigo-900 uppercase mb-1">Estación de Taller</label>
+            <select id="project-stage-select" class="w-full p-2 bg-white border border-indigo-300 rounded-lg text-xs font-bold text-indigo-800">
+              <option value="Diseño">1. Diseño / Vectorización</option>
+              <option value="Preparación">2. Preparación Prenda</option>
+              <option value="Estampado">3. Estampado / Plancha</option>
+              <option value="Control Calidad">4. Control de Calidad</option>
+              <option value="Terminado">5. Terminado & Empacado</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-indigo-900 uppercase mb-1">Fecha Límite Taller</label>
+            <input id="project-target-date" type="date" class="w-full p-2 bg-white border border-indigo-300 rounded-lg text-xs font-bold text-gray-900">
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-xs font-bold text-gray-700 uppercase mb-1">Operador / Responsable</label>
+          <input id="project-assigned-input" type="text" placeholder="Ej. Rodrigo (Operador Plancha)" class="w-full p-2.5 bg-gray-50 border border-gray-300 rounded-lg text-xs focus:outline-none focus:bg-white">
+        </div>
+
+        <div>
+          <label class="block text-xs font-bold text-gray-700 uppercase mb-1">Parámetros Técnicos (Temperatura, Presión, Curado)</label>
+          <textarea id="project-notes-input" rows="2" placeholder="Ej. DTF: 160°C por 15s con pelado en frío. Planchar 5s adicional." class="w-full p-2.5 bg-gray-50 border border-gray-300 rounded-lg text-xs focus:outline-none focus:bg-white"></textarea>
+        </div>
+
+        <div class="pt-3 border-t border-gray-200 flex justify-end gap-3">
+          <button type="button" class="px-4 py-2 border border-gray-300 text-gray-700 font-bold rounded-lg hover:bg-gray-100 text-xs" onclick="document.getElementById('dialog-project').close()">
+            Cancelar
+          </button>
+          <button type="submit" class="px-5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-lg shadow-sm text-xs">
+            💾 Guardar Orden de Taller
+          </button>
+        </div>
+      </form>
+    </div>
+  </dialog>
+
+  <!-- CONTENEDOR DE TOASTS -->
+  <div id="toast-container"></div>
+
+  <!-- SCRIPTS DE LA APLICACIÓN -->
+  <script src="assets/js/storage.js"></script>
+  <script src="assets/js/sales.js"></script>
+  <script src="assets/js/production.js"></script>
+  <script src="assets/js/ticket.js"></script>
+  <script src="assets/js/ui.js"></script>
   <script src="assets/js/main.js"></script>
-</body>
 
+  <!-- Registro de Service Worker para PWA -->
+  <script>
+    if ('serviceWorker' in navigator && window.location.protocol.startsWith('http')) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('./sw.js').catch((err) => {
+          console.log('Service Worker no registrado:', err);
+        });
+      });
+    }
+  </script>
+</body>
 </html>

@@ -1,4 +1,4 @@
-# memory.md — Memoria del proyecto (CV Web)
+# memory.md — Memoria del proyecto Novaprint
 
 Registro de todo lo que debe preservarse entre sesiones de trabajo: arquitectura de datos, decisiones técnicas tomadas e historial de cambios.
 **Los agentes deben leer este archivo antes de empezar y actualizarlo al terminar cada tarea** (ver `AGENTS.md`).
@@ -7,86 +7,186 @@ Registro de todo lo que debe preservarse entre sesiones de trabajo: arquitectura
 
 ## 1. Estructura de datos y persistencia
 
-### A. Persistencia en `localStorage`
-- **Clave:** `theme`
-  - **Valores posibles:** `"dark"` | `"light"`
-  - **Comportamiento:** Si no existe la clave, se detecta automáticamente la preferencia del sistema (`window.matchMedia('(prefers-color-scheme: dark)')`). Al pulsar el botón de alternancia, se almacena la selección para futuras visitas.
-- **Clave:** `cv-web-lang`
-  - **Valores posibles:** `"es"` | `"en"`
-  - **Comportamiento:** Si no existe la clave guardada, se evalúa `navigator.language`; si comienza por `"en"` se selecciona `"en"`, en cualquier otro caso recurre a `"es"`. Al pulsar el selector de idioma `#lang-toggle` / `#lang-toggle-mobile`, se almacena la selección para futuras visitas con tolerancia a modo incógnito.
-
-### B. Fuente única de datos (`PROFILE_DATA`)
-Toda la información del profesional se encuentra centralizada en `assets/js/data.js` bajo el objeto global `PROFILE_DATA`:
-
-| Sección en `PROFILE_DATA` | Tipo de dato | Descripción |
-| :--- | :--- | :--- |
-| `personal` | Objeto | Nombre, títulos, resumen, ubicación, disponibilidad, email, teléfono, links (LinkedIn, GitHub) y métricas de impacto para el Hero. |
-| `executivePitch` | Objeto | Resumen ejecutivo en 30 segundos con 3 pilares estratégicos (adaptabilidad, liderazgo y resultados). |
-| `brandTechnologies` | Array de objetos | Tecnologías destacadas con paleta cromática de marca, íconos y categorías. |
-| `corePillars` | Array de objetos | Los 4 pilares de especialización con ícono, título y descripción. |
-| `technicalSkills` | Objeto de arrays | Habilidades agrupadas por categorías (Lenguajes, Frameworks, Bases de Datos, Metodologías, etc.). |
-| `projects` | Array de objetos | Casos de estudio en formato STAR con categorías de filtro, badges, resumen y modal detallado. |
-| `experience` | Array de objetos | Trayectoria laboral cronológica con empresa, cargo, período, ubicación y lista de logros. |
-| `educationAndCerts` | Objeto | Certificaciones profesionales (con enlaces de validación y PDFs) y títulos académicos de pregrado y posgrado. |
+### A. Claves en `localStorage`
+- **`novaprint_settings`:** Configuración de la empresa (nombre, RUT, teléfono/WhatsApp, dirección, moneda `$`, mensaje pie de ticket).
+- **`novaprint_clients`:** Directorio de clientes (`id, name, phone, email, rut, address, notes, createdAt`).
+- **`novaprint_orders`:** Registro de pedidos con prendas (poleras, polerones, buzos, gorras), técnicas de estampado (DTF, serigrafía, sublimación, vinilo, bordado), tallas, colores, montos, desglose de IVA (19%), Delivery, abonos y estado.
+- **`novaprint_suppliers`:** Catálogo de proveedores (`id, name, contact, phone, email, category, address, notes, createdAt, updatedAt`).
+- **`novaprint_inventory`:** Existencias de insumos y prendas base (`id, code, name, category, garmentType, color, size, unit, currentStock, minStock, unitCost, supplierId, supplierName, createdAt, updatedAt`).
+- **`novaprint_purchases`:** Historial de compras de insumos/prendas a proveedores (`id, supplierId, supplierName, invoiceNumber, date, items, subtotalNeto, applyIva, ivaPercent, ivaAmount, applyDelivery, deliveryAmount, totalAmount, notes, createdAt`).
+- **`novaprint_projects`:** Órdenes de fabricación / proyectos de taller vinculadas a pedidos o stock (`id, code, orderId, name, garmentType, quantity, printTechnique, stage, startDate, targetDate, assignedTo, notes`).
 
 ---
 
 ## 2. Decisiones vigentes
 
-Decisiones ya tomadas que deben respetarse salvo indicación explícita del usuario:
-
-- **Sin paso de compilación:** El proyecto no utiliza `npm build`, `webpack`, `vite` ni bundlers. Debe funcionar directamente abriendo `index.html` con doble clic (`file://`) o mediante un servidor estático rápido (`python -m http.server`, `npx serve`).
-- **Tailwind CSS vía CDN:** La configuración de temas, tipografías y colores corporativos (paleta `brand`) reside en el `<script>` de configuración de Tailwind en el `<head>` de `index.html`.
-- **Modo oscuro por clase:** Se usa la clase `dark` en el elemento `<html>`, controlada por `assets/js/main.js` y estilizada mediante clases utilitarias de Tailwind y variables CSS en `assets/css/custom.css`.
-- **Separación de datos y lógica:** No añadir textos personales ni proyectos estáticos directamente en `index.html`. Toda nueva entrada debe incorporarse en `assets/js/data.js` para que `assets/js/main.js` la renderice de forma consistente.
-- **Modales nativos:** Los modales de detalle de proyectos STAR y opciones de descarga utilizan la etiqueta nativa `<dialog>`, aprovechando `showModal()` y `close()` con soporte nativo de backdrop y tecla Escape.
-- **Optimización de impresión (`@media print`):** La descarga del CV en PDF aprovecha las capacidades de impresión del navegador (`Ctrl + P` o botón interactivo), ocultando la navegación, controles interactivos y fondos oscuros mediante estilos de impresión dedicados en `assets/css/custom.css`.
-- **Iconos:** Se emplea la biblioteca Lucide Icons cargada vía CDN y renderizada mediante `window.lucide.createIcons()`.
-- **Buscador y normalización de texto:** Las funciones de búsqueda residen en `assets/js/search.js` como funciones puras sin dependencias externas, con tolerancia a acentos y mayúsculas, y exportación condicional para ejecución en `node --test`.
-- **Internacionalización de interfaz (UI Chrome):** El catálogo bilingüe y funciones puras de i18n residen en `assets/js/i18n.js` con paridad estricta de claves. Solo se traduce el UI Chrome (navegación, botones, buscador, etiquetas de sección, accesibilidad y toasts), preservando el cuerpo técnico en español original por acuerdo explícito para no desvirtuar los logros y métricas STAR.
-- **Integridad de impresión:** Las reglas en `assets/css/custom.css` aseguran que al imprimir o guardar en PDF (Ctrl + P), los elementos filtrados temporalmente por el buscador permanezcan siempre visibles (`display: block !important`) para generar un currículum completo.
+- **Reglas del Cotizador Textil (skill.md):**
+  - **Compatibilidad Técnica:** Sublimación exclusiva para prendas blancas o claras de poliéster (invalida automáticamente telas oscuras o algodón recomendando DTF). Serigrafía sugerida solo para tirajes de 30+ unidades.
+  - **Costos de Referencia:** Polera algodón base $3.500, Polera poliéster $2.800, Polerón $11.000, Buzo $12.000, Gorra $3.500. Recargo por tallas especiales (XXL, 3XL) de +$1.200. Estampado logo pecho hasta 10x10 cm ($1.500), grande A4 ($3.200), extra grande A3 ($4.800), sublimación A4 ($1.800).
+  - **Escala de Descuento por Volumen:** 1 a 5 un. (0%), 6 a 11 un. (5%), 12 a 24 un. (10% docena), 25 a 49 un. (15%), 50+ un. (20%). Se aplica automáticamente sobre el subtotal bruto en formulario de pedidos, tickets imprimibles y comprobantes de WhatsApp.
+- **IVA (19% Chile) y Delivery en Pedidos y Compras (Spec 005):**
+  - **Tasa de IVA según legislación chilena (D.L. 825):** 19% (`TASA_IVA_CHILE = 0.19`).
+  - **Pregunta interactiva en ambos módulos:** Tanto en el formulario de Pedidos como en el de Compras a proveedores se pregunta si aplica IVA mediante casilla interactiva (`[ ] ¿Aplica IVA (19%)?` / `[ ] ¿Factura con IVA (19%)?`).
+  - **Pregunta interactiva y campo Delivery (por defecto $0):** Tanto en Pedidos como en Compras se pregunta si aplica Delivery/Flete con una casilla (`[ ] ¿Aplica Delivery / Envío?` / `[ ] ¿Aplica Flete / Delivery?`), desplegando un campo numérico con valor por defecto `0`.
+  - **Fórmula financiera en Ventas:** $\text{Neto} = \text{Subtotal} - \text{Descuento Volumen}$; $\text{IVA} = \text{round}(\text{Neto} \times 0.19)$; $\text{Total} = \text{Neto} + \text{IVA} + \text{Delivery}$; $\text{Saldo} = \text{Total} - \text{Abono}$.
+  - **Fórmula financiera en Compras:** $\text{Subtotal Neto} = \sum (\text{cantidad} \times \text{costo unitario})$; $\text{IVA} = \text{round}(\text{Subtotal Neto} \times 0.19)$; $\text{Total} = \text{Subtotal Neto} + \text{IVA} + \text{Delivery}$.
+  - **Soporte en comprobantes:** Desglose en vivo en los modales, en tickets imprimibles/térmicos (`ticket.js`) y en mensajes estructurados de WhatsApp (`sales.js`).
+- **Datos Propios vs Datos Demo:** La aplicación no inserta datos de muestra automáticamente al iniciar. Inicia con las entidades vacías (`[]`) para uso con datos reales. En `Ajustes` (⚙️) existen botones para vaciar la base de datos o cargar datos de muestra manualmente si se desea hacer pruebas.
+- **Selector de Colores Textiles Unificado:** Tanto en el formulario de "Nuevo Pedido" como en "Registrar Artículo en Inventario" (`#dialog-inventory`) se utiliza la misma lista desplegable estandarizada con los colores de la industria textil de estampados (`COLORES_TEXTILES`), garantizando concordancia exacta de stock y permitiendo además especificar colores personalizados mediante la opción interactiva "Otro".
+- **Catálogo de Tallas Textiles Estandarizado (Spec 007):** Tanto en Pedidos como en Bodega e Inventario se soportan formalmente las tallas infantiles numéricas (`4, 6, 8, 10, 12, 14, 16, 18`) junto con las tallas adultas (`XS, S, M, L, XL, XXL, Única`). En la interfaz se organizan mediante `<optgroup>` semánticos ("Niños" y "Adultos / Estándar"). Las tallas infantiles no reciben recargo por talla especial y son plenamente compatibles con el cálculo de disponibilidad de bodega y cotizaciones de pedidos.
+- **Enlace Prenda-Color-Talla y Auto-creación en Inventario (Spec 008):** Toda prenda de pedido se vincula con el inventario mediante la coincidencia normalizada de su terna `garmentType`, `color` y `size`. Si una prenda requerida no existe previamente en `novaprint_inventory`, el sistema la contabiliza como faltante (`totalPrendasFaltantes`) y, al proceder a la compra de faltantes (`abrirModalCompraConFaltantes`) o guardar el pedido, crea automáticamente el ítem en bodega (`asegurarItemInventarioPrenda`) con stock 0, código estructurado (`POL-AZU-10`) y costo base de referencia. Esto permite enlazarla a la orden de compra con un `inventoryItemId` formal y, al confirmar la compra, incrementar su stock automáticamente en bodega.
+- **Botón y Filtro de Saldo por Cobrar (Spec 009):** En la barra de estados/filtros de pedidos se incorpora un botón interactivo rápido (`#btn-filter-balance`) con insignia de conteo en vivo (`#badge-count-pending-balance`) y la opción `<option value="con_saldo">` en el selector de estados. Al activarlo, tanto el tablero Kanban como la tabla de pedidos se filtran deterministamente para mostrar únicamente los pedidos con dinero pendiente de cobro (`totals.balanceAmount > 0`), con activación adicional al hacer clic en la tarjeta KPI "Por Cobrar".
+- **Identidad Visual e Iconografía Oficial de la App:** Se estableció el logotipo e isotipo oficial de Novaprint (diseño textil con gotas de tinta CMY y tipografía corporativa) como imagen representativa en toda la aplicación: favicon multi-resolución (`favicon.ico`, `favicon-32x32.png`, `favicon-16x16.png`), icono PWA y pantalla de inicio móvil (`icon-192.png`, `icon-512.png`, `apple-touch-icon.png`), encabezado de la barra de navegación (`index.html`) y encabezado de comprobantes imprimibles (`ticket.js`).
+- **Metodología SDD:** Especificación previa obligatoria antes de escribir código de componentes. El roadmap se divide en especificaciones ordenadas:
+  - **Spec 001 (Implementada):** Módulo de Ventas (Control de Clientes y Control de Pedidos de estampado: poleras, polerones, buzos, gorras).
+  - **Spec 002 (Implementada):** Módulo de Producción — Control de Compras de Insumos, Control de Inventarios y Control de Proveedores con incremento automático de existencias.
+  - **Spec 003 (Implementada):** Módulo de Producción — Control de Fabricación en Taller por estaciones (Diseño, Preparación, Estampado, Calidad y Empacado).
+  - **Spec 004 (Implementada):** Enlace Pedidos ➔ Inventario, Detección de Faltantes, Pre-llenado de Compra a Proveedor y Descuento Automático de Bodega en Taller.
+  - **Spec 005 (Implementada):** IVA 19% chileno y Delivery en Pedidos y Compras.
+  - **Spec 006 (Implementada):** Selector de Colores Textiles en Inventario unificado con Pedidos.
+  - **Spec 007 (Implementada):** Tallas Infantiles (4, 6, 8, 10, 12, 14, 16, 18) en Pedidos e Inventario.
+  - **Spec 008 (Implementada):** Enlace Prenda-Color-Talla y Auto-creación en Inventario para Compras de Faltantes.
+  - **Spec 009 (Implementada):** Botón y Filtro de Pedidos con Saldo por Cobrar en Barra de Estados.
+- **Tecnología sin compilador (inspirado en Momentos Cookie):**
+  - Vanilla JS modular ejecutable directamente sin bundlers ni compiladores.
+  - Tailwind CSS vía CDN y Lucide Icons vía CDN.
+  - Modales nativos con `<dialog>` y backdrop styling.
+  - Soporte de impresión física con `@media print` para tickets de clientes y órdenes de taller.
+  - Arquitectura PWA (`manifest.json` y Service Worker `sw.js`) para uso en móviles y taller sin conexión continua.
+  - Soporte completo de Backup/Restauración en formato JSON para seguridad de datos de la microempresa.
 
 ---
 
 ## 3. Historial de cambios
 
-Añadir una entrada nueva arriba del todo por cada tarea terminada.
+### 2026-11-03 (Spec 009 — Botón y Filtro de Pedidos con Saldo por Cobrar en Barra de Estados)
+- Incorporación del botón y filtro de cobranza para pedidos pendientes de pago:
+  - `assets/js/sales.js`: Soporte de `estadoFiltro === 'con_saldo'` y `soloConSaldo: true` en `filtrarPedidos`, seleccionando únicamente pedidos con `balanceAmount > 0` que no estén cancelados.
+  - `index.html`:
+    - Adición del botón interactivo `#btn-filter-balance` con insignia dinámica `#badge-count-pending-balance` en la barra de filtros y estados de pedidos.
+    - Opción `con_saldo` incorporada en el menú desplegable `#orders-status-filter`.
+    - Tarjeta KPI "Por Cobrar" (`#kpi-card-pending-balance`) habilitada como enlace interactivo con cursor pointer y hover.
+  - `assets/js/ui.js`: Conteo automático de pedidos con saldo pendiente y actualización de la insignia en `renderMetrics`.
+  - `assets/js/main.js`: Controladores para alternar el filtro al pulsar `#btn-filter-balance` o `#kpi-card-pending-balance`, sincronización bidireccional con `#orders-status-filter` y refresco dinámico de Kanban y Tabla.
+  - Pruebas automatizadas: Nueva prueba en `tests/sales.test.js`. 90 pruebas pasando al 100% en verde.
 
-### 2026-10-16 — Corrección: Restauración de h2#modal-title y robustez en modal STAR
-- Detectado que al pulsar el botón "Ver caso completo STAR" no se abría el diálogo debido a la omisión accidental del elemento `<h2 id="modal-title">` en `index.html`.
-- Restaurado `<h2 id="modal-title">` en el `<dialog id="project-modal">` de [index.html](file:///d:/Carpetas/Desarrollos/Desarrollos%20WEB/CV%20Web/index.html).
-- Añadidas comprobaciones defensivas con `null-check` para cada elemento en la función `window.openProjectModal()` en [assets/js/main.js](file:///d:/Carpetas/Desarrollos/Desarrollos%20WEB/CV%20Web/assets/js/main.js) para evitar excepciones runtime no controladas.
-- 14/14 tests pasando en verde.
+### 2026-11-03 (Spec 008 — Enlace Prenda-Color-Talla y Auto-creación en Inventario para Compras)
+- Implementación de la Spec 008 para enlazar pedidos con inventario y auto-crear ítems no existentes:
+  - `assets/js/storage.js`:
+    - Función pura `generarCodigoPrenda(garmentType, color, size)` para códigos estructurados (`POL-AZU-10`, `POL-NEG-L`).
+    - Función `asegurarItemInventarioPrenda(garmentType, color, size, datosExtra)`: busca por la terna o crea automáticamente el ítem con stock 0, costo de referencia del cotizador textil y asignación de proveedor sugerido. Exportada en `NovaprintStorage`.
+  - `assets/js/production.js`:
+    - Actualización de `calcularFaltantesPedido` para contabilizar prendas no registradas en `totalPrendasFaltantes` y agregarlas a `faltantesParaCompra` como requerimientos pendientes de adquisición.
+  - `assets/js/ui.js`:
+    - En `abrirModalCompraConFaltantes`, creación automática en inventario de cualquier ítem faltante no registrado para asignar su `inventoryItemId` antes de abrir `#dialog-purchase`.
+    - En `guardarPedidoDesdeFormulario`, registro de las prendas del pedido en `novaprint_inventory` para trazabilidad inmediata en tarjetas de pedidos y semáforos de stock.
+  - Pruebas automatizadas: Nuevas pruebas en `tests/storage.test.js` y `tests/production.test.js`. 89 pruebas pasando al 100% en verde sin regresiones.
 
-### 2026-10-16 — Implementación completa: Selector de Idioma Bilingüe ES/EN (Spec 002)
-- **T1 completada:** Creado [assets/js/i18n.js](file:///d:/Carpetas/Desarrollos/Desarrollos%20WEB/CV%20Web/assets/js/i18n.js) con catálogo bilingüe (ES / EN) y funciones puras (`esIdiomaValido`, `resolverIdiomaInicial`, `obtenerTraduccion`, `obtenerDiccionario`) con dual export UMD/CommonJS. Suite de pruebas [tests/i18n.test.js](file:///d:/Carpetas/Desarrollos/Desarrollos%20WEB/CV%20Web/tests/i18n.test.js) con 6/6 tests pasando (paridad exacta de claves).
-- **T2 completada:** Incorporados en [index.html](file:///d:/Carpetas/Desarrollos/Desarrollos%20WEB/CV%20Web/index.html) los botones `#lang-toggle` (navbar escritorio) y `#lang-toggle-mobile` (menú móvil) junto a los controles de tema. Etiquetados los elementos traducibles de la interfaz mediante atributos declarativos (`data-i18n`, `data-i18n-placeholder`, `data-i18n-title`, `data-i18n-aria-label`).
-- **T3 completada:** Implementada en [assets/js/main.js](file:///d:/Carpetas/Desarrollos/Desarrollos%20WEB/CV%20Web/assets/js/main.js) la orquestación dinámica (`initLanguage`, `setLanguage`), actualización del atributo `<html lang="...">`, persistencia en `localStorage` bajo `cv-web-lang`, adaptación de filtros de proyectos y notificaciones flotantes (toasts) según idioma activo.
-- **T4 completada:** Verificación al 100% de la suite combinada de pruebas (14/14 tests pasando en `tests/search.test.js` y `tests/i18n.test.js`), validación de sintaxis con `node -c`, tolerancia a modo incógnito y actualización de especificación a `implementada`.
+### 2026-11-02 (Spec 007 — Incorporación de Tallas Infantiles 4 a 18 en Pedidos e Inventario)
+- Incorporación y estandarización de las tallas para niños en toda la aplicación:
+  - `assets/js/sales.js`: Definición de `TALLAS_TEXTILES` y `TALLAS_GRUPOS` que incluyen las tallas infantiles `4, 6, 8, 10, 12, 14, 16, 18` junto con las tallas adultas `XS, S, M, L, XL, XXL, Única`.
+  - `assets/js/ui.js`:
+    - Creación de la función generadora `generarOpcionesTalla(tallaActual)` con agrupación visual semántica (`<optgroup label="Niños">` y `<optgroup label="Adultos / Estándar">`) y preservación automática de tallas personalizadas.
+    - Actualización de la tabla de ítems de prendas en `#dialog-order` para renderizar el nuevo catálogo dinámico de tallas.
+  - `index.html`: Incorporación de `<datalist id="inventory-size-datalist">` enlazado al campo de talla/medida de inventario (`#inventory-size-input`), proveyendo sugerencias automáticas de tallas infantiles y adultas al ingresar existencias en bodega.
+  - Pruebas automatizadas: Nuevas pruebas en `tests/sales.test.js` y `tests/production.test.js` validando la presencia del catálogo, ausencia de recargos especiales en tallas infantiles, cotizaciones estructuradas y disponibilidad en bodega. 87 pruebas pasando al 100% en verde.
 
-### 2026-10-16 — Refinamiento visual e identidad de ingeniería (frontend-design)
-- Aplicados los principios de la skill `frontend-design` para dotar al portfolio de una estética arquitectónica y técnica ("The Systems Architect"):
-  - Reemplazados los rótulos genéricos en mayúsculas forzadas (`UPPERCASE TRACKING-WIDEST`) por indicadores semánticos `.section-tag` sobrios con iconos y caja baja equilibrada.
-  - Rediseñado el titular principal del Hero eliminando clips de degradado múltiples para una lectura ejecutiva más rotunda y sólida.
-  - Refinadas las tarjetas de métricas del Hero con presentación tabular de alta precisión técnica.
-  - Refinado el bloque del Elevator Pitch y las tarjetas de proyectos STAR, con bloques destacados de "Resultado comprobable" y botones táctiles sutiles.
-  - Reestructurado el sistema de variables CSS en [assets/css/custom.css](file:///d:/Carpetas/Desarrollos/Desarrollos%20WEB/CV%20Web/assets/css/custom.css) con elevaciones limpias, contraste descansado y paleta técnica abisal en modo oscuro.
-  - 8/8 tests unitarios pasando en verde en `node --test` y sintaxis JS 100% validada.
+### 2026-11-02 (Identidad Visual: Integración del Logotipo Oficial como Icono y Favicon)
+- Establecimiento del logotipo oficial de Novaprint como icono central de la aplicación web y PWA:
+  - Generación de activos optimizados en `assets/img/`: `icon-512.png` (512x512), `icon-192.png` (192x192), `apple-touch-icon.png` (180x180), `favicon-32x32.png` (32x32), `favicon-16x16.png` (16x16), `logo.png` (512x512), `favicon.ico` y `favicon.png`.
+  - `index.html`: Enlace en el `<head>` a favicon estándar, favicon PNG y Apple Touch Icon; reemplazo del placeholder tipográfico `NP` en la barra de navegación por la imagen oficial del logotipo.
+  - `manifest.json`: Actualización de los iconos PWA a `assets/img/icon-192.png` y `assets/img/icon-512.png` con propósito `any maskable`.
+  - `sw.js`: Inclusión de los nuevos recursos gráficos en la lista de precaché offline y actualización de versión a `novaprint-v2`.
+  - `assets/js/ticket.js`: Incorporación del logotipo en el encabezado de los comprobantes y tickets físicos de venta.
+  - Suite de pruebas: 82 pruebas pasando al 100% en verde sin regresiones.
 
-### 2026-10-16 — Implementación completa: Buscador y Filtros Avanzados (Spec 001)
-- **T1 completada:** Creado [assets/js/search.js](file:///d:/Carpetas/Desarrollos/Desarrollos%20WEB/CV%20Web/assets/js/search.js) con funciones puras (`normalizarTexto`, `escaparRegex`, `coincideTexto`, `resaltarCoincidencias`, `filtrarHabilidades`, `filtrarProyectos`, `filtrarExperiencia`, `calcularTotalCoincidencias`) y suite unitaria nativa [tests/search.test.js](file:///d:/Carpetas/Desarrollos/Desarrollos%20WEB/CV%20Web/tests/search.test.js) con 8/8 tests pasando en `node --test`.
-- **T2 completada:** Maquetada en [index.html](file:///d:/Carpetas/Desarrollos/Desarrollos%20WEB/CV%20Web/index.html) la sección `#search-section` accesible con input, botón de limpieza, contador dinámico y panel de cero coincidencias `#search-empty-state` con chips de sugerencias rápidas. En [assets/css/custom.css](file:///d:/Carpetas/Desarrollos/Desarrollos%20WEB/CV%20Web/assets/css/custom.css) se definieron estilos para `<mark class="search-highlight">` (modo claro/oscuro) y reglas `@media print` para forzar la impresión íntegra del currículum.
-- **T3 completada:** Implementada en [assets/js/main.js](file:///d:/Carpetas/Desarrollos/Desarrollos%20WEB/CV%20Web/assets/js/main.js) la orquestación interactiva en tiempo real (`setupSearch`, `renderTechnicalSkills`, `renderExperience`, `renderProjects`), sincronizando búsqueda textual y filtros de categoría de proyectos.
-- **T4 completada:** Verificación integral de sintaxis (0 errores), suite de pruebas al 100% verde y actualización de la especificación a `implementada`.
+### 2026-11-02 (Spec 006 — Selector de Colores Textiles en Inventario)
+- Implementación de la Spec 006 para unificar el catálogo de colores entre Ventas y Producción:
+  - `index.html`: Reemplazo del campo de texto libre `<input id="inventory-color-input">` por la lista desplegable `<select id="inventory-color-select">` en el modal `#dialog-inventory`.
+  - `assets/js/ui.js`:
+    - Función interactiva `manejarCambioColorInventario(valor)` con soporte de opción "Otro" y solicitud dinámica de color personalizado.
+    - Poblado automático con la paleta textil oficial (`generarOpcionesColor`) al abrir modal de nuevo ítem (`abrirModalNuevoItemInventario`) y al editar un ítem existente (`editarItemInventario`).
+    - Lectura estandarizada en `guardarItemInventarioDesdeFormulario`.
+  - `assets/js/storage.js`: Robustecimiento en la generación de identificadores únicos (`INV-`, `PRV-`, `CMP-`, `PRJ-`) con sufijos pseudoaleatorios para prevenir colisiones en llamadas síncronas rápidas.
+  - Pruebas automatizadas: Verificación en `tests/storage.test.js`, con 82 pruebas pasando al 100% en verde.
 
-### 2026-10-16 — Redacción de la especificación funcional (specs/001-buscador-filtros/spec.md)
-- Generada la especificación [specs/001-buscador-filtros/spec.md](file:///d:/Carpetas/Desarrollos/Desarrollos%20WEB/CV%20Web/specs/001-buscador-filtros/spec.md) en estado `borrador` a partir de las 5 preguntas de clarificación acordadas con el usuario.
-- Delimitado el QUÉ y el POR QUÉ del buscador y filtros avanzados en tiempo real (barra dedicada accesible, filtrado simultáneo en Habilidades, Proyectos y Experiencia, resaltado visual de términos, combinación acumulativa con categorías de proyectos, estado sin coincidencias con sugerencias y protección del documento impreso completo al exportar a PDF).
-- Cero líneas de código de implementación modificadas en esta fase.
+### 2026-11-02 (Spec 005 — IVA 19% Legislación Chilena y Delivery en Pedidos y Compras)
+- Implementación completa de la Spec 005:
+  - `assets/js/sales.js`:
+    - Constante `TASA_IVA_CHILE = 0.19` (19% según D.L. 825).
+    - Extensión de `calcularTotalesPedido` con soporte de `opciones: { aplicarDescuentoVolumen, aplicarIva, montoDelivery }` (manteniendo retrocompatibilidad booleana).
+    - Desglose financiero completo: Subtotal Bruto, Descuento Volumen, Neto, IVA (19%), Delivery ($0 por defecto), Total, Abono y Saldo.
+    - Soporte de filas de IVA y Delivery en el generador de texto de WhatsApp (`generarTextoWhatsApp`).
+  - `assets/js/production.js`:
+    - Constante `TASA_IVA_CHILE = 0.19`.
+    - Función pura `calcularTotalesCompra(items, opciones)` que calcula Subtotal Neto, IVA 19% opcional y Flete/Delivery opcional ($0 por defecto).
+  - `assets/js/storage.js`:
+    - Normalización y persistencia de desglose de IVA y Delivery en compras (`savePurchase`) y pedidos (`saveOrder`).
+  - `index.html` y `assets/js/ui.js`:
+    - Formulario de Pedido (`#dialog-order`): Casillas `[ ] ¿Aplica IVA (19%)?` y `[ ] ¿Aplica Delivery / Envío?` con input de delivery inicializado en 0. Resumen financiero en tiempo real con filas condicionales de Neto, IVA y Delivery.
+    - Formulario de Compra (`#dialog-purchase`): Casillas `[ ] ¿Factura con IVA (19%)?` y `[ ] ¿Aplica Flete / Delivery?` con input de delivery inicializado en 0. Desglose en vivo de Subtotal Neto, IVA, Flete/Delivery y Total Compra.
+    - Métodos interactivos `toggleOrderDeliveryInput()` y `togglePurchaseDeliveryInput()`.
+  - `assets/js/ticket.js`:
+    - Desglose de filas de Monto Neto, IVA (19%) y Delivery/Envío en los tickets de venta impresos y térmicos.
+  - Pruebas automatizadas: 9 nuevas pruebas en `tests/sales.test.js`, `tests/production.test.js`, `tests/storage.test.js` y `tests/ticket.test.js`. Suite total: 82 pruebas pasando al 100% en verde.
 
-### 2026-10-16 — Inicialización y alineación completa de la documentación del proyecto (`/init`)
-- Detectada y resuelta la discrepancia de contexto: se reemplazaron los archivos de documentación huérfanos del proyecto anterior ("Aprendiendo a Leer") por la documentación oficial y especializada de este repositorio (**CV Web & Portfolio de Andres Aguiar**).
-- Actualizado [AGENTS.md](file:///d:/Carpetas/Desarrollos/Desarrollos%20WEB/CV%20Web/AGENTS.md) con las directrices de arquitectura, stack técnico (HTML5, Tailwind CDN, Vanilla JS, Lucide) y protocolos de prueba.
-- Actualizado [docs/constitution.md](file:///d:/Carpetas/Desarrollos/Desarrollos%20WEB/CV%20Web/docs/constitution.md) con los 6 principios innegociables del proyecto.
-- Creado [memory.md](file:///d:/Carpetas/Desarrollos/Desarrollos%20WEB/CV%20Web/memory.md) con la especificación de `PROFILE_DATA`, persistencia de tema en `localStorage`, decisiones arquitectónicas vigentes y registro de cambios.
-- Eliminada la skill obsoleta `local-dates` y conservadas las directrices de frontend y buenas prácticas web.
+### 2026-11-02 (Integración de Reglas de Cotizador Textil y Descuentos por Volumen — skill.md)
+- Incorporación de las reglas de negocio del archivo `.agents/skills/sdd/skill.md`:
+  - `assets/js/sales.js`:
+    - Constante `COSTOS_REFERENCIA` con valores base para prendas, recargo por tallas especiales (+$1.200) y dimensiones de estampado.
+    - Función pura `calcularPrecioSugeridoPrenda` que calcula el precio de referencia unitario automáticamente.
+    - Función pura `validarCompatibilidadTecnica` que verifica telas y colores (alerta si se intenta sublimar en telas oscuras o de algodón, o si se usa serigrafía en <30 unidades).
+    - Función pura `calcularDescuentoVolumen` con la escala oficial (5% desde 6 un., 10% desde 12 un., 15% desde 25 un. y 20% desde 50 un.).
+    - Función `generarCotizacionEstructurada` que emite el esquema JSON estricto y desglose por tallas según `skill.md`.
+    - Actualización de `calcularTotalesPedido` y `generarTextoWhatsApp` con soporte de desglose de descuentos.
+  - `assets/js/ui.js` e `index.html`:
+    - Precios sugeridos automáticos al agregar prendas en `#dialog-order`.
+    - Alerta visual en tiempo real de compatibilidad técnica en cada fila del pedido.
+    - Desglose financiero en el formulario con Subtotal Bruto, Descuento por Volumen (con casilla de activación) y Total Neto.
+  - `assets/js/ticket.js`:
+    - Desglose de subtotal y descuento por volumen en el comprobante impreso y térmico.
+  - Pruebas unitarias: 12 nuevas pruebas agregadas en `tests/sales.test.js`, con un total de 73 pruebas pasando al 100%.
+
+### 2026-11-02 (Spec 004 — Enlace Pedidos ➔ Inventario, Detección de Faltantes y Descuento en Taller)
+- Implementación completa de la Spec 004:
+  - `assets/js/production.js`: Funciones puras `verificarDisponibilidadPrenda` (compara prenda, color y talla contra bodega), `calcularFaltantesPedido` (detecta requerimientos y prepara lista consolidada para compra) y `descontarInventarioPorPedido` (descuenta unidades usadas sin generar stock negativo).
+  - `assets/js/storage.js`: Método `descontarStockPorPedido(itemsPedido)` para sincronizar la reducción física de prendas en `novaprint_inventory`.
+  - `assets/js/ui.js` e `index.html`: Badges visuales en tiempo real en cada fila del pedido (🟢 *Bodega: X un.* / 🔴 *⚠️ Faltan Y un.*), banner de advertencia cuando faltan prendas con botón directo `[ 🛒 Comprar Material Faltante ]` que pre-carga `#dialog-purchase` con las prendas y cantidades exactas, y descuento automático de stock de bodega al despachar el pedido a fabricación con `⚡ Taller`.
+  - Pruebas automatizadas: 8 nuevas pruebas unitarias en `tests/production.test.js` y `tests/storage.test.js`, alcanzando 61 pruebas pasando al 100%.
+
+### 2026-11-02 (Selector de Colores de Prendas y Limpieza de Datos Demo)
+- **Selector de colores en Pedidos:**
+  - `assets/js/sales.js`: Constante `COLORES_TEXTILES` exportada con la lista de colores comunes para estampados (*Negro, Blanco, Gris Melange, Gris Grafito, Azul Marino, Azul Rey, Rojo, Burdeo, Verde Botella, Verde Militar, Amarillo, Naranjo, Celeste, Rosado, Beige, Morado, Otro*).
+  - `assets/js/ui.js`: Campo "Color" reemplazado por un elemento `<select>` desplegable con opciones estándar y opción interactiva "Otro" para colores especiales.
+- **Limpieza de datos de prueba:**
+  - `assets/js/storage.js`: Nueva función `clearAllData(preserveSettings = true)` para vaciar todos los registros manteniendo la configuración del taller (nombre, RUT, teléfono, etc.). Modificación de `initDemoData(force)` para no autosembrarse si `force` no es `true`.
+  - `assets/js/main.js`: Detección y limpieza automática de datos de muestra preexistentes de la plantilla en el navegador para comenzar desde cero con datos reales.
+  - `index.html` y `assets/js/main.js`: Botones en el modal de Ajustes (⚙️) para "Vaciar Base de Datos" o "Cargar Datos de Prueba".
+  - `tests/sales.test.js` y `tests/storage.test.js`: Pruebas añadidas y pasando en verde (53 pruebas totales).
+
+### 2026-11-01 (Corrección Navegación SPA y Visibilidad de Vistas)
+- Solución al problema de navegación donde los botones de la barra horizontal parecían inactivos:
+  - `assets/css/custom.css`: Se agregaron las reglas de visibilidad `.view-panel { display: none !important; }` y `.view-panel.active { display: block !important; animation: fadeInView ... }`. Anteriormente, al no existir esta regla, todas las vistas estaban visibles simultáneamente una debajo de otra en una única página gigante, por lo que al hacer clic en las pestañas no se ocultaban ni mostraban las secciones.
+  - `assets/js/main.js`: Soporte de navegación por hash de URL (`#orders`, `#clients`, `#inventory`, `#purchases`, `#suppliers`, `#fabrication`), manejo de botones con estilo activo y refresco de vista al cambiar de pestaña.
+  - `assets/js/ui.js`: Redirección automática a la vista `#view-fabrication` al enviar un pedido al taller mediante `⚡ Taller`.
+
+### 2026-11-01 (Módulo de Producción: Control de Fabricación en Taller - Spec 003 Completado)
+- Implementación completa de la Spec 003 (Control de Fabricación en Taller):
+  - `assets/js/production.js`: Funciones puras para progresión secuencial de estaciones (`Diseño` ➔ `Preparación` ➔ `Estampado` ➔ `Control Calidad` ➔ `Terminado`), agrupamiento determinista en tablero Kanban de 5 columnas, constructor de órdenes de fabricación desde pedidos de clientes y filtros por técnica y texto.
+  - `assets/js/storage.js`: CRUD y persistencia para proyectos de fabricación (`novaprint_projects`), método `updateProjectStage` y seed data con lotes activos en taller.
+  - `assets/js/ui.js` y `assets/js/main.js`: Renderizado del tablero Kanban de 5 columnas, botón de avance rápido en 1 clic (`Avanzar a [Etapa] ➔`), botón integrado en pedidos de ventas (`⚡ Taller`) para despachar pedidos directamente a fabricación y modal `#dialog-project` para órdenes directas o lotes para stock.
+  - `index.html`: Despliegue de la pestaña `#view-fabrication` y modales de taller.
+  - `tests/fabrication.test.js`: Suite de pruebas unitarias pasando al 100% en verde (51 pruebas totales en la suite general).
+
+### 2026-11-01 (Módulo de Producción: Compras, Inventario y Proveedores - Spec 002 Completado)
+- Implementación completa de la Spec 002:
+  - `assets/js/production.js`: Lógica pura para evaluación de alertas de stock crítico (`currentStock <= minStock`), cálculo de valorización monetaria de inventario, aplicación de compras con incremento automático de existencias y filtros combinados.
+  - `assets/js/storage.js`: CRUD para proveedores, inventario y compras, seed data completo de insumos de estampado (poleras lisas, polerones franela, gorras trucker, bobinas film DTF, poliamida, vinilo reflectivo) y sincronización automática de existencias al guardar compras.
+  - `assets/js/ui.js`: Renderizado de directorio de proveedores con WhatsApp, tabla de inventario con badges de stock bajo y tabla de compras.
+  - `index.html`: Vistas funcionales `#view-inventory`, `#view-purchases`, `#view-suppliers` y modales nativos `<dialog>` para registrar/editar proveedores, ítems de inventario y registrar compras.
+  - `tests/production.test.js`: Suite completa de pruebas pasando en verde (44 pruebas totales en la suite general).
+  - Creación del borrador de la **Spec 003: Control de Fabricación en Taller** (`specs/003-control-fabricacion/spec.md`).
+
+### 2026-11-01 (Módulo de Ventas Completado - Spec 001)
+- Implementación completa de la Spec 001 (Módulo de Ventas: Control de Pedidos y Control de Clientes):
+  - `assets/js/sales.js`, `assets/js/ticket.js`, `assets/js/ui.js`, `assets/js/main.js`, `index.html`, `manifest.json`, `sw.js`.

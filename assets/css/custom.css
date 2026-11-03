@@ -78,6 +78,38 @@ body {
 }
 
 /* ==========================================================================
+   Vistas SPA (Paneles de Navegación por Módulo)
+   ========================================================================== */
+.view-panel {
+  display: none !important;
+}
+
+.view-panel.active {
+  display: block !important;
+  animation: fadeInView 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes fadeInView {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.nav-tab-btn {
+  cursor: pointer;
+  transition: all 0.15s ease-in-out;
+}
+
+.nav-tab-btn:hover {
+  color: #1d4ed8;
+}
+
+/* ==========================================================================
    Modales Nativos (<dialog>)
    ========================================================================== */
 dialog {
