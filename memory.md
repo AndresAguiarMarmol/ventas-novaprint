@@ -83,6 +83,10 @@ Registro de todo lo que debe preservarse entre sesiones de trabajo: arquitectura
 
 ## 3. Historial de cambios
 
+### 2026-11-05 (Sincronización con GitHub — Specs 001 a 013)
+- Se consolidaron y confirmaron todos los cambios en Git (Specs 010 a 013 y documentación del README).
+- Se sincronizó el repositorio remoto en la rama dedicada `novaprint` (`origin/novaprint`), preservando la rama `main` original y dejando el árbol de trabajo local 100% limpio y actualizado.
+
 ### 2026-11-05 (Spec 013 — Flexibilidad de Precios Libres y Descuentos por Volumen)
 - **Flexibilización de ingreso de precios:**
   - `assets/js/sales.js`: Ajuste de `calcularSubtotalItem` para permitir precio $0 (promociones) y precios libres sin restricciones.
