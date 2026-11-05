@@ -3,7 +3,29 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="color-scheme" content="light dark">
   <title>Novaprint — Estampado Textil & Gestión de Taller</title>
+
+  <!-- Script síncrono temprano para prevención de FOUC de tema -->
+  <script>
+    (function () {
+      try {
+        var raw = localStorage.getItem('novaprint_settings');
+        var theme = 'system';
+        if (raw) {
+          var parsed = JSON.parse(raw);
+          if (parsed && parsed.theme) theme = parsed.theme;
+        }
+        var prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+        var isDark = theme === 'dark' || (theme === 'system' && prefersDark);
+        if (isDark) {
+          document.documentElement.classList.add('dark');
+        } else {
+          document.documentElement.classList.remove('dark');
+        }
+      } catch (e) {}
+    })();
+  </script>
   
   <!-- Tailwind CSS vía CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
@@ -160,6 +182,11 @@
           <button id="btn-filter-balance" type="button" class="py-2 px-3 rounded-lg text-xs font-bold border border-emerald-300 bg-emerald-50 text-emerald-800 hover:bg-emerald-100 flex items-center gap-1.5 transition-all shadow-xs cursor-pointer" title="Ver todos los pedidos con saldo pendiente de pago">
             <span>💰 Saldo por Cobrar</span>
             <span id="badge-count-pending-balance" class="bg-emerald-200 text-emerald-900 text-[10px] px-1.5 py-0.5 rounded-full font-black">0</span>
+          </button>
+
+          <!-- Botón Descuentos por Volumen (Spec 013) -->
+          <button id="btn-view-volume-discounts" type="button" class="py-2 px-3 rounded-lg text-xs font-bold border border-blue-200 bg-blue-50 text-blue-800 hover:bg-blue-100 flex items-center gap-1.5 transition-all shadow-xs cursor-pointer" title="Ver escala oficial de descuentos por volumen">
+            <span>🏷️ Descuentos por Volumen</span>
           </button>
 
           <!-- Filtro de Estado -->
@@ -551,6 +578,19 @@
 
   </main>
 
+  <!-- PIE DE PÁGINA (SPEC 012) -->
+  <footer class="mt-auto py-4 bg-white border-t border-gray-200 text-center text-xs text-gray-500 no-print">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <p id="app-footer-text" class="flex flex-wrap items-center justify-center gap-1 sm:gap-2 leading-relaxed">
+        <span>Análisis/Diseño de Andres Aguiar V <strong id="footer-version-code" class="font-bold text-gray-700">2611.04</strong> Santiago de Chile <span id="footer-date-name">Noviembre 2026</span></span>
+        <span class="hidden sm:inline text-gray-300">-</span>
+        <span>Contacto <a href="tel:+56933395447" class="font-medium text-gray-700 hover:text-blue-600 underline transition-colors">+56933395447</a></span>
+        <span class="hidden sm:inline text-gray-300">-</span>
+        <span>Whatsapp <a href="https://wa.me/56933395447" target="_blank" rel="noopener noreferrer" class="font-medium text-emerald-600 hover:text-emerald-700 underline transition-colors">+56933395447</a></span>
+      </p>
+    </div>
+  </footer>
+
   <!-- ========================================== -->
   <!-- MODALES NATIVOS (<dialog>)                 -->
   <!-- ========================================== -->
@@ -566,7 +606,7 @@
         <button type="button" class="text-gray-400 hover:text-gray-700 text-xl font-bold p-1" onclick="document.getElementById('dialog-order').close()">✕</button>
       </div>
 
-      <form id="form-order" class="p-6 overflow-y-auto space-y-5 flex-1">
+      <form id="form-order" novalidate class="p-6 overflow-y-auto space-y-5 flex-1">
         <!-- Fila 1: Cliente y Fechas -->
         <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <div class="sm:col-span-2">
@@ -624,6 +664,12 @@
               <span class="text-[11px] font-bold text-gray-500 uppercase">Prendas Totales:</span>
               <span id="form-total-quantity" class="text-base font-black text-gray-800">0 un.</span>
             </div>
+
+            <!-- Botón Consultar Descuentos por Volumen (Spec 013) -->
+            <button id="btn-open-volume-discounts-order" type="button" class="mt-1.5 text-[11px] font-bold text-emerald-800 bg-emerald-50 hover:bg-emerald-100 px-2.5 py-1.5 rounded-lg border border-emerald-300 flex items-center justify-between w-full shadow-2xs transition-colors cursor-pointer" title="Consultar tramos y escalas oficiales de ahorro">
+              <span class="flex items-center gap-1.5">🏷️ <span>Descuentos por Volumen</span></span>
+              <span class="text-[10px] text-emerald-700 font-bold bg-white px-1.5 py-0.5 rounded border border-emerald-200">Ver Escala ➔</span>
+            </button>
 
             <!-- Subtotal Bruto y Descuento por Volumen (skill.md) -->
             <div id="form-subtotal-container" class="mt-1 hidden flex justify-between text-xs text-gray-600">
@@ -719,6 +765,74 @@
           </button>
         </div>
       </form>
+    </div>
+  </dialog>
+
+  <!-- MODAL DE ESCALA DE DESCUENTOS POR VOLUMEN (Spec 013) -->
+  <dialog id="dialog-volume-discounts" class="w-full max-w-lg p-0 bg-transparent">
+    <div class="bg-white rounded-2xl shadow-2xl border border-gray-200 overflow-hidden flex flex-col">
+      <div class="px-6 py-4 bg-gradient-to-r from-blue-600 to-indigo-700 text-white flex justify-between items-center">
+        <div class="flex items-center gap-2.5">
+          <span class="text-2xl">🏷️</span>
+          <div>
+            <h3 class="text-base font-black tracking-tight leading-tight">Escala de Descuentos por Volumen</h3>
+            <p class="text-[11px] text-blue-100 font-medium">Ahorro automático aplicado según la cantidad total de prendas</p>
+          </div>
+        </div>
+        <button type="button" class="text-white/80 hover:text-white text-lg font-bold p-1 cursor-pointer" onclick="document.getElementById('dialog-volume-discounts').close()">✕</button>
+      </div>
+
+      <div class="p-6 space-y-4">
+        <!-- Estado dinámico del pedido en curso -->
+        <div id="volume-discounts-status-info"></div>
+
+        <!-- Tabla / Tramos oficiales -->
+        <div class="border border-gray-200 rounded-xl overflow-hidden shadow-2xs">
+          <div class="bg-gray-100 px-4 py-2 text-[11px] font-bold text-gray-600 uppercase grid grid-cols-12">
+            <span class="col-span-5">Rango de Prendas</span>
+            <span class="col-span-3 text-center">Descuento</span>
+            <span class="col-span-4 text-right">Categoría</span>
+          </div>
+          <div class="divide-y divide-gray-100 text-xs">
+            <div class="volume-tier-row px-4 py-2.5 grid grid-cols-12 items-center transition-colors" data-min="1" data-max="5">
+              <span class="col-span-5 font-semibold text-gray-800">1 a 5 unidades</span>
+              <span class="col-span-3 text-center font-bold text-gray-500">0%</span>
+              <span class="col-span-4 text-right text-gray-500 text-[11px]">Precio regular base</span>
+            </div>
+            <div class="volume-tier-row px-4 py-2.5 grid grid-cols-12 items-center transition-colors" data-min="6" data-max="11">
+              <span class="col-span-5 font-semibold text-gray-800">6 a 11 unidades</span>
+              <span class="col-span-3 text-center font-bold text-emerald-600 bg-emerald-50 py-0.5 rounded">5% OFF</span>
+              <span class="col-span-4 text-right text-emerald-700 font-medium text-[11px]">Medio volumen</span>
+            </div>
+            <div class="volume-tier-row px-4 py-2.5 grid grid-cols-12 items-center transition-colors" data-min="12" data-max="24">
+              <span class="col-span-5 font-semibold text-gray-800">12 a 24 unidades</span>
+              <span class="col-span-3 text-center font-bold text-emerald-600 bg-emerald-50 py-0.5 rounded">10% OFF</span>
+              <span class="col-span-4 text-right text-emerald-700 font-medium text-[11px]">Docena</span>
+            </div>
+            <div class="volume-tier-row px-4 py-2.5 grid grid-cols-12 items-center transition-colors" data-min="25" data-max="49">
+              <span class="col-span-5 font-semibold text-gray-800">25 a 49 unidades</span>
+              <span class="col-span-3 text-center font-bold text-emerald-600 bg-emerald-50 py-0.5 rounded">15% OFF</span>
+              <span class="col-span-4 text-right text-emerald-700 font-medium text-[11px]">Mayorista</span>
+            </div>
+            <div class="volume-tier-row px-4 py-2.5 grid grid-cols-12 items-center transition-colors" data-min="50" data-max="999999">
+              <span class="col-span-5 font-semibold text-gray-800">50 o más unidades</span>
+              <span class="col-span-3 text-center font-bold text-emerald-700 bg-emerald-100 py-0.5 rounded font-black">20% OFF</span>
+              <span class="col-span-4 text-right text-emerald-800 font-bold text-[11px]">Gran volumen</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="text-[11px] text-gray-500 bg-gray-50 p-3 rounded-lg border border-gray-200 space-y-1">
+          <p>📌 <strong>Regla de aplicación:</strong> El descuento se aplica automáticamente sobre el subtotal bruto de las prendas del pedido antes de IVA (19%) y Delivery.</p>
+          <p>💡 Puedes activar o desmarcar la casilla de descuento en el formulario si requieres cotizar a precio de lista sin descuento.</p>
+        </div>
+      </div>
+
+      <div class="px-6 py-3 bg-gray-50 border-t border-gray-200 flex justify-end">
+        <button type="button" class="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-lg text-xs cursor-pointer shadow-xs" onclick="document.getElementById('dialog-volume-discounts').close()">
+          Entendido
+        </button>
+      </div>
     </div>
   </dialog>
 
@@ -859,6 +973,36 @@
             <label class="block text-[11px] font-bold text-gray-700 uppercase">Pie del Comprobante</label>
             <input id="settings-ticket-footer" type="text" class="w-full p-2 bg-gray-50 border border-gray-300 rounded text-xs">
           </div>
+
+          <!-- Apariencia y Tema de Pantalla (Spec 010) -->
+          <div class="pt-3 border-t border-gray-200 space-y-2">
+            <label class="block text-[11px] font-bold text-gray-700 uppercase">Apariencia y Tema de Pantalla</label>
+            <div class="grid grid-cols-3 gap-2" id="theme-selector-group">
+              <button type="button" class="theme-selector-card" data-theme-val="light" id="theme-btn-light">
+                <span class="text-base theme-icon">☀️</span>
+                <div class="text-left">
+                  <div class="text-xs font-bold leading-tight">Claro</div>
+                  <div class="text-[10px] text-gray-500">Día / Vitrina</div>
+                </div>
+              </button>
+              <button type="button" class="theme-selector-card" data-theme-val="dark" id="theme-btn-dark">
+                <span class="text-base theme-icon">🌙</span>
+                <div class="text-left">
+                  <div class="text-xs font-bold leading-tight">Oscuro</div>
+                  <div class="text-[10px] text-gray-500">Taller / Noche</div>
+                </div>
+              </button>
+              <button type="button" class="theme-selector-card" data-theme-val="system" id="theme-btn-system">
+                <span class="text-base theme-icon">💻</span>
+                <div class="text-left">
+                  <div class="text-xs font-bold leading-tight">Sistema</div>
+                  <div class="text-[10px] text-gray-500">Automático</div>
+                </div>
+              </button>
+            </div>
+            <input type="hidden" id="settings-theme" value="system">
+          </div>
+
           <div class="text-right pt-2">
             <button type="submit" class="px-4 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded text-xs font-bold">
               Guardar Datos
@@ -1055,7 +1199,7 @@
           </div>
           <div>
             <label class="block text-xs font-bold text-emerald-800 uppercase mb-1">Costo Unit. ($)</label>
-            <input id="inventory-cost-input" type="number" min="0" step="100" value="2800" class="w-full p-2 bg-white border border-emerald-300 rounded-lg text-xs font-black text-emerald-700 focus:outline-none">
+            <input id="inventory-cost-input" type="number" min="0" step="any" value="2800" class="w-full p-2 bg-white border border-emerald-300 rounded-lg text-xs font-black text-emerald-700 focus:outline-none">
           </div>
         </div>
 

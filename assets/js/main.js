@@ -49,10 +49,17 @@
     // Limpiar automáticamente los datos de muestra iniciales si aún existen en el navegador
     limpiarDatosDemoPrevios();
 
+    // Aplicar tema guardado en configuración (Spec 010)
+    if (global.NovaprintStorage) {
+      const config = global.NovaprintStorage.getSettings();
+      aplicarTema(config.theme || 'system');
+    }
+
     setupNavigation();
     setupFiltersAndSearch();
     setupModalsAndForms();
     setupBackupAndSettings();
+    actualizarFooterCreditos();
     refrescarDatos();
 
     // Inicializar iconos de Lucide
@@ -307,6 +314,26 @@
       });
     }
 
+    // Spec 013: Botón de acceso a escala de Descuentos por Volumen en barra de pedidos
+    const btnVerDescVolumen = document.getElementById('btn-view-volume-discounts');
+    if (btnVerDescVolumen) {
+      btnVerDescVolumen.addEventListener('click', () => {
+        if (global.NovaprintUI && typeof global.NovaprintUI.abrirModalDescuentosVolumen === 'function') {
+          global.NovaprintUI.abrirModalDescuentosVolumen();
+        }
+      });
+    }
+
+    // Spec 013: Botón de acceso a escala de Descuentos por Volumen dentro del modal de pedido
+    const btnOpenDescVolumenOrder = document.getElementById('btn-open-volume-discounts-order');
+    if (btnOpenDescVolumenOrder) {
+      btnOpenDescVolumenOrder.addEventListener('click', () => {
+        if (global.NovaprintUI && typeof global.NovaprintUI.abrirModalDescuentosVolumen === 'function') {
+          global.NovaprintUI.abrirModalDescuentosVolumen();
+        }
+      });
+    }
+
     const btnAgregarPrenda = document.getElementById('btn-add-garment-item');
     if (btnAgregarPrenda) {
       btnAgregarPrenda.addEventListener('click', () => {
@@ -416,18 +443,101 @@
       });
     }
 
-    // Botón Imprimir Ticket en modal
+    // Botón Imprimir Ticket en modal (Spec 011)
     const btnPrintTicket = document.getElementById('btn-ticket-print');
     if (btnPrintTicket) {
       btnPrintTicket.addEventListener('click', () => {
-        global.NovaprintTicket.imprimirTicket();
+        if (global.NovaprintTicket) {
+          global.NovaprintTicket.imprimirTicket();
+        }
       });
     }
+
+    // Atajo de teclado Ctrl+P / Cmd+P para imprimir ticket si el modal está abierto
+    if (typeof document !== 'undefined') {
+      document.addEventListener('keydown', (e) => {
+        if ((e.ctrlKey || e.metaKey) && (e.key === 'p' || e.key === 'P')) {
+          const dialogTicket = document.getElementById('dialog-ticket');
+          if (dialogTicket && dialogTicket.open) {
+            e.preventDefault();
+            if (global.NovaprintTicket) {
+              global.NovaprintTicket.imprimirTicket();
+            }
+          }
+        }
+      });
+    }
+  }
+
+  // --- CONTROL DE TEMA CLARO / OSCURO (SPEC 010) ---
+  function resolverEsOscuro(tema) {
+    if (tema === 'dark') return true;
+    if (tema === 'light') return false;
+    return !!(typeof window !== 'undefined' && window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches);
+  }
+
+  function aplicarTema(tema) {
+    const temaVal = (tema === 'dark' || tema === 'light' || tema === 'system') ? tema : 'system';
+    const esOscuro = resolverEsOscuro(temaVal);
+
+    if (typeof document !== 'undefined') {
+      if (esOscuro) {
+        document.documentElement.classList.add('dark');
+      } else {
+        document.documentElement.classList.remove('dark');
+      }
+
+      const metaColorScheme = document.querySelector('meta[name="color-scheme"]');
+      if (metaColorScheme) {
+        metaColorScheme.setAttribute('content', esOscuro ? 'dark light' : 'light dark');
+      }
+
+      // Sincronizar botones de tema en el modal de configuración si están disponibles
+      const selectorButtons = document.querySelectorAll('#theme-selector-group .theme-selector-card');
+      selectorButtons.forEach(btn => {
+        if (btn.getAttribute('data-theme-val') === temaVal) {
+          btn.classList.add('active');
+        } else {
+          btn.classList.remove('active');
+        }
+      });
+
+      const hiddenInput = document.getElementById('settings-theme');
+      if (hiddenInput) {
+        hiddenInput.value = temaVal;
+      }
+    }
+
+    return { tema: temaVal, esOscuro };
   }
 
   function setupBackupAndSettings() {
     const btnSettings = document.getElementById('btn-open-settings');
     const dialogSettings = document.getElementById('dialog-settings');
+
+    // Botones interactivos de tema (Spec 010) con vista previa instantánea
+    const themeCards = document.querySelectorAll('#theme-selector-group .theme-selector-card');
+    themeCards.forEach(card => {
+      card.addEventListener('click', () => {
+        const selectedTheme = card.getAttribute('data-theme-val');
+        aplicarTema(selectedTheme);
+      });
+    });
+
+    // Escuchar cambios del sistema operativo si la preferencia activa es 'system'
+    if (typeof window !== 'undefined' && window.matchMedia) {
+      try {
+        const mq = window.matchMedia('(prefers-color-scheme: dark)');
+        mq.addEventListener('change', () => {
+          if (global.NovaprintStorage) {
+            const config = global.NovaprintStorage.getSettings();
+            if ((config.theme || 'system') === 'system') {
+              aplicarTema('system');
+            }
+          }
+        });
+      } catch (e) {}
+    }
 
     if (btnSettings && dialogSettings) {
       btnSettings.addEventListener('click', () => {
@@ -438,6 +548,7 @@
         document.getElementById('settings-email').value = config.email || '';
         document.getElementById('settings-address').value = config.address || '';
         document.getElementById('settings-ticket-footer').value = config.ticketFooter || '';
+        aplicarTema(config.theme || 'system');
         dialogSettings.showModal();
       });
     }
@@ -446,15 +557,18 @@
     if (formSettings) {
       formSettings.addEventListener('submit', (e) => {
         e.preventDefault();
+        const themeInput = document.getElementById('settings-theme');
         const updated = {
           businessName: document.getElementById('settings-business-name').value.trim(),
           rut: document.getElementById('settings-rut').value.trim(),
           phone: document.getElementById('settings-phone').value.trim(),
           email: document.getElementById('settings-email').value.trim(),
           address: document.getElementById('settings-address').value.trim(),
-          ticketFooter: document.getElementById('settings-ticket-footer').value.trim()
+          ticketFooter: document.getElementById('settings-ticket-footer').value.trim(),
+          theme: themeInput ? themeInput.value : 'system'
         };
         global.NovaprintStorage.saveSettings(updated);
+        aplicarTema(updated.theme);
         dialogSettings.close();
         global.NovaprintUI.showToast('Configuración actualizada con éxito.', 'success');
       });
@@ -487,6 +601,8 @@
           const res = global.NovaprintStorage.importBackup(event.target.result);
           if (res.success) {
             dialogSettings.close();
+            const config = global.NovaprintStorage.getSettings();
+            aplicarTema(config.theme || 'system');
             refrescarDatos();
             global.NovaprintUI.showToast('¡Datos restaurados con éxito!', 'success');
           } else {
@@ -635,6 +751,32 @@
     }
   }
 
+  // --- PIE DE PÁGINA Y CRÉDITOS FIJOS DE GENERACIÓN (SPEC 012) ---
+  // Valor fijo establecido al momento de generar la aplicación, inmutable hasta la próxima regeneración
+  const BUILD_VERSION = Object.freeze({
+    releaseCode: '2611.04',
+    releaseDate: 'Noviembre 2026',
+    author: 'Andres Aguiar V',
+    location: 'Santiago de Chile',
+    contact: '+56933395447',
+    whatsapp: '+56933395447'
+  });
+
+  function obtenerDatosFechaFooter() {
+    return {
+      codigoVersion: BUILD_VERSION.releaseCode,
+      mesAño: BUILD_VERSION.releaseDate
+    };
+  }
+
+  function actualizarFooterCreditos() {
+    if (typeof document === 'undefined') return;
+    const spanCodigo = document.getElementById('footer-version-code');
+    const spanMes = document.getElementById('footer-date-name');
+    if (spanCodigo) spanCodigo.textContent = BUILD_VERSION.releaseCode;
+    if (spanMes) spanMes.textContent = BUILD_VERSION.releaseDate;
+  }
+
   const mainModule = {
     init,
     cambiarVista,
@@ -643,7 +785,12 @@
     refrescarClientes,
     refrescarInventario,
     refrescarProveedores,
-    refrescarCompras
+    refrescarCompras,
+    aplicarTema,
+    resolverEsOscuro,
+    BUILD_VERSION,
+    obtenerDatosFechaFooter,
+    actualizarFooterCreditos
   };
 
   if (typeof module !== 'undefined' && module.exports) {

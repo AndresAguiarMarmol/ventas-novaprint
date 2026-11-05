@@ -89,5 +89,47 @@ describe('Spec 001 - Módulo de Tickets y Comprobantes (ticket.js)', () => {
     const html = ticket.generarTicketHTML(null, settings);
     assert.ok(html.includes('No se ha seleccionado ningún pedido'));
   });
+
+  describe('Spec 011 - Corrección de Envío a WhatsApp y Resolución de Teléfono', () => {
+    it('obtenerTelefonoCliente resuelve directamente desde pedido.clientPhone', () => {
+      const p = { clientPhone: '+56 9 8765 4321' };
+      assert.equal(ticket.obtenerTelefonoCliente(p), '+56 9 8765 4321');
+    });
+
+    it('obtenerTelefonoCliente resuelve desde el cliente en storage por clientId si el pedido no lo tenía', () => {
+      global.NovaprintStorage = {
+        getClientById: (id) => id === 'CLI-TEST' ? { id: 'CLI-TEST', name: 'Juan Pérez', phone: '+56912345678' } : null,
+        getClients: () => []
+      };
+
+      const p = { id: 'ORD-1', clientId: 'CLI-TEST', clientName: 'Juan Pérez', clientPhone: '' };
+      assert.equal(ticket.obtenerTelefonoCliente(p), '+56912345678');
+    });
+
+    it('obtenerTelefonoCliente resuelve desde el catálogo de clientes por coincidencia de nombre', () => {
+      global.NovaprintStorage = {
+        getClientById: () => null,
+        getClients: () => [
+          { id: 'CLI-X', name: 'Pastelería Dulce Sabor', phone: '+56998877665' }
+        ]
+      };
+
+      const p = { id: 'ORD-2', clientName: 'pastelería dulce sabor' };
+      assert.equal(ticket.obtenerTelefonoCliente(p), '+56998877665');
+    });
+
+    it('abrirWhatsAppPedido genera URL válida de wa.me normalizada con código país de Chile', () => {
+      const p = {
+        id: 'ORD-TEST',
+        clientName: 'Cliente Prueba',
+        clientPhone: '987654321', // 9 dígitos sin prefijo
+        totals: { totalAmount: 15000, balanceAmount: 5000 }
+      };
+
+      const url = ticket.abrirWhatsAppPedido(p, settings);
+      assert.ok(url.startsWith('https://wa.me/56987654321?text='));
+      assert.ok(url.includes('ORD-TEST'));
+    });
+  });
 });
 

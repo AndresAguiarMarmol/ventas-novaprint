@@ -53,6 +53,109 @@ html.dark {
 }
 
 /* ==========================================================================
+   Adaptación Integral de Componentes a Modo Oscuro
+   ========================================================================== */
+html.dark header,
+html.dark nav,
+html.dark .bg-white {
+  background-color: var(--bg-secondary);
+  color: var(--text-primary);
+}
+
+html.dark .bg-gray-50 {
+  background-color: var(--bg-card);
+}
+
+html.dark .bg-gray-100 {
+  background-color: rgba(255, 255, 255, 0.05);
+}
+
+html.dark .border-gray-100,
+html.dark .border-gray-200,
+html.dark .border-gray-300 {
+  border-color: var(--border-color);
+}
+
+html.dark .text-gray-900,
+html.dark .text-gray-800 {
+  color: var(--text-primary);
+}
+
+html.dark .text-gray-700,
+html.dark .text-gray-600 {
+  color: var(--text-secondary);
+}
+
+html.dark .text-gray-500,
+html.dark .text-gray-400 {
+  color: var(--text-muted);
+}
+
+html.dark input:not([type="checkbox"]):not([type="radio"]),
+html.dark select,
+html.dark textarea {
+  background-color: var(--bg-card);
+  border-color: var(--border-color);
+  color: var(--text-primary);
+}
+
+html.dark input::placeholder,
+html.dark textarea::placeholder {
+  color: var(--text-muted);
+}
+
+html.dark dialog > div {
+  background-color: var(--modal-bg);
+  border-color: var(--border-color);
+  color: var(--text-primary);
+}
+
+html.dark dialog .bg-gray-50 {
+  background-color: rgba(255, 255, 255, 0.03);
+  border-color: var(--border-color);
+}
+
+html.dark tr.hover\:bg-gray-50:hover,
+html.dark tr.hover\:bg-blue-50\/30:hover {
+  background-color: var(--bg-card-hover) !important;
+}
+
+html.dark .divide-gray-200 > :not([hidden]) ~ :not([hidden]),
+html.dark .divide-gray-100 > :not([hidden]) ~ :not([hidden]) {
+  border-color: var(--border-color);
+}
+
+/* Selector de Tema en Configuración */
+.theme-selector-card {
+  cursor: pointer;
+  border: 2px solid var(--border-color);
+  border-radius: 0.75rem;
+  padding: 0.65rem 0.85rem;
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  background-color: var(--bg-card);
+  color: var(--text-primary);
+  user-select: none;
+}
+
+.theme-selector-card:hover {
+  border-color: var(--accent-primary);
+  transform: translateY(-1px);
+}
+
+.theme-selector-card.active {
+  border-color: #2563eb;
+  background-color: var(--accent-soft);
+  box-shadow: 0 0 0 1px #2563eb;
+}
+
+.theme-selector-card.active .theme-icon {
+  transform: scale(1.1);
+}
+
+/* ==========================================================================
    Comportamiento General & Tipografía
    ========================================================================== */
 html {
@@ -296,61 +399,92 @@ html.dark .search-highlight {
 }
 
 /* ==========================================================================
-   Estilos de Impresión Optimizados (Ctrl + P / Guardar PDF)
+   Estilos de Impresión Optimizados (Ctrl + P / Guardar PDF / Comprobante)
    ========================================================================== */
 @media print {
+  @page {
+    margin: 5mm;
+  }
+
   body {
     background: #ffffff !important;
     color: #000000 !important;
-    font-size: 10.5pt;
-    line-height: 1.45;
+    font-size: 10pt;
+    line-height: 1.35;
+    margin: 0 !important;
+    padding: 0 !important;
   }
 
+  /* Ocultar elementos de navegación, cabecera, vistas completas e interfaz */
   .no-print,
+  header,
   nav,
+  main,
   footer,
-  #contact,
-  #theme-toggle,
-  .btn-cta,
+  #toast-container,
   .floating-contact-pill,
-  #filters-container,
-  #project-filters-container,
-  #search-section,
-  #search-empty-state,
-  dialog {
+  dialog:not(#dialog-ticket) {
     display: none !important;
   }
 
-  /* Asegurar que las tarjetas de proyectos, habilidades y experiencia se impriman completas */
-  #projects-container > div,
-  #skills-container > div,
-  #experience-container > div {
-    display: block !important;
+  dialog::backdrop {
+    display: none !important;
   }
 
-  .search-highlight {
-    background: transparent !important;
-    color: inherit !important;
-    font-weight: inherit !important;
+  /* Desplegar e imprimir única y exclusivamente el comprobante de venta */
+  dialog#dialog-ticket,
+  dialog#dialog-ticket[open],
+  body.printing-ticket dialog#dialog-ticket {
+    display: block !important;
+    position: static !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 auto !important;
     padding: 0 !important;
     border: none !important;
-  }
-
-  .card-hover {
     box-shadow: none !important;
-    border: 1px solid #d1d5db !important;
-    break-inside: avoid;
-    margin-bottom: 0.85rem !important;
+    background: #ffffff !important;
   }
 
-  section {
-    padding-top: 0.75rem !important;
-    padding-bottom: 0.75rem !important;
-    break-inside: avoid;
+  dialog#dialog-ticket > div {
+    border: none !important;
+    box-shadow: none !important;
+    border-radius: 0 !important;
+    padding: 0 !important;
+    margin: 0 auto !important;
+    max-width: 80mm !important; /* Compatible con rollo térmico y hoja estándar */
+    max-height: none !important;
+    overflow: visible !important;
+    background: #ffffff !important;
   }
 
-  a {
-    text-decoration: none !important;
+  #ticket-container-render {
+    padding: 0 !important;
+    margin: 0 auto !important;
+    overflow: visible !important;
+    background: #ffffff !important;
+  }
+
+  #printable-ticket-content {
+    border: none !important;
+    box-shadow: none !important;
+    border-radius: 0 !important;
+    padding: 0.25rem !important;
+    margin: 0 auto !important;
+    width: 100% !important;
+    max-width: 100% !important;
     color: #000000 !important;
+    background: #ffffff !important;
+  }
+
+  #printable-ticket-content * {
+    color: #000000 !important;
+    background: transparent !important;
+  }
+
+  #printable-ticket-content img {
+    max-width: 48px !important;
+    max-height: 48px !important;
+    margin: 0 auto 0.25rem auto !important;
   }
 }

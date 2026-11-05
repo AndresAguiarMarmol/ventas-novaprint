@@ -34,10 +34,10 @@
   function calcularSubtotalItem(cantidad, precioUnitario) {
     const cant = Number(cantidad);
     const precio = Number(precioUnitario);
-    if (isNaN(cant) || isNaN(precio) || cant <= 0 || precio <= 0) {
+    if (isNaN(cant) || isNaN(precio) || cant <= 0) {
       return 0;
     }
-    return Math.round(cant * precio);
+    return Math.round(cant * Math.max(0, precio));
   }
 
   // --- REGLAS DE NEGOCIO Y COTIZADOR TEXTIL (skill.md) ---

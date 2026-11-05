@@ -35,3 +35,4 @@ Para agilizar la gestión de cobranza y permitir al administrador identificar co
 3. Al pulsar nuevamente el botón, el filtro se desactiva y se muestran todos los pedidos.
 4. El selector `#orders-status-filter` incluye la opción `<option value="con_saldo">💰 Saldo por Cobrar</option>` sincronizada con el botón.
 5. La suite de pruebas automatizadas verifica la lógica de filtrado de saldo por cobrar y pasa al 100% en verde.
+

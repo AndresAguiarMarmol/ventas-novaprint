@@ -23,7 +23,8 @@
     email: 'contacto@novaprint.cl',
     address: 'Av. Salvador 450, Providencia, Santiago',
     currencySymbol: '$',
-    ticketFooter: '¡Gracias por confiar en Novaprint! Plazo de reclamo: 48 hrs con comprobante.'
+    ticketFooter: '¡Gracias por confiar en Novaprint! Plazo de reclamo: 48 hrs con comprobante.',
+    theme: 'system'
   };
 
   const memoryStore = {};

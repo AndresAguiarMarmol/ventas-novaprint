@@ -8,7 +8,7 @@ Registro de todo lo que debe preservarse entre sesiones de trabajo: arquitectura
 ## 1. Estructura de datos y persistencia
 
 ### A. Claves en `localStorage`
-- **`novaprint_settings`:** Configuración de la empresa (nombre, RUT, teléfono/WhatsApp, dirección, moneda `$`, mensaje pie de ticket).
+- **`novaprint_settings`:** Configuración de la empresa (nombre, RUT, teléfono/WhatsApp, dirección, moneda `$`, mensaje pie de ticket, preferencia de tema `theme: 'light' | 'dark' | 'system'`).
 - **`novaprint_clients`:** Directorio de clientes (`id, name, phone, email, rut, address, notes, createdAt`).
 - **`novaprint_orders`:** Registro de pedidos con prendas (poleras, polerones, buzos, gorras), técnicas de estampado (DTF, serigrafía, sublimación, vinilo, bordado), tallas, colores, montos, desglose de IVA (19%), Delivery, abonos y estado.
 - **`novaprint_suppliers`:** Catálogo de proveedores (`id, name, contact, phone, email, category, address, notes, createdAt, updatedAt`).
@@ -37,6 +37,18 @@ Registro de todo lo que debe preservarse entre sesiones de trabajo: arquitectura
 - **Enlace Prenda-Color-Talla y Auto-creación en Inventario (Spec 008):** Toda prenda de pedido se vincula con el inventario mediante la coincidencia normalizada de su terna `garmentType`, `color` y `size`. Si una prenda requerida no existe previamente en `novaprint_inventory`, el sistema la contabiliza como faltante (`totalPrendasFaltantes`) y, al proceder a la compra de faltantes (`abrirModalCompraConFaltantes`) o guardar el pedido, crea automáticamente el ítem en bodega (`asegurarItemInventarioPrenda`) con stock 0, código estructurado (`POL-AZU-10`) y costo base de referencia. Esto permite enlazarla a la orden de compra con un `inventoryItemId` formal y, al confirmar la compra, incrementar su stock automáticamente en bodega.
 - **Botón y Filtro de Saldo por Cobrar (Spec 009):** En la barra de estados/filtros de pedidos se incorpora un botón interactivo rápido (`#btn-filter-balance`) con insignia de conteo en vivo (`#badge-count-pending-balance`) y la opción `<option value="con_saldo">` en el selector de estados. Al activarlo, tanto el tablero Kanban como la tabla de pedidos se filtran deterministamente para mostrar únicamente los pedidos con dinero pendiente de cobro (`totals.balanceAmount > 0`), con activación adicional al hacer clic en la tarjeta KPI "Por Cobrar".
 - **Identidad Visual e Iconografía Oficial de la App:** Se estableció el logotipo e isotipo oficial de Novaprint (diseño textil con gotas de tinta CMY y tipografía corporativa) como imagen representativa en toda la aplicación: favicon multi-resolución (`favicon.ico`, `favicon-32x32.png`, `favicon-16x16.png`), icono PWA y pantalla de inicio móvil (`icon-192.png`, `icon-512.png`, `apple-touch-icon.png`), encabezado de la barra de navegación (`index.html`) y encabezado de comprobantes imprimibles (`ticket.js`).
+- **Selector de Tema Claro / Oscuro / Sistema (Spec 010):**
+  - Modelo tri-estado (`light`, `dark`, `system`), persistido en `novaprint_settings`.
+  - Prevención de destellos (FOUC) mediante script síncrono temprano y meta tag `<meta name="color-scheme" content="light dark">` en `<head>`.
+  - Adaptación cromática integral en `assets/css/custom.css` con variables CSS sobre contenedores, tarjetas, tablas, modales y formularios.
+- **Resolución Resiliente de Teléfono y Envío a WhatsApp (Spec 011):**
+  - Cascada de resolución telefónica `obtenerTelefonoCliente(pedido)`: busca en `pedido.clientPhone`, en `storage.getClientById(pedido.clientId)`, o por nombre en `storage.getClients()`.
+  - Si el teléfono está en la ficha del cliente pero faltaba en el pedido, se sincroniza y persiste automáticamente.
+  - Si no existe en el sistema, se solicita amigablemente mediante diálogo interactivo `prompt()`, se almacena en el pedido y se despacha el mensaje sin bloquear la operación.
+- **Aislamiento Estricto de Impresión para Tickets y Comprobantes (Spec 011):**
+  - En `@media print`, se oculta completamente la aplicación de fondo (`header`, `nav`, `main`, `footer`, vistas SPA, botones y otros modales) evitando que se impriman órdenes ajenas o el tablero Kanban.
+  - `#dialog-ticket` y `#printable-ticket-content` se imprimen de forma exclusiva y centrada con ancho estándar de 80mm, compatible con impresoras térmicas de punto de venta y hojas estándar Carta/A4.
+  - Sincronización transparente con el botón de impresión, eventos nativos `beforeprint`/`afterprint` y atajo de teclado Ctrl+P.
 - **Metodología SDD:** Especificación previa obligatoria antes de escribir código de componentes. El roadmap se divide en especificaciones ordenadas:
   - **Spec 001 (Implementada):** Módulo de Ventas (Control de Clientes y Control de Pedidos de estampado: poleras, polerones, buzos, gorras).
   - **Spec 002 (Implementada):** Módulo de Producción — Control de Compras de Insumos, Control de Inventarios y Control de Proveedores con incremento automático de existencias.
@@ -47,6 +59,18 @@ Registro de todo lo que debe preservarse entre sesiones de trabajo: arquitectura
   - **Spec 007 (Implementada):** Tallas Infantiles (4, 6, 8, 10, 12, 14, 16, 18) en Pedidos e Inventario.
   - **Spec 008 (Implementada):** Enlace Prenda-Color-Talla y Auto-creación en Inventario para Compras de Faltantes.
   - **Spec 009 (Implementada):** Botón y Filtro de Pedidos con Saldo por Cobrar en Barra de Estados.
+  - **Spec 010 (Implementada):** Selector de Tema Claro / Oscuro / Sistema en Configuración y Prevención FOUC.
+  - **Spec 011 (Implementada):** Corrección de WhatsApp e Impresión Unitaria Exclusiva de Ticket.
+  - **Spec 012 (Implementada):** Pie de Página con Créditos de Autoría y Contacto Directo.
+  - **Spec 013 (Implementada):** Flexibilidad de Precios Libres y Escala Oficial de Descuentos por Volumen.
+- **Flexibilidad de Precios y Escala Oficial de Descuentos por Volumen (Spec 013):**
+  - **Ingreso Libre de Precios:** Se eliminó cualquier validación restrictiva que forzara múltiplos de $500 o $100 mediante `step="any"` y `novalidate` en `<form id="form-order">`. Se permite registrar prendas con precios libres, promocionales ($0) o personalizados sin bloqueos del navegador.
+  - **Botones y Modal de Descuentos por Volumen:** Se incorporó un botón de consulta rápida (`#btn-view-volume-discounts`) en la barra de pedidos y un botón directo (`#btn-open-volume-discounts-order`) dentro del modal de pedido para consultar la escala oficial: 1 a 5 un. (0%), 6 a 11 un. (5%), 12 a 24 un. (10% docena), 25 a 49 un. (15% mayorista) y 50+ un. (20% gran volumen).
+  - **Modal Interactivo:** El diálogo `<dialog id="dialog-volume-discounts">` resalta dinámicamente el tramo alcanzado en función de la cantidad de prendas del pedido actual e informa amigablemente cuántas prendas faltan para desbloquear el siguiente nivel de descuento.
+- **Pie de Página Corporativo con Créditos de Autoría (Spec 012):**
+  - Ubicación semántica `<footer>` al final de la pantalla (`mt-auto`, `.no-print`) adaptado a temas Claro y Oscuro.
+  - Presenta: `"Análisis/Diseño de Andres Aguiar V AAMM.DD Santiago de Chile Mes y Año Actual - Contacto +56933395447 - Whatsapp +56933395447"`.
+  - El código de versión `AAMM.DD` (`2611.04`) y `Mes y Año Actual` (`Noviembre 2026`) se definen como un valor fijo inmutable de compilación/generación en `BUILD_VERSION` e `index.html`, preservándose estático en el cliente y renovándose únicamente al regenerar o modificar el código de la aplicación.
 - **Tecnología sin compilador (inspirado en Momentos Cookie):**
   - Vanilla JS modular ejecutable directamente sin bundlers ni compiladores.
   - Tailwind CSS vía CDN y Lucide Icons vía CDN.
@@ -58,6 +82,46 @@ Registro de todo lo que debe preservarse entre sesiones de trabajo: arquitectura
 ---
 
 ## 3. Historial de cambios
+
+### 2026-11-05 (Spec 013 — Flexibilidad de Precios Libres y Descuentos por Volumen)
+- **Flexibilización de ingreso de precios:**
+  - `assets/js/sales.js`: Ajuste de `calcularSubtotalItem` para permitir precio $0 (promociones) y precios libres sin restricciones.
+  - `assets/js/ui.js` & `index.html`: Reemplazo de `step="500"` y `step="100"` por `step="any"` en las filas de prendas y compras/costos, e incorporación de `novalidate` en `<form id="form-order">` para erradicar bloqueos de validación nativa de HTML5.
+- **Acceso y consulta a Descuentos por Volumen:**
+  - `index.html`: Incorporación de botones de acceso rápido `🏷️ Descuentos por Volumen` en la barra de pedidos (`#btn-view-volume-discounts`) y dentro del formulario de pedidos (`#btn-open-volume-discounts-order`).
+  - Creación del modal nativo `<dialog id="dialog-volume-discounts">` con la tabla oficial de tramos (1-5 un: 0%, 6-11 un: 5%, 12-24 un: 10%, 25-49 un: 15%, 50+ un: 20%).
+  - `assets/js/ui.js`: Implementación de `abrirModalDescuentosVolumen()` con cálculo dinámico del tramo activo según las prendas del pedido en curso, mensaje inteligente de progreso ("agrega X prendas para 10% OFF") y resaltado visual del tramo.
+  - `assets/js/main.js`: Binding de eventos para los botones de apertura de la escala.
+  - `tests/sales.test.js`: Incorporación de suite de pruebas unitarias para precios libres y escala de descuentos (105 tests pasando al 100% en verde).
+
+### 2026-11-04 (Spec 012 — Pie de Página con Créditos de Autoría y Contacto Directo)
+- Incorporación del pie de página semántico (`<footer>`) corporativo:
+  - `index.html`: Estructura en la base de la pantalla (`mt-auto`, `.no-print`) con texto de autoría: `"Análisis/Diseño de Andres Aguiar V AAMM.DD Santiago de Chile Mes y Año Actual - Contacto +56933395447 - Whatsapp +56933395447"`, código de versión (`2611.04`), fecha dinámica (`Noviembre 2026`) y enlaces directos clicables para llamadas telefónicas (`tel:+56933395447`) y WhatsApp (`https://wa.me/56933395447`).
+  - `assets/js/main.js`: Constante inmutable `BUILD_VERSION` fija (`2611.04` y `Noviembre 2026`) establecida al generar la aplicación, inmutable hasta la próxima modificación y regeneración.
+  - Integración completa con modo Claro, modo Oscuro y exclusión automática en impresión física.
+  - Pruebas automatizadas: 101 tests pasando al 100% en verde.
+
+### 2026-11-04 (Spec 011 — Corrección de WhatsApp e Impresión Unitaria Exclusiva de Ticket)
+- Corrección de los dos errores reportados en "Comprobante de Venta & Taller":
+  - `assets/js/ticket.js`:
+    - Implementación de `obtenerTelefonoCliente(pedido)` que resuelve en cascada el teléfono desde `pedido.clientPhone`, `storage.getClientById(pedido.clientId)` o coincidencia de nombre en `storage.getClients()`.
+    - Actualización de `generarTicketHTML` para mostrar el teléfono resuelto del cliente.
+    - En `abrirWhatsAppPedido`: apertura directa con el número resuelto, persistencia en el pedido si faltaba, y en caso de no existir número registrado, diálogo interactivo `prompt()` para ingresarlo y enviarlo al instante.
+  - `assets/js/ui.js`: Garantía de obtención de teléfono en `guardarPedidoDesdeFormulario` consultando la ficha del cliente en `NovaprintStorage`.
+  - `assets/css/custom.css`:
+    - Eliminación de la regla destructiva `dialog { display: none !important; }` que ocultaba el comprobante.
+    - Ocultamiento estricto en `@media print` de todos los elementos de fondo (`header`, `nav`, `main`, `footer`, vistas SPA, tablero Kanban y otros modales).
+    - Despliegue e impresión aislada y centrada del ticket (`dialog#dialog-ticket`, `#printable-ticket-content`) con ancho de 80mm compatible con rollo térmico e impresoras convencionales.
+  - `assets/js/main.js`: Soporte de atajo de teclado Ctrl+P / Cmd+P e intercepción con `beforeprint`/`afterprint`.
+  - Pruebas automatizadas: Nuevos tests unitarios en `tests/ticket.test.js`. 100 pruebas pasando al 100% en verde sin regresiones.
+
+### 2026-11-04 (Spec 010 — Selector de Tema Claro / Oscuro / Sistema en Configuración)
+- Incorporación del selector de modo visual de pantalla:
+  - `assets/js/storage.js`: Adición de `theme: 'system'` a `DEFAULT_SETTINGS` y soporte en `getSettings()` y `saveSettings()`.
+  - `index.html`: Inclusión de `<meta name="color-scheme" content="light dark">`, script temprano inline anti-FOUC y tarjetas de selección interactiva (☀️ Claro, 🌙 Oscuro, 💻 Sistema) en `#dialog-settings`.
+  - `assets/css/custom.css`: Adaptación exhaustiva de tokens y variables para `html.dark` en modales, tablas, entradas y barras.
+  - `assets/js/main.js`: Función `aplicarTema(tema)`, listener para `prefers-color-scheme: dark` y enlace bidireccional en ajustes y restauración de copias de seguridad.
+  - Pruebas automatizadas: Suite `tests/theme.test.js` y extensión de `tests/storage.test.js`.
 
 ### 2026-11-03 (Spec 009 — Botón y Filtro de Pedidos con Saldo por Cobrar en Barra de Estados)
 - Incorporación del botón y filtro de cobranza para pedidos pendientes de pago:

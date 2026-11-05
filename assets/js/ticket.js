@@ -6,6 +6,41 @@
   'use strict';
 
   /**
+   * Resuelve el teléfono del cliente asociado al pedido mediante cascada de fallback
+   */
+  function obtenerTelefonoCliente(pedido) {
+    if (!pedido) return '';
+    if (pedido.clientPhone && typeof pedido.clientPhone === 'string' && pedido.clientPhone.trim()) {
+      return pedido.clientPhone.trim();
+    }
+    if (pedido.phone && typeof pedido.phone === 'string' && pedido.phone.trim()) {
+      return pedido.phone.trim();
+    }
+    if (pedido.customerPhone && typeof pedido.customerPhone === 'string' && pedido.customerPhone.trim()) {
+      return pedido.customerPhone.trim();
+    }
+
+    const storage = global.NovaprintStorage;
+    if (storage) {
+      if (pedido.clientId && typeof storage.getClientById === 'function') {
+        const cliente = storage.getClientById(pedido.clientId);
+        if (cliente && cliente.phone && cliente.phone.trim()) {
+          return cliente.phone.trim();
+        }
+      }
+      if (pedido.clientName && typeof storage.getClients === 'function') {
+        const clientes = storage.getClients() || [];
+        const norm = String(pedido.clientName).trim().toLowerCase();
+        const coincidencia = clientes.find(c => c.name && c.name.trim().toLowerCase() === norm);
+        if (coincidencia && coincidencia.phone && coincidencia.phone.trim()) {
+          return coincidencia.phone.trim();
+        }
+      }
+    }
+    return '';
+  }
+
+  /**
    * Genera el HTML formateado del ticket de venta para cliente u orden de taller
    */
   function generarTicketHTML(pedido, settings = {}) {
@@ -17,6 +52,11 @@
     const phone = settings.phone || '+56987654321';
     const address = settings.address || 'Taller Central Novaprint';
     const footerMsg = settings.ticketFooter || '¡Gracias por confiar en Novaprint!';
+
+    const clienteTelefono = obtenerTelefonoCliente(pedido);
+    if (clienteTelefono && !pedido.clientPhone) {
+      pedido.clientPhone = clienteTelefono;
+    }
 
     const totalStr = sales ? sales.formatearMoneda(pedido.totals?.totalAmount || 0) : `$${pedido.totals?.totalAmount || 0}`;
     const abonoStr = sales ? sales.formatearMoneda(pedido.totals?.depositAmount || 0) : `$${pedido.totals?.depositAmount || 0}`;
@@ -70,7 +110,7 @@
           <div class="pt-2">
             <div class="text-xs text-gray-500 font-semibold uppercase">Cliente:</div>
             <div class="font-bold text-gray-900 text-base">${pedido.clientName}</div>
-            ${pedido.clientPhone ? `<div class="text-xs text-gray-600">Tel: ${pedido.clientPhone}</div>` : ''}
+            ${clienteTelefono ? `<div class="text-xs text-gray-600 font-medium">Tel: ${clienteTelefono}</div>` : ''}
           </div>
         </div>
 
@@ -161,36 +201,96 @@
    * Dispara el diálogo nativo de impresión configurando la clase en body
    */
   function imprimirTicket() {
-    document.body.classList.add('printing-ticket');
-    window.print();
+    if (typeof document !== 'undefined' && document.body) {
+      document.body.classList.add('printing-ticket');
+    }
+    if (typeof window !== 'undefined' && typeof window.print === 'function') {
+      window.print();
+    }
     setTimeout(() => {
-      document.body.classList.remove('printing-ticket');
+      if (typeof document !== 'undefined' && document.body) {
+        document.body.classList.remove('printing-ticket');
+      }
     }, 500);
+  }
+
+  // Listener para sincronizar Ctrl+P con el diálogo de ticket si está abierto
+  if (typeof window !== 'undefined' && typeof window.addEventListener === 'function') {
+    window.addEventListener('beforeprint', () => {
+      const dialog = document.getElementById('dialog-ticket');
+      if (dialog && dialog.open && document.body) {
+        document.body.classList.add('printing-ticket');
+      }
+    });
+
+    window.addEventListener('afterprint', () => {
+      if (document.body) {
+        document.body.classList.remove('printing-ticket');
+      }
+    });
   }
 
   /**
    * Abre directamente WhatsApp con el mensaje estructurado del pedido
    */
   function abrirWhatsAppPedido(pedido, settings = {}) {
-    if (!pedido || !pedido.clientPhone) {
-      alert('El pedido no tiene un número de teléfono/WhatsApp asociado.');
-      return;
+    if (!pedido) {
+      if (typeof alert === 'function') alert('No se ha seleccionado ningún pedido.');
+      return null;
+    }
+
+    let telefono = obtenerTelefonoCliente(pedido);
+
+    if (!telefono) {
+      const nombreCliente = pedido.clientName || 'Cliente';
+      let promptRes = null;
+      if (typeof window !== 'undefined' && typeof window.prompt === 'function') {
+        promptRes = window.prompt(`El cliente "${nombreCliente}" no tiene un teléfono registrado. Ingresa su número de WhatsApp (ej: +56912345678):`);
+      }
+
+      if (promptRes && promptRes.trim()) {
+        telefono = promptRes.trim();
+        pedido.clientPhone = telefono;
+        const storage = global.NovaprintStorage;
+        if (storage && typeof storage.saveOrder === 'function') {
+          storage.saveOrder(pedido);
+          if (pedido.clientId && typeof storage.getClientById === 'function') {
+            const cliente = storage.getClientById(pedido.clientId);
+            if (cliente && !cliente.phone) {
+              storage.saveClient({ ...cliente, phone: telefono });
+            }
+          }
+        }
+      } else {
+        if (typeof alert === 'function') {
+          alert('El pedido no tiene un número de teléfono/WhatsApp asociado.');
+        }
+        return null;
+      }
+    } else if (!pedido.clientPhone && global.NovaprintStorage && typeof global.NovaprintStorage.saveOrder === 'function') {
+      // Sincronizar en el pedido para que quede persistido
+      pedido.clientPhone = telefono;
+      global.NovaprintStorage.saveOrder(pedido);
     }
 
     const sales = global.NovaprintSales;
     const mensaje = sales ? sales.generarTextoWhatsApp(pedido, settings) : `Hola! Te enviamos el comprobante del pedido ${pedido.id}`;
     
-    // Limpiar número dejando solo dígitos y signo más
-    let phoneClean = pedido.clientPhone.replace(/[^0-9]/g, '');
+    // Limpiar número dejando solo dígitos
+    let phoneClean = telefono.replace(/[^0-9]/g, '');
     if (phoneClean.startsWith('9') && phoneClean.length === 9) {
       phoneClean = '56' + phoneClean; // Prefijo de Chile por defecto si tiene 9 dígitos
     }
 
     const url = `https://wa.me/${phoneClean}?text=${encodeURIComponent(mensaje)}`;
-    window.open(url, '_blank');
+    if (typeof window !== 'undefined' && typeof window.open === 'function') {
+      window.open(url, '_blank');
+    }
+    return url;
   }
 
   const ticketModule = {
+    obtenerTelefonoCliente,
     generarTicketHTML,
     imprimirTicket,
     abrirWhatsAppPedido

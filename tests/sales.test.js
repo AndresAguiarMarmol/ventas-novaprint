@@ -418,5 +418,97 @@ describe('Spec 001 - Lógica de Negocio de Ventas (sales.js)', () => {
     });
   });
 
+  describe('Spec 013 - Flexibilidad de Precios Libres y Descuentos por Volumen', () => {
+    it('permite ingresar precios de $0 (promociones o regalos) sin bloquear el cálculo', () => {
+      assert.equal(sales.calcularSubtotalItem(5, 0), 0);
+      const itemsConGratis = [
+        { quantity: 10, unitPrice: 5000 },
+        { quantity: 2, unitPrice: 0 } // Prenda promocional gratis
+      ];
+      const res = sales.calcularTotalesPedido(itemsConGratis, 0, false);
+      assert.equal(res.totalQuantity, 12);
+      assert.equal(res.subtotalBruto, 50000);
+      assert.equal(res.totalAmount, 50000);
+    });
+
+    it('permite cualquier precio arbitrario no múltiplo de 500 ni 100', () => {
+      assert.equal(sales.calcularSubtotalItem(3, 1990), 5970);
+      assert.equal(sales.calcularSubtotalItem(7, 3249), 22743);
+      assert.equal(sales.calcularSubtotalItem(2, 450.75), 902);
+    });
+
+    it('evalúa con precisión todos los tramos de la escala de descuentos por volumen', () => {
+      // Tramo 1: 1 a 5 unidades -> 0%
+      const res1 = sales.calcularDescuentoVolumen(5, 50000);
+      assert.equal(res1.porcentaje, 0);
+      assert.equal(res1.montoDescuento, 0);
+      assert.equal(res1.totalNeto, 50000);
+
+      // Tramo 2: 6 a 11 unidades -> 5%
+      const res2 = sales.calcularDescuentoVolumen(6, 60000);
+      assert.equal(res2.porcentaje, 5);
+      assert.equal(res2.montoDescuento, 3000);
+      assert.equal(res2.totalNeto, 57000);
+
+      const res2b = sales.calcularDescuentoVolumen(11, 110000);
+      assert.equal(res2b.porcentaje, 5);
+      assert.equal(res2b.montoDescuento, 5500);
+      assert.equal(res2b.totalNeto, 104500);
+
+      // Tramo 3: 12 a 24 unidades -> 10% (Docena)
+      const res3 = sales.calcularDescuentoVolumen(12, 120000);
+      assert.equal(res3.porcentaje, 10);
+      assert.equal(res3.montoDescuento, 12000);
+      assert.equal(res3.totalNeto, 108000);
+
+      const res3b = sales.calcularDescuentoVolumen(24, 240000);
+      assert.equal(res3b.porcentaje, 10);
+      assert.equal(res3b.montoDescuento, 24000);
+      assert.equal(res3b.totalNeto, 216000);
+
+      // Tramo 4: 25 a 49 unidades -> 15% (Mayorista)
+      const res4 = sales.calcularDescuentoVolumen(25, 250000);
+      assert.equal(res4.porcentaje, 15);
+      assert.equal(res4.montoDescuento, 37500);
+      assert.equal(res4.totalNeto, 212500);
+
+      const res4b = sales.calcularDescuentoVolumen(49, 490000);
+      assert.equal(res4b.porcentaje, 15);
+      assert.equal(res4b.montoDescuento, 73500);
+      assert.equal(res4b.totalNeto, 416500);
+
+      // Tramo 5: 50+ unidades -> 20% (Gran volumen)
+      const res5 = sales.calcularDescuentoVolumen(50, 500000);
+      assert.equal(res5.porcentaje, 20);
+      assert.equal(res5.montoDescuento, 100000);
+      assert.equal(res5.totalNeto, 400000);
+
+      const res5b = sales.calcularDescuentoVolumen(120, 1200000);
+      assert.equal(res5b.porcentaje, 20);
+      assert.equal(res5b.montoDescuento, 240000);
+      assert.equal(res5b.totalNeto, 960000);
+    });
+
+    it('calcula totales combinando precios arbitrarios, descuento por volumen, IVA y delivery', () => {
+      const items = [
+        { quantity: 30, unitPrice: 3330 } // 30 * 3330 = 99.900 (tramo 15% desc)
+      ];
+      const res = sales.calcularTotalesPedido(items, 0, {
+        aplicarDescuentoVolumen: true,
+        aplicarIva: true,
+        montoDelivery: 4500
+      });
+
+      assert.equal(res.totalQuantity, 30);
+      assert.equal(res.subtotalBruto, 99900);
+      assert.equal(res.volumeDiscountPercent, 15);
+      assert.equal(res.volumeDiscountAmount, 14985);
+      assert.equal(res.netAmount, 84915); // 99900 - 14985
+      assert.equal(res.ivaAmount, 16134); // Math.round(84915 * 0.19)
+      assert.equal(res.deliveryAmount, 4500);
+      assert.equal(res.totalAmount, 105549); // 84915 + 16134 + 4500
+    });
+  });
+
 });
 

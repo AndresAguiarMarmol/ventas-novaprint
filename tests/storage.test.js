@@ -228,6 +228,14 @@ describe('Capa de Persistencia Local (storage.js)', () => {
       const config = storage.getSettings();
       assert.ok(config.businessName);
       assert.equal(config.currencySymbol, '$');
+      assert.equal(config.theme, 'system');
+    });
+
+    it('persiste y actualiza la preferencia de tema (light, dark, system)', () => {
+      storage.saveSettings({ theme: 'dark' });
+      assert.equal(storage.getSettings().theme, 'dark');
+      storage.saveSettings({ theme: 'light' });
+      assert.equal(storage.getSettings().theme, 'light');
     });
 
     it('exporta e importa una copia de respaldo completa en JSON', () => {

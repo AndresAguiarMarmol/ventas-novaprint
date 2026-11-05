@@ -56,3 +56,4 @@
   - Probar que `filtrarPedidos` con `estadoFiltro: 'con_saldo'` retorna solo pedidos con `balanceAmount > 0`.
   - Probar que excluye pedidos con saldo 0 (totalmente pagados) o cancelados.
   - Probar que combina correctamente búsqueda de texto y filtro de saldo por cobrar.
+

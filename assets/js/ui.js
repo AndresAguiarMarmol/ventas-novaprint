@@ -681,7 +681,7 @@
           <input type="number" min="1" value="${it.quantity}" class="w-16 p-1.5 border border-gray-300 rounded text-center font-bold" oninput="NovaprintUI.actualizarItemProp('${it.id}', 'quantity', this.value)">
         </td>
         <td class="py-2 px-1">
-          <input type="number" min="0" step="500" value="${it.unitPrice}" class="w-20 p-1.5 border border-gray-300 rounded text-right font-medium" oninput="NovaprintUI.actualizarItemProp('${it.id}', 'unitPrice', this.value)">
+          <input type="number" step="any" value="${it.unitPrice ?? 0}" placeholder="0" class="w-24 p-1.5 border border-gray-300 rounded text-right font-medium focus:bg-white" oninput="NovaprintUI.actualizarItemProp('${it.id}', 'unitPrice', this.value)">
         </td>
         <td class="py-2 px-1 text-right font-bold text-gray-900 subtotal-cell">
           $${it.quantity * it.unitPrice}
@@ -696,8 +696,10 @@
   function actualizarItemProp(itemId, prop, value) {
     const item = currentOrderItems.find(it => it.id === itemId);
     if (item) {
-      if (prop === 'quantity' || prop === 'unitPrice') {
-        item[prop] = Math.max(0, Number(value) || 0);
+      if (prop === 'quantity') {
+        item.quantity = Math.max(0, parseInt(value, 10) || 0);
+      } else if (prop === 'unitPrice') {
+        item.unitPrice = Number(value) || 0;
       } else {
         item[prop] = value;
       }
@@ -840,6 +842,90 @@
     }
   }
 
+  /**
+   * Abre el modal informativo de la escala oficial de descuentos por volumen (Spec 013).
+   * Si el formulario de pedido está abierto, resalta el tramo actual e indica cuántas prendas
+   * faltan para alcanzar el siguiente porcentaje de ahorro.
+   */
+  function abrirModalDescuentosVolumen() {
+    const dialog = document.getElementById('dialog-volume-discounts');
+    if (!dialog) return;
+
+    // Contabilizar prendas actuales en el formulario si está abierto
+    const orderDialog = document.getElementById('dialog-order');
+    const isOrderOpen = orderDialog && orderDialog.open;
+    const totalPrendas = isOrderOpen 
+      ? currentOrderItems.reduce((acc, it) => acc + (Number(it.quantity) || 0), 0)
+      : 0;
+
+    const statusEl = document.getElementById('volume-discounts-status-info');
+    if (statusEl) {
+      if (isOrderOpen && totalPrendas > 0) {
+        let activePercent = 0;
+        let nextMessage = '';
+
+        if (totalPrendas >= 50) {
+          activePercent = 20;
+          nextMessage = '🏆 ¡Has alcanzado el tramo máximo de ahorro (20% OFF)!';
+        } else if (totalPrendas >= 25) {
+          activePercent = 15;
+          const falta = 50 - totalPrendas;
+          nextMessage = `💡 Agrega <strong>${falta}</strong> prenda${falta > 1 ? 's' : ''} más para subir al <strong>20% OFF (Gran volumen)</strong>.`;
+        } else if (totalPrendas >= 12) {
+          activePercent = 10;
+          const falta = 25 - totalPrendas;
+          nextMessage = `💡 Agrega <strong>${falta}</strong> prenda${falta > 1 ? 's' : ''} más para subir al <strong>15% OFF (Mayorista)</strong>.`;
+        } else if (totalPrendas >= 6) {
+          activePercent = 5;
+          const falta = 12 - totalPrendas;
+          nextMessage = `💡 Agrega <strong>${falta}</strong> prenda${falta > 1 ? 's' : ''} más para subir al <strong>10% OFF (Docena)</strong>.`;
+        } else {
+          activePercent = 0;
+          const falta = 6 - totalPrendas;
+          nextMessage = `💡 Agrega <strong>${falta}</strong> prenda${falta > 1 ? 's' : ''} más para activar tu primer descuento (<strong>5% OFF</strong>).`;
+        }
+
+        statusEl.innerHTML = `
+          <div class="p-3 bg-blue-50 border border-blue-200 rounded-xl text-xs space-y-1 text-blue-900">
+            <div class="flex justify-between items-center font-bold">
+              <span>Prendas en el pedido actual:</span>
+              <span class="text-sm text-blue-700 bg-white px-2 py-0.5 rounded shadow-2xs font-black">${totalPrendas} un.</span>
+            </div>
+            <div class="flex justify-between items-center font-semibold">
+              <span>Descuento aplicado:</span>
+              <span class="text-sm font-black ${activePercent > 0 ? 'text-emerald-600' : 'text-gray-500'}">${activePercent}% OFF</span>
+            </div>
+            <p class="text-[11px] text-blue-800 pt-1.5 border-t border-blue-200/60">${nextMessage}</p>
+          </div>
+        `;
+      } else {
+        statusEl.innerHTML = `
+          <div class="p-3 bg-gray-50 border border-gray-200 rounded-xl text-xs text-gray-600">
+            <p class="font-bold text-gray-800">ℹ️ Cálculo automático por volumen</p>
+            <p class="text-[11px] mt-0.5">La escala se activa y recalcula automáticamente al agregar prendas en el formulario de Nuevo Pedido.</p>
+          </div>
+        `;
+      }
+    }
+
+    // Resaltar visualmente la fila del tramo activo
+    document.querySelectorAll('.volume-tier-row').forEach(row => {
+      const min = parseInt(row.getAttribute('data-min') || '0', 10);
+      const max = parseInt(row.getAttribute('data-max') || '999999', 10);
+      if (isOrderOpen && totalPrendas >= min && totalPrendas <= max) {
+        row.classList.add('bg-emerald-50', 'border-emerald-300', 'font-black');
+        row.classList.remove('bg-white');
+      } else {
+        row.classList.remove('bg-emerald-50', 'border-emerald-300', 'font-black');
+        row.classList.add('bg-white');
+      }
+    });
+
+    if (typeof dialog.showModal === 'function') {
+      dialog.showModal();
+    }
+  }
+
   function guardarPedidoDesdeFormulario() {
     const storage = global.NovaprintStorage;
     const sales = global.NovaprintSales;
@@ -847,8 +933,12 @@
     const selectedOption = clientSelect.options[clientSelect.selectedIndex];
 
     const clientId = clientSelect.value;
-    const clientName = selectedOption ? selectedOption.getAttribute('data-name') : 'Cliente General';
-    const clientPhone = selectedOption ? selectedOption.getAttribute('data-phone') : '';
+    const clientName = selectedOption ? (selectedOption.getAttribute('data-name') || 'Cliente General') : 'Cliente General';
+    let clientPhone = selectedOption ? (selectedOption.getAttribute('data-phone') || '') : '';
+    if (!clientPhone && clientId && storage && typeof storage.getClientById === 'function') {
+      const cli = storage.getClientById(clientId);
+      if (cli && cli.phone) clientPhone = cli.phone;
+    }
     const deliveryDate = document.getElementById('order-delivery-date').value;
     const status = document.getElementById('order-status-select').value;
     const notes = document.getElementById('order-notes-input').value;
@@ -1601,7 +1691,7 @@
             <input type="number" min="1" value="${it.quantity}" class="w-20 p-1.5 border border-gray-300 rounded text-center font-bold" oninput="NovaprintUI.actualizarItemCompraVal('${it.id}', 'quantity', this.value)">
           </td>
           <td class="py-2 px-1">
-            <input type="number" min="0" step="100" value="${it.unitCost}" class="w-24 p-1.5 border border-gray-300 rounded text-right font-medium" oninput="NovaprintUI.actualizarItemCompraVal('${it.id}', 'unitCost', this.value)">
+            <input type="number" min="0" step="any" value="${it.unitCost}" class="w-24 p-1.5 border border-gray-300 rounded text-right font-medium" oninput="NovaprintUI.actualizarItemCompraVal('${it.id}', 'unitCost', this.value)">
           </td>
           <td class="py-2 px-1 text-right font-bold text-gray-900 purchase-subtotal-cell">
             $${it.quantity * it.unitCost}
@@ -2085,6 +2175,7 @@
     manejarCambioColor,
     toggleOrderDeliveryInput,
     recalcularTotalesFormulario,
+    abrirModalDescuentosVolumen,
     guardarPedidoDesdeFormulario,
     editarPedido,
     cambiarEstado,
