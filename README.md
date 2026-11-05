@@ -1,6 +1,12 @@
 # Novaprint App — Ventas & Producción Textil
 
+[![Ejecutar en Remoto (GitHub Pages)](https://img.shields.io/badge/🌐_Demo_En_Vivo-GitHub_Pages-blue?style=for-the-badge)](https://andresaguiarmarmol.github.io/ventas-novaprint/)
+
 Aplicación web integral para la microempresa **Novaprint**, especializada en servicios de estampado textil (Poleras, Polerones, Buzos y Gorras) con técnicas DTF, Sublimación, Vinilo, Serigrafía y Bordado.
+
+> 🚀 **Ejecutar la App en remoto:**  
+> Puedes abrir y utilizar la aplicación directamente desde cualquier dispositivo móvil o computadora en:  
+> **[https://andresaguiarmarmol.github.io/ventas-novaprint/](https://andresaguiarmarmol.github.io/ventas-novaprint/)**
 
 ---
 

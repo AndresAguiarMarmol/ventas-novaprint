@@ -83,6 +83,11 @@ Registro de todo lo que debe preservarse entre sesiones de trabajo: arquitectura
 
 ## 3. Historial de cambios
 
+### 2026-11-05 (Despliegue y Ejecución Remota vía GitHub Pages)
+- **Activación de GitHub Pages:** Se habilitó GitHub Pages en el repositorio `ventas-novaprint` sirviendo desde la rama `main` en la raíz (`/`).
+- **Enlace de Ejecución Remota Activo:** La aplicación quedó publicada y operativa en producción en la URL: `https://andresaguiarmarmol.github.io/ventas-novaprint/`.
+- **Configuración en Repositorio & README:** Se estableció la URL en la sección *Homepage / About* del repositorio en GitHub y se integró el enlace directo en `README.md`.
+
 ### 2026-11-05 (Creación y Publicación del Repositorio Oficial en GitHub — ventas-novaprint)
 - **Creación de Repositorio Oficial:** Se creó el repositorio público independiente `ventas-novaprint` en GitHub (`https://github.com/AndresAguiarMarmol/ventas-novaprint`).
 - **Configuración de Origen Remoto:** Se reconfiguró el origen remoto de Git apuntando a `https://github.com/AndresAguiarMarmol/ventas-novaprint.git`.
