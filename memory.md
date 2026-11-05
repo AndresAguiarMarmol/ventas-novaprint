@@ -83,6 +83,12 @@ Registro de todo lo que debe preservarse entre sesiones de trabajo: arquitectura
 
 ## 3. Historial de cambios
 
+### 2026-11-05 (Creación y Publicación del Repositorio Oficial en GitHub — ventas-novaprint)
+- **Creación de Repositorio Oficial:** Se creó el repositorio público independiente `ventas-novaprint` en GitHub (`https://github.com/AndresAguiarMarmol/ventas-novaprint`).
+- **Configuración de Origen Remoto:** Se reconfiguró el origen remoto de Git apuntando a `https://github.com/AndresAguiarMarmol/ventas-novaprint.git`.
+- **Publicación de la Rama Principal:** Se publicó la rama `main` completa con las Specs 001 a 013, suite de 105 pruebas unitarias, documentación y recursos PWA.
+- **Limpieza de ramas temporales:** Se eliminó la rama temporal `novaprint` de `cv-web.git`, manteniendo ambos proyectos desacoplados e independientes.
+
 ### 2026-11-05 (Sincronización con GitHub — Specs 001 a 013)
 - Se consolidaron y confirmaron todos los cambios en Git (Specs 010 a 013 y documentación del README).
 - Se sincronizó el repositorio remoto en la rama dedicada `novaprint` (`origin/novaprint`), preservando la rama `main` original y dejando el árbol de trabajo local 100% limpio y actualizado.
