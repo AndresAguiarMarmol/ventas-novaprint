@@ -1507,8 +1507,8 @@
           <td class="py-3 px-3 text-gray-600 max-w-xs truncate" title="${itemsStr}">${itemsStr || 'Sin ítems'}</td>
           <td class="py-3 px-3 font-bold text-gray-900">${totalStr}</td>
           <td class="py-3 px-3 text-right space-x-1 whitespace-nowrap">
-            <button class="p-1 text-gray-500 hover:text-gray-800 rounded" title="Editar Compra" onclick="NovaprintUI.editarCompra('${c.id}')">✏️</button>
-            <button class="p-1 text-red-500 hover:text-red-700 rounded" title="Eliminar Compra" onclick="NovaprintUI.confirmarEliminarCompra('${c.id}')">🗑️</button>
+            <button type="button" class="p-1 text-gray-500 hover:text-gray-800 rounded" title="Editar Compra" onclick="NovaprintUI.editarCompra('${c.id}')">✏️</button>
+            <button type="button" class="p-1 text-red-500 hover:text-red-700 rounded" title="Eliminar Compra" onclick="NovaprintUI.confirmarEliminarCompra('${c.id}')">🗑️</button>
           </td>
         </tr>
       `;
@@ -1619,13 +1619,20 @@
 
     // Cargar ítems
     currentPurchaseItems = Array.isArray(compra.items) && compra.items.length > 0
-      ? JSON.parse(JSON.stringify(compra.items))
+      ? JSON.parse(JSON.stringify(compra.items)).map((it, idx) => ({
+          id: it.id || `p-it-${Date.now()}-${idx}-${Math.random().toString(36).substr(2, 4)}`,
+          inventoryItemId: it.inventoryItemId || '',
+          name: it.name || '',
+          quantity: Math.max(1, Number(it.quantity) || 1),
+          unitCost: Math.max(0, Number(it.unitCost) || 0),
+          subtotal: (Math.max(1, Number(it.quantity) || 1)) * (Math.max(0, Number(it.unitCost) || 0))
+        }))
       : [];
 
     if (currentPurchaseItems.length === 0) {
       agregarFilaItemCompra();
     } else {
-      renderizarFilasItemsCompra();
+      renderTablaItemsCompraFormulario();
     }
 
     recalcularTotalesCompraFormulario();
@@ -1691,6 +1698,16 @@
     }
 
     document.getElementById('form-purchase').reset();
+    const hiddenId = document.getElementById('purchase-id-hidden');
+    if (hiddenId) hiddenId.value = '';
+
+    const modalTitle = document.getElementById('purchase-modal-title');
+    if (modalTitle) modalTitle.textContent = 'Registrar Compra de Insumos';
+    const modalSub = document.getElementById('purchase-modal-subtitle');
+    if (modalSub) modalSub.textContent = 'El stock de los ítems seleccionados se incrementará automáticamente';
+    const submitBtn = document.getElementById('btn-submit-purchase');
+    if (submitBtn) submitBtn.textContent = '📥 Ingresar Compra al Stock';
+
     const hoy = new Date().toISOString().split('T')[0];
     document.getElementById('purchase-date-input').value = hoy;
 
@@ -1786,11 +1803,15 @@
     const inventario = storage ? storage.getInventory() : [];
 
     tbody.innerHTML = currentPurchaseItems.map(it => {
-      const optionsHtml = inventario.map(inv => `
+      let optionsHtml = inventario.map(inv => `
         <option value="${inv.id}" data-name="${inv.name}" data-cost="${inv.unitCost}" ${inv.id === it.inventoryItemId ? 'selected' : ''}>
           ${inv.name} (Stock actual: ${inv.currentStock})
         </option>
       `).join('');
+
+      if (it.inventoryItemId && !inventario.some(inv => inv.id === it.inventoryItemId)) {
+        optionsHtml = `<option value="${it.inventoryItemId}" data-name="${it.name || 'Artículo'}" data-cost="${it.unitCost || 0}" selected>${it.name || 'Artículo'} (Histórico)</option>` + optionsHtml;
+      }
 
       return `
         <tr class="border-b border-gray-200 text-xs">

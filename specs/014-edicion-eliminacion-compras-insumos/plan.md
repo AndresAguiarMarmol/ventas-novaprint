@@ -58,3 +58,4 @@
    - Prueba: `deletePurchase` revierte las existencias en inventario y elimina la compra.
 2. **`tests/production.test.js`**:
    - Prueba: `renderPurchasesTable` genera los botones de acción (editar y eliminar) en cada fila.
+

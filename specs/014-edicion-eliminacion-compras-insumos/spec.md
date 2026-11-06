@@ -56,3 +56,4 @@ Esta especificación define la incorporación de las acciones de **Edición** (�
 - [ ] Al guardar la compra editada, los cambios persisten en `novaprint_purchases` y el inventario refleja el diferencial de existencias.
 - [ ] Al eliminar una compra, se pide confirmación, se borra de la lista y se descuenta el stock previamente sumado.
 - [ ] La suite de pruebas unitarias (`tests/`) incluye pruebas para `getPurchaseById`, edición de compra, eliminación con reversión de stock y renderizado de acciones.
+

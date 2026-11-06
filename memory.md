@@ -89,9 +89,10 @@ Registro de todo lo que debe preservarse entre sesiones de trabajo: arquitectura
 ## 3. Historial de cambios
 
 ### 2026-11-06 (Edición y Eliminación de Compras de Insumos — Spec 014)
+- **Corrección en Botón de Edición de Compras:** Se corrigió un error en `assets/js/ui.js` (`editarCompra`) que invocaba una función inexistente (`renderizarFilasItemsCompra` en vez de `renderTablaItemsCompraFormulario`), se garantizó la asignación de IDs de fila para los ítems editados, se aisló el estado en compras de faltantes y se añadió la prueba `tests/ui_purchase.test.js` (alcanzando 109/109 pruebas pasando).
 - **Capa de Persistencia (`storage.js`):** Implementadas funciones `getPurchaseById`, edición en `savePurchase` con ajuste diferencial de existencias en bodega y `deletePurchase` con reversión de inventario protegida contra stock negativo (`Math.max(0, ...)`).
 - **Interfaz de Usuario (`index.html` y `ui.js`):** Columna de acciones en tabla de compras con botones de editar y eliminar; modal dinámico `#dialog-purchase` compatible con creación y edición; alertas de confirmación nativas para eliminación y toasts informativos.
-- **Pruebas Automatizadas (`storage.test.js`):** 3 nuevas pruebas unitarias cubriendo consulta, edición diferencial y eliminación con reversión de stock, alcanzando 108/108 pruebas pasando exitosamente.
+- **Pruebas Automatizadas (`storage.test.js` & `ui_purchase.test.js`):** 4 pruebas unitarias cubriendo consulta, edición diferencial, eliminación con reversión de stock y renderizado interactivo del modal de edición.
 - **Sincronización:** Documentación formal SDD en `specs/014-edicion-eliminacion-compras-insumos/` y actualización en repositorio GitHub.
 
 ### 2026-11-05 (Despliegue y Ejecución Remota vía GitHub Pages)
