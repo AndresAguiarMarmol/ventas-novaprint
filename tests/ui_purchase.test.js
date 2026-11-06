@@ -106,3 +106,4 @@ describe('Spec 014 — Interfaz de Edición de Compras (ui.js)', () => {
     assert.ok(elements['purchase-items-tbody'].innerHTML.includes('Polera Negra M'), 'La tabla de ítems debe contener el artículo');
   });
 });
+
