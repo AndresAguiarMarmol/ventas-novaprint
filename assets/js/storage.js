@@ -423,9 +423,16 @@
     return Array.isArray(items) ? items : [];
   }
 
+  function getPurchaseById(id) {
+    return getPurchases().find(p => p.id === id) || null;
+  }
+
   function savePurchase(purchaseData) {
     const purchases = getPurchases();
-    const id = purchaseData.id || `CMP-${Date.now().toString(36).toUpperCase()}-${Math.random().toString(36).substr(2, 4).toUpperCase()}`;
+    const existingIndex = purchaseData.id ? purchases.findIndex(p => p.id === purchaseData.id) : -1;
+    const isEdit = existingIndex !== -1;
+    const id = isEdit ? purchaseData.id : (purchaseData.id || `CMP-${Date.now().toString(36).toUpperCase()}-${Math.random().toString(36).substr(2, 4).toUpperCase()}`);
+
     const subtotalNeto = Number(purchaseData.subtotalNeto) >= 0
       ? Number(purchaseData.subtotalNeto)
       : (Number(purchaseData.totalAmount) || 0);
@@ -435,6 +442,40 @@
     const applyDelivery = Boolean(purchaseData.applyDelivery);
     const deliveryAmount = Number(purchaseData.deliveryAmount) || 0;
     const totalAmount = Number(purchaseData.totalAmount) || (subtotalNeto + ivaAmount + deliveryAmount);
+
+    let inventory = getInventory();
+
+    if (isEdit) {
+      // Revertir del inventario las existencias de la compra anterior
+      const oldPurchase = purchases[existingIndex];
+      if (Array.isArray(oldPurchase.items)) {
+        oldPurchase.items.forEach(oldItem => {
+          const invItem = inventory.find(i => i.id === oldItem.inventoryItemId);
+          if (invItem) {
+            const oldQty = Math.max(0, Number(oldItem.quantity) || 0);
+            invItem.currentStock = Math.max(0, (Number(invItem.currentStock) || 0) - oldQty);
+            invItem.updatedAt = new Date().toISOString();
+          }
+        });
+      }
+    }
+
+    // Aplicar las nuevas existencias al inventario
+    if (Array.isArray(purchaseData.items) && purchaseData.items.length > 0) {
+      purchaseData.items.forEach(comprado => {
+        const invItem = inventory.find(i => i.id === comprado.inventoryItemId);
+        if (invItem) {
+          const addQty = Math.max(0, Number(comprado.quantity) || 0);
+          const newCost = Number(comprado.unitCost) > 0 ? Number(comprado.unitCost) : invItem.unitCost;
+          invItem.currentStock = (Number(invItem.currentStock) || 0) + addQty;
+          invItem.unitCost = newCost;
+          invItem.updatedAt = new Date().toISOString();
+        }
+      });
+      setItem(STORAGE_KEYS.INVENTORY, inventory);
+    } else if (isEdit) {
+      setItem(STORAGE_KEYS.INVENTORY, inventory);
+    }
 
     const purchaseToSave = {
       ...purchaseData,
@@ -447,32 +488,42 @@
       deliveryAmount,
       totalAmount,
       date: purchaseData.date || new Date().toISOString().split('T')[0],
-      createdAt: new Date().toISOString()
+      createdAt: isEdit ? (purchases[existingIndex].createdAt || new Date().toISOString()) : new Date().toISOString(),
+      updatedAt: isEdit ? new Date().toISOString() : undefined
     };
-    purchases.unshift(purchaseToSave);
+
+    if (isEdit) {
+      purchases[existingIndex] = purchaseToSave;
+    } else {
+      purchases.unshift(purchaseToSave);
+    }
     setItem(STORAGE_KEYS.PURCHASES, purchases);
 
-    // Incrementar existencias automáticamente en el inventario
-    if (Array.isArray(purchaseData.items) && purchaseData.items.length > 0) {
+    return purchaseToSave;
+  }
+
+  function deletePurchase(id) {
+    const purchases = getPurchases();
+    const purchase = purchases.find(p => p.id === id);
+    if (!purchase) return false;
+
+    // Revertir existencias agregadas por esta compra al inventario
+    if (Array.isArray(purchase.items) && purchase.items.length > 0) {
       const inventory = getInventory();
-      const updatedInventory = inventory.map(invItem => {
-        const comprado = purchaseData.items.find(pi => pi.inventoryItemId === invItem.id);
-        if (comprado) {
-          const addQty = Math.max(0, Number(comprado.quantity) || 0);
-          const newCost = Number(comprado.unitCost) > 0 ? Number(comprado.unitCost) : invItem.unitCost;
-          return {
-            ...invItem,
-            currentStock: (Number(invItem.currentStock) || 0) + addQty,
-            unitCost: newCost,
-            updatedAt: new Date().toISOString()
-          };
+      purchase.items.forEach(item => {
+        const invItem = inventory.find(i => i.id === item.inventoryItemId);
+        if (invItem) {
+          const qty = Math.max(0, Number(item.quantity) || 0);
+          invItem.currentStock = Math.max(0, (Number(invItem.currentStock) || 0) - qty);
+          invItem.updatedAt = new Date().toISOString();
         }
-        return invItem;
       });
-      setItem(STORAGE_KEYS.INVENTORY, updatedInventory);
+      setItem(STORAGE_KEYS.INVENTORY, inventory);
     }
 
-    return purchaseToSave;
+    const filtered = purchases.filter(p => p.id !== id);
+    setItem(STORAGE_KEYS.PURCHASES, filtered);
+    return true;
   }
 
   // --- DESCUENTO DE STOCK POR PEDIDO (Spec 004) ---
@@ -1024,7 +1075,9 @@
     deleteInventoryItem,
     asegurarItemInventarioPrenda,
     getPurchases,
+    getPurchaseById,
     savePurchase,
+    deletePurchase,
     descontarStockPorPedido,
     getProjects,
     getProjectById,

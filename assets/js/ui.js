@@ -1486,7 +1486,7 @@
     if (compras.length === 0) {
       tableBody.innerHTML = `
         <tr>
-          <td colspan="6" class="py-8 text-center text-gray-400 text-sm">
+          <td colspan="7" class="py-8 text-center text-gray-400 text-sm">
             No hay compras registradas en el historial.
           </td>
         </tr>
@@ -1506,6 +1506,10 @@
           <td class="py-3 px-3 text-gray-500">${c.date}</td>
           <td class="py-3 px-3 text-gray-600 max-w-xs truncate" title="${itemsStr}">${itemsStr || 'Sin ítems'}</td>
           <td class="py-3 px-3 font-bold text-gray-900">${totalStr}</td>
+          <td class="py-3 px-3 text-right space-x-1 whitespace-nowrap">
+            <button class="p-1 text-gray-500 hover:text-gray-800 rounded" title="Editar Compra" onclick="NovaprintUI.editarCompra('${c.id}')">✏️</button>
+            <button class="p-1 text-red-500 hover:text-red-700 rounded" title="Eliminar Compra" onclick="NovaprintUI.confirmarEliminarCompra('${c.id}')">🗑️</button>
+          </td>
         </tr>
       `;
     }).join('');
@@ -1513,10 +1517,22 @@
 
   function abrirModalNuevaCompra() {
     currentPurchaseItems = [];
-    document.getElementById('form-purchase').reset();
+    const form = document.getElementById('form-purchase');
+    if (form) form.reset();
+
+    const hiddenId = document.getElementById('purchase-id-hidden');
+    if (hiddenId) hiddenId.value = '';
+
+    const modalTitle = document.getElementById('purchase-modal-title');
+    if (modalTitle) modalTitle.textContent = 'Registrar Compra de Insumos';
+    const modalSub = document.getElementById('purchase-modal-subtitle');
+    if (modalSub) modalSub.textContent = 'El stock de los ítems seleccionados se incrementará automáticamente';
+    const submitBtn = document.getElementById('btn-submit-purchase');
+    if (submitBtn) submitBtn.textContent = '📥 Ingresar Compra al Stock';
 
     const hoy = new Date().toISOString().split('T')[0];
-    document.getElementById('purchase-date-input').value = hoy;
+    const dateInput = document.getElementById('purchase-date-input');
+    if (dateInput) dateInput.value = hoy;
 
     // Resetear IVA y Delivery para compras
     const checkIva = document.getElementById('purchase-apply-iva');
@@ -1532,13 +1548,109 @@
     const storage = global.NovaprintStorage;
     const proveedores = storage ? storage.getSuppliers() : [];
     const selectProv = document.getElementById('purchase-supplier-select');
-    selectProv.innerHTML = '<option value="">-- Seleccionar Proveedor --</option>' +
-      proveedores.map(p => `<option value="${p.id}" data-name="${p.name}">${p.name} (${p.category})</option>`).join('');
+    if (selectProv) {
+      selectProv.innerHTML = '<option value="">-- Seleccionar Proveedor --</option>' +
+        proveedores.map(p => `<option value="${p.id}" data-name="${p.name}">${p.name} (${p.category})</option>`).join('');
+    }
 
     agregarFilaItemCompra();
     recalcularTotalesCompraFormulario();
 
-    document.getElementById('dialog-purchase').showModal();
+    const dlg = document.getElementById('dialog-purchase');
+    if (dlg && typeof dlg.showModal === 'function') dlg.showModal();
+  }
+
+  function editarCompra(purchaseId) {
+    const storage = global.NovaprintStorage;
+    if (!storage) return;
+
+    const compra = storage.getPurchaseById(purchaseId);
+    if (!compra) {
+      showToast('No se encontró la compra seleccionada.', 'error');
+      return;
+    }
+
+    const form = document.getElementById('form-purchase');
+    if (form) form.reset();
+
+    const hiddenId = document.getElementById('purchase-id-hidden');
+    if (hiddenId) hiddenId.value = compra.id;
+
+    const modalTitle = document.getElementById('purchase-modal-title');
+    if (modalTitle) modalTitle.textContent = `Editar Compra (${compra.id})`;
+    const modalSub = document.getElementById('purchase-modal-subtitle');
+    if (modalSub) modalSub.textContent = 'Modifica los datos de la compra. Las existencias en inventario se actualizarán automáticamente.';
+    const submitBtn = document.getElementById('btn-submit-purchase');
+    if (submitBtn) submitBtn.textContent = '💾 Guardar Cambios de Compra';
+
+    // Poblar selector de proveedores
+    const proveedores = storage.getSuppliers();
+    const selectProv = document.getElementById('purchase-supplier-select');
+    if (selectProv) {
+      selectProv.innerHTML = '<option value="">-- Seleccionar Proveedor --</option>' +
+        proveedores.map(p => `<option value="${p.id}" data-name="${p.name}" ${p.id === compra.supplierId ? 'selected' : ''}>${p.name} (${p.category})</option>`).join('');
+      selectProv.value = compra.supplierId || '';
+    }
+
+    const dateInput = document.getElementById('purchase-date-input');
+    if (dateInput) dateInput.value = compra.date || new Date().toISOString().split('T')[0];
+
+    const invoiceInput = document.getElementById('purchase-invoice-input');
+    if (invoiceInput) invoiceInput.value = compra.invoiceNumber || '';
+
+    const notesInput = document.getElementById('purchase-notes-input');
+    if (notesInput) notesInput.value = compra.notes || '';
+
+    // IVA y Delivery
+    const checkIva = document.getElementById('purchase-apply-iva');
+    if (checkIva) checkIva.checked = Boolean(compra.applyIva);
+
+    const checkDeliv = document.getElementById('purchase-apply-delivery');
+    if (checkDeliv) checkDeliv.checked = Boolean(compra.applyDelivery);
+
+    const inputDeliv = document.getElementById('purchase-delivery-input');
+    if (inputDeliv) inputDeliv.value = compra.deliveryAmount || 0;
+
+    const contDeliv = document.getElementById('purchase-delivery-input-container');
+    if (contDeliv) {
+      if (compra.applyDelivery) contDeliv.classList.remove('hidden');
+      else contDeliv.classList.add('hidden');
+    }
+
+    // Cargar ítems
+    currentPurchaseItems = Array.isArray(compra.items) && compra.items.length > 0
+      ? JSON.parse(JSON.stringify(compra.items))
+      : [];
+
+    if (currentPurchaseItems.length === 0) {
+      agregarFilaItemCompra();
+    } else {
+      renderizarFilasItemsCompra();
+    }
+
+    recalcularTotalesCompraFormulario();
+
+    const dlg = document.getElementById('dialog-purchase');
+    if (dlg && typeof dlg.showModal === 'function') dlg.showModal();
+  }
+
+  function confirmarEliminarCompra(purchaseId) {
+    const storage = global.NovaprintStorage;
+    if (!storage) return;
+
+    const compra = storage.getPurchaseById(purchaseId);
+    const invoiceTxt = compra && compra.invoiceNumber ? ` (Doc: ${compra.invoiceNumber})` : '';
+    if (confirm(`¿Eliminar la compra ${purchaseId}${invoiceTxt}?\nLas existencias ingresadas al inventario se revertirán automáticamente.`)) {
+      const deleted = storage.deletePurchase(purchaseId);
+      if (deleted) {
+        showToast(`Compra ${purchaseId} eliminada y stock revertido.`, 'info');
+        if (global.NovaprintMain && typeof global.NovaprintMain.refrescarDatos === 'function') {
+          global.NovaprintMain.refrescarDatos();
+        }
+      } else {
+        showToast('No se pudo eliminar la compra.', 'error');
+      }
+    }
   }
 
   function abrirModalCompraConFaltantes(itemsFaltantes = null) {
@@ -1845,8 +1957,12 @@
       totalAmount: 0
     };
 
+    const hiddenId = document.getElementById('purchase-id-hidden');
+    const existingId = hiddenId ? hiddenId.value.trim() : '';
+
     const storage = global.NovaprintStorage;
     const compraGuardada = storage.savePurchase({
+      ...(existingId ? { id: existingId } : {}),
       supplierId,
       supplierName,
       invoiceNumber,
@@ -1862,9 +1978,17 @@
       notes
     });
 
-    document.getElementById('dialog-purchase').close();
-    showToast(`Compra ${compraGuardada.id} registrada. ¡Stock de inventario incrementado!`, 'success');
-    global.NovaprintMain.refrescarDatos();
+    const dlg = document.getElementById('dialog-purchase');
+    if (dlg && typeof dlg.close === 'function') dlg.close();
+
+    if (existingId) {
+      showToast(`Compra ${compraGuardada.id} actualizada correctamente.`, 'success');
+    } else {
+      showToast(`Compra ${compraGuardada.id} registrada. ¡Stock de inventario incrementado!`, 'success');
+    }
+    if (global.NovaprintMain && typeof global.NovaprintMain.refrescarDatos === 'function') {
+      global.NovaprintMain.refrescarDatos();
+    }
   }
 
   // ==========================================
@@ -2201,9 +2325,11 @@
     manejarCambioColorInventario,
     guardarItemInventarioDesdeFormulario,
     confirmarEliminarItemInventario,
-    // Spec 002: Compras
+    // Spec 002 & 014: Compras
     renderPurchasesTable,
     abrirModalNuevaCompra,
+    editarCompra,
+    confirmarEliminarCompra,
     agregarFilaItemCompra,
     eliminarFilaItemCompra,
     actualizarItemCompraSelect,

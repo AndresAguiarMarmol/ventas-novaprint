@@ -419,6 +419,7 @@
                 <th class="py-3 px-3">Fecha</th>
                 <th class="py-3 px-3">Detalle Insumos</th>
                 <th class="py-3 px-3">Total Compra</th>
+                <th class="py-3 px-3 text-right">Acciones</th>
               </tr>
             </thead>
             <tbody id="purchases-table-body" class="divide-y divide-gray-100"></tbody>
@@ -1225,13 +1226,14 @@
     <div class="bg-white rounded-2xl shadow-2xl border border-gray-200 overflow-hidden flex flex-col max-h-[92vh]">
       <div class="px-6 py-4 bg-gray-50 border-b border-gray-200 flex justify-between items-center">
         <div>
-          <h3 class="text-base font-black text-gray-900">Registrar Compra de Insumos</h3>
-          <p class="text-xs text-gray-500">El stock de los ítems seleccionados se incrementará automáticamente</p>
+          <h3 id="purchase-modal-title" class="text-base font-black text-gray-900">Registrar Compra de Insumos</h3>
+          <p id="purchase-modal-subtitle" class="text-xs text-gray-500">El stock de los ítems seleccionados se incrementará automáticamente</p>
         </div>
         <button type="button" class="text-gray-400 hover:text-gray-700 text-lg font-bold p-1" onclick="document.getElementById('dialog-purchase').close()">✕</button>
       </div>
 
       <form id="form-purchase" class="p-6 overflow-y-auto space-y-5 flex-1">
+        <input type="hidden" id="purchase-id-hidden">
         <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
           <div class="sm:col-span-2">
             <label class="block text-xs font-bold text-gray-700 uppercase mb-1">Proveedor *</label>
@@ -1323,7 +1325,7 @@
           <button type="button" class="px-4 py-2 border border-gray-300 text-gray-700 font-bold rounded-lg hover:bg-gray-100 text-xs" onclick="document.getElementById('dialog-purchase').close()">
             Cancelar
           </button>
-          <button type="submit" class="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-lg shadow-sm text-xs">
+          <button id="btn-submit-purchase" type="submit" class="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-lg shadow-sm text-xs">
             📥 Ingresar Compra al Stock
           </button>
         </div>

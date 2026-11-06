@@ -63,6 +63,11 @@ Registro de todo lo que debe preservarse entre sesiones de trabajo: arquitectura
   - **Spec 011 (Implementada):** Corrección de WhatsApp e Impresión Unitaria Exclusiva de Ticket.
   - **Spec 012 (Implementada):** Pie de Página con Créditos de Autoría y Contacto Directo.
   - **Spec 013 (Implementada):** Flexibilidad de Precios Libres y Escala Oficial de Descuentos por Volumen.
+  - **Spec 014 (Implementada):** Edición y Eliminación de Compras de Insumos & Textiles con Ajuste Diferencial y Reversión de Stock en Inventario.
+- **Edición y Eliminación de Compras con Ajuste de Inventario (Spec 014):**
+  - **Edición con Ajuste Diferencial:** Al editar una compra existente (`savePurchase(purchaseData, existingId)`), el sistema calcula el impacto neto sobre el stock de bodega: revierte las cantidades de los ítems de la versión previa (`Math.max(0, currentStock - oldQty)`), aplica las nuevas cantidades (`currentStock + newQty`) y actualiza el costo unitario de reposición `unitCost`.
+  - **Eliminación con Reversión de Stock:** Al eliminar una compra (`deletePurchase(id)`), se descuentan las existencias añadidas a cada artículo en bodega (`Math.max(0, currentStock - qty)`), previniendo números negativos si parte de los insumos ya fueron consumidos en órdenes de taller.
+  - **Acciones en Interfaz y Diálogos:** La tabla `#view-purchases` incorpora la columna de acciones con botones interactivos de edición (`[✏️]`) y eliminación (`[🗑️]`). El formulario `#form-purchase` reutiliza el modal existente alternando título, subtítulo, botón de envío ("Actualizar Compra" vs "Confirmar Compra") y limpiando el campo oculto `#purchase-id-hidden` al abrir una nueva compra.
 - **Flexibilidad de Precios y Escala Oficial de Descuentos por Volumen (Spec 013):**
   - **Ingreso Libre de Precios:** Se eliminó cualquier validación restrictiva que forzara múltiplos de $500 o $100 mediante `step="any"` y `novalidate` en `<form id="form-order">`. Se permite registrar prendas con precios libres, promocionales ($0) o personalizados sin bloqueos del navegador.
   - **Botones y Modal de Descuentos por Volumen:** Se incorporó un botón de consulta rápida (`#btn-view-volume-discounts`) en la barra de pedidos y un botón directo (`#btn-open-volume-discounts-order`) dentro del modal de pedido para consultar la escala oficial: 1 a 5 un. (0%), 6 a 11 un. (5%), 12 a 24 un. (10% docena), 25 a 49 un. (15% mayorista) y 50+ un. (20% gran volumen).
@@ -82,6 +87,12 @@ Registro de todo lo que debe preservarse entre sesiones de trabajo: arquitectura
 ---
 
 ## 3. Historial de cambios
+
+### 2026-11-06 (Edición y Eliminación de Compras de Insumos — Spec 014)
+- **Capa de Persistencia (`storage.js`):** Implementadas funciones `getPurchaseById`, edición en `savePurchase` con ajuste diferencial de existencias en bodega y `deletePurchase` con reversión de inventario protegida contra stock negativo (`Math.max(0, ...)`).
+- **Interfaz de Usuario (`index.html` y `ui.js`):** Columna de acciones en tabla de compras con botones de editar y eliminar; modal dinámico `#dialog-purchase` compatible con creación y edición; alertas de confirmación nativas para eliminación y toasts informativos.
+- **Pruebas Automatizadas (`storage.test.js`):** 3 nuevas pruebas unitarias cubriendo consulta, edición diferencial y eliminación con reversión de stock, alcanzando 108/108 pruebas pasando exitosamente.
+- **Sincronización:** Documentación formal SDD en `specs/014-edicion-eliminacion-compras-insumos/` y actualización en repositorio GitHub.
 
 ### 2026-11-05 (Despliegue y Ejecución Remota vía GitHub Pages)
 - **Activación de GitHub Pages:** Se habilitó GitHub Pages en el repositorio `ventas-novaprint` sirviendo desde la rama `main` en la raíz (`/`).

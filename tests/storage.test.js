@@ -161,6 +161,100 @@ describe('Capa de Persistencia Local (storage.js)', () => {
       assert.equal(itemEncontrado.unitCost, 9500);
     });
 
+    it('Spec 014: getPurchaseById retorna la compra correspondiente o null', () => {
+      const p = storage.savePurchase({
+        supplierName: 'Proveedor Prueba',
+        items: [],
+        totalAmount: 50000
+      });
+      assert.ok(p.id);
+      const encontrada = storage.getPurchaseById(p.id);
+      assert.ok(encontrada);
+      assert.equal(encontrada.id, p.id);
+      assert.equal(encontrada.supplierName, 'Proveedor Prueba');
+
+      const inexistente = storage.getPurchaseById('CMP-INEXISTENTE');
+      assert.equal(inexistente, null);
+    });
+
+    it('Spec 014: savePurchase en modo edición actualiza datos y ajusta stock de inventario diferencialmente', () => {
+      const item = storage.saveInventoryItem({
+        name: 'Gorra Trucker Azul',
+        category: 'Accesorios',
+        currentStock: 10,
+        unitCost: 3000
+      });
+
+      // 1. Registrar compra inicial de 20 unidades (stock sube a 10 + 20 = 30)
+      const compraInicial = storage.savePurchase({
+        supplierName: 'Gorras Chile',
+        invoiceNumber: 'FAC-001',
+        items: [
+          { inventoryItemId: item.id, quantity: 20, unitCost: 3200 }
+        ],
+        subtotalNeto: 64000,
+        totalAmount: 64000
+      });
+
+      let inv = storage.getInventoryItemById(item.id);
+      assert.equal(inv.currentStock, 30);
+      assert.equal(inv.unitCost, 3200);
+
+      // 2. Editar la compra: se ajusta de 20 a 25 unidades y nuevo costo 3100
+      const compraEditada = storage.savePurchase({
+        id: compraInicial.id,
+        supplierName: 'Gorras Chile SpA',
+        invoiceNumber: 'FAC-001-B',
+        items: [
+          { inventoryItemId: item.id, quantity: 25, unitCost: 3100 }
+        ],
+        subtotalNeto: 77500,
+        totalAmount: 77500
+      });
+
+      assert.equal(compraEditada.id, compraInicial.id);
+      assert.equal(compraEditada.supplierName, 'Gorras Chile SpA');
+      assert.equal(compraEditada.invoiceNumber, 'FAC-001-B');
+
+      // Stock debe ser: 30 (previo) - 20 (revertido) + 25 (nuevo) = 35
+      inv = storage.getInventoryItemById(item.id);
+      assert.equal(inv.currentStock, 35);
+      assert.equal(inv.unitCost, 3100);
+    });
+
+    it('Spec 014: deletePurchase revierte las existencias ingresadas al inventario y elimina la compra', () => {
+      const item = storage.saveInventoryItem({
+        name: 'Poliamida DTF 1Kg',
+        category: 'Insumos DTF',
+        currentStock: 2,
+        unitCost: 18000
+      });
+
+      const compra = storage.savePurchase({
+        supplierName: 'DTF Supplies',
+        items: [
+          { inventoryItemId: item.id, quantity: 5, unitCost: 17500 }
+        ],
+        totalAmount: 87500
+      });
+
+      // Stock subió a 2 + 5 = 7
+      let inv = storage.getInventoryItemById(item.id);
+      assert.equal(inv.currentStock, 7);
+
+      // Eliminar la compra
+      const eliminada = storage.deletePurchase(compra.id);
+      assert.equal(eliminada, true);
+
+      // Stock revierte a 7 - 5 = 2
+      inv = storage.getInventoryItemById(item.id);
+      assert.equal(inv.currentStock, 2);
+
+      // Compra ya no existe en el historial
+      assert.equal(storage.getPurchaseById(compra.id), null);
+      assert.equal(storage.getPurchases().some(p => p.id === compra.id), false);
+    });
+
     it('descontarStockPorPedido disminuye las existencias físicas en inventario', () => {
       const item = storage.saveInventoryItem({
         name: 'Polera Algodón Negro L',
