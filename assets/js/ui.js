@@ -196,9 +196,12 @@
             </button>
           </div>
 
-          <div class="flex gap-1">
+          <div class="flex gap-1 items-center">
+            <button type="button" class="btn-change-status px-2 py-1 bg-gray-100 hover:bg-gray-200 text-gray-800 border border-gray-300 rounded text-xs font-semibold shadow-xs flex items-center gap-1 cursor-pointer" title="Modificar estado del pedido" onclick="NovaprintUI.abrirModalCambiarEstado('${pedido.id}')">
+              🔄 Estado
+            </button>
             ${proximoEstado ? `
-              <button type="button" class="px-2.5 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded text-xs font-semibold shadow-sm" onclick="NovaprintUI.cambiarEstado('${pedido.id}', '${proximoEstado}')">
+              <button type="button" class="px-2.5 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded text-xs font-semibold shadow-sm cursor-pointer" onclick="NovaprintUI.cambiarEstado('${pedido.id}', '${proximoEstado}')">
                 Avanzar ➔
               </button>
             ` : ''}
@@ -317,11 +320,13 @@
             </div>
           </td>
           <td class="py-3 px-3">
-            <span class="px-2 py-0.5 rounded text-[11px] font-semibold border ${getStatusBadgeClass(p.status)}">
-              ${p.status}
-            </span>
+            <button type="button" class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded text-xs font-semibold border ${getStatusBadgeClass(p.status)} hover:shadow-xs hover:brightness-95 transition cursor-pointer" onclick="NovaprintUI.abrirModalCambiarEstado('${p.id}')" title="Modificar estado de este pedido">
+              <span>${p.status}</span>
+              <span class="text-[10px] opacity-60">▾</span>
+            </button>
           </td>
           <td class="py-3 px-3 text-right space-x-1">
+            <button class="p-1 text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded" title="Modificar Estado" onclick="NovaprintUI.abrirModalCambiarEstado('${p.id}')">🔄</button>
             <button class="p-1 text-gray-600 hover:text-blue-600 rounded" title="Ver Ticket" onclick="NovaprintUI.verTicket('${p.id}')">📄</button>
             <button class="p-1 text-emerald-600 hover:text-emerald-800 rounded" title="WhatsApp" onclick="NovaprintUI.enviarWhatsApp('${p.id}')">💬</button>
             <button class="p-1 text-gray-500 hover:text-gray-800 rounded" title="Editar" onclick="NovaprintUI.editarPedido('${p.id}')">✏️</button>
@@ -1040,6 +1045,81 @@
     storage.updateOrderStatus(orderId, nuevoEstado);
     showToast(`Pedido ${orderId} actualizado a "${nuevoEstado}"`, 'info');
     global.NovaprintMain.refrescarDatos();
+  }
+
+  const ESTADOS_PEDIDO = [
+    { estado: 'Cotización', icono: '📝', desc: 'Presupuesto inicial enviado al cliente', clase: 'bg-gray-100 hover:bg-gray-200 text-gray-800 border-gray-300' },
+    { estado: 'Confirmado', icono: '👍', desc: 'Aprobado por el cliente, listo para programar', clase: 'bg-blue-50 hover:bg-blue-100 text-blue-800 border-blue-300' },
+    { estado: 'En producción', icono: '⚙️', desc: 'En proceso de estampado / taller textil', clase: 'bg-amber-50 hover:bg-amber-100 text-amber-800 border-amber-300' },
+    { estado: 'Listo para entrega', icono: '📦', desc: 'Terminado en taller, esperando retiro o despacho', clase: 'bg-purple-50 hover:bg-purple-100 text-purple-800 border-purple-300' },
+    { estado: 'Entregado', icono: '✅', desc: 'Entregado conforme al cliente', clase: 'bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border-emerald-300' },
+    { estado: 'Cancelado', icono: '❌', desc: 'Anulado o desistido por el cliente', clase: 'bg-red-50 hover:bg-red-100 text-red-800 border-red-300' }
+  ];
+
+  function abrirModalCambiarEstado(orderId) {
+    if (typeof document === 'undefined') return;
+    const dialog = document.getElementById('dialog-change-order-status');
+    if (!dialog) return;
+
+    const storage = global.NovaprintStorage;
+    const pedidos = storage ? storage.getOrders() : [];
+    const pedido = pedidos.find(p => p.id === orderId);
+    if (!pedido) {
+      showToast(`No se encontró el pedido ${orderId}`, 'error');
+      return;
+    }
+
+    const orderIdEl = document.getElementById('status-modal-order-id');
+    const clientNameEl = document.getElementById('status-modal-client-name');
+    const currentBadgeEl = document.getElementById('status-modal-current-badge');
+    const container = document.getElementById('status-modal-buttons-container');
+
+    if (orderIdEl) orderIdEl.textContent = pedido.id;
+    if (clientNameEl) clientNameEl.textContent = pedido.clientName || 'Cliente';
+    if (currentBadgeEl) {
+      currentBadgeEl.textContent = pedido.status;
+      currentBadgeEl.className = `px-2.5 py-0.5 rounded-full text-xs font-bold border ${getStatusBadgeClass(pedido.status)}`;
+    }
+
+    if (container) {
+      container.innerHTML = ESTADOS_PEDIDO.map(item => {
+        const esActual = item.estado === pedido.status;
+        return `
+          <button type="button" 
+            class="btn-status-option w-full p-2.5 rounded-xl border text-left transition-all flex items-center justify-between cursor-pointer ${item.clase} ${esActual ? 'ring-2 ring-offset-1 ring-blue-500 font-bold shadow-xs' : 'opacity-90 hover:opacity-100'}"
+            data-target-status="${item.estado}"
+            onclick="NovaprintUI.seleccionarNuevoEstado('${pedido.id}', '${item.estado}')">
+            <div class="flex items-center gap-2.5">
+              <span class="text-xl">${item.icono}</span>
+              <div>
+                <div class="text-xs font-bold flex items-center gap-1.5">
+                  <span>${item.estado}</span>
+                  ${esActual ? '<span class="text-[10px] bg-blue-600 text-white px-1.5 py-0.2 rounded font-black">Actual</span>' : ''}
+                </div>
+                <div class="text-[10px] text-gray-500 font-normal">${item.desc}</div>
+              </div>
+            </div>
+            <span class="text-xs font-bold ${esActual ? 'text-blue-700' : 'text-gray-400'}">
+              ${esActual ? '✓' : '➔'}
+            </span>
+          </button>
+        `;
+      }).join('');
+    }
+
+    if (typeof dialog.showModal === 'function') {
+      dialog.showModal();
+    }
+  }
+
+  function seleccionarNuevoEstado(orderId, nuevoEstado) {
+    if (typeof document !== 'undefined') {
+      const dialog = document.getElementById('dialog-change-order-status');
+      if (dialog && typeof dialog.close === 'function') {
+        dialog.close();
+      }
+    }
+    cambiarEstado(orderId, nuevoEstado);
   }
 
   function confirmarEliminarPedido(orderId) {
@@ -2324,6 +2404,8 @@
     guardarPedidoDesdeFormulario,
     editarPedido,
     cambiarEstado,
+    abrirModalCambiarEstado,
+    seleccionarNuevoEstado,
     confirmarEliminarPedido,
     abrirModalNuevoCliente,
     editarCliente,

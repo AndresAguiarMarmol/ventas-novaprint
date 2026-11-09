@@ -64,6 +64,13 @@ Registro de todo lo que debe preservarse entre sesiones de trabajo: arquitectura
   - **Spec 012 (Implementada):** Pie de Página con Créditos de Autoría y Contacto Directo.
   - **Spec 013 (Implementada):** Flexibilidad de Precios Libres y Escala Oficial de Descuentos por Volumen.
   - **Spec 014 (Implementada):** Edición y Eliminación de Compras de Insumos & Textiles con Ajuste Diferencial y Reversión de Stock en Inventario.
+  - **Spec 015 (Implementada):** Botones Dedicados para Modificar el Status de un Pedido en Tabla y Tablero Kanban.
+- **Botones Dedicados para Modificación Rápida de Estados de Pedido (Spec 015):**
+  - **Modal de Selección Rápida de Estados:** Se implementó el diálogo nativo `<dialog id="dialog-change-order-status">` con presentación accesible de los 6 estados del flujo textil (`Cotización`, `Confirmado`, `En producción`, `Listo para entrega`, `Entregado`, `Cancelado`), resaltando visualmente el estado actual con la insignia `Actual` e ícono de selección.
+  - **Accesibilidad y Puntos de Activación en UI:**
+    - En la **Tabla de Pedidos** (`renderOrdersTable`): La insignia de estado en la columna "Estado" se convirtió en un botón interactivo (`NovaprintUI.abrirModalCambiarEstado`) y se agregó un botón de acción rápida `[🔄]` en la columna de operaciones.
+    - En las **Tarjetas Kanban** (`renderOrderCard`): Se añadió el botón táctil `[🔄 Estado]` permitiendo alternar o saltar a cualquier estado sin depender únicamente del botón lineal `[Avanzar ➔]`.
+  - **Persistencia y Reactividad Inmediata:** Al pulsar sobre cualquier estado objetivo se ejecuta `NovaprintUI.seleccionarNuevoEstado`, el cual cierra el diálogo, actualiza la orden mediante `storage.updateOrderStatus`, despacha toast de confirmación y refresca de forma sincronizada todas las vistas (Kanban, Tabla, filtro de saldo por cobrar y KPIs).
 - **Edición y Eliminación de Compras con Ajuste de Inventario (Spec 014):**
   - **Edición con Ajuste Diferencial:** Al editar una compra existente (`savePurchase(purchaseData, existingId)`), el sistema calcula el impacto neto sobre el stock de bodega: revierte las cantidades de los ítems de la versión previa (`Math.max(0, currentStock - oldQty)`), aplica las nuevas cantidades (`currentStock + newQty`) y actualiza el costo unitario de reposición `unitCost`.
   - **Eliminación con Reversión de Stock:** Al eliminar una compra (`deletePurchase(id)`), se descuentan las existencias añadidas a cada artículo en bodega (`Math.max(0, currentStock - qty)`), previniendo números negativos si parte de los insumos ya fueron consumidos en órdenes de taller.
@@ -87,6 +94,18 @@ Registro de todo lo que debe preservarse entre sesiones de trabajo: arquitectura
 ---
 
 ## 3. Historial de cambios
+
+### 2026-11-08 (Botones para Modificar el Status de un Pedido — Spec 015)
+- **Modal de Selección Rápida de Estados (`index.html` & `assets/js/ui.js`):**
+  - Creado el diálogo nativo `<dialog id="dialog-change-order-status">` con resumen del pedido (ID, Cliente, Estado actual) y cuadrícula táctil con los 6 estados del flujo textil (`Cotización`, `Confirmado`, `En producción`, `Listo para entrega`, `Entregado`, `Cancelado`).
+  - Implementadas las funciones `abrirModalCambiarEstado(orderId)` y `seleccionarNuevoEstado(orderId, nuevoEstado)` en `NovaprintUI`.
+- **Integración en Vistas (`ui.js`):**
+  - **Tabla de Pedidos:** La insignia de la columna "Estado" es ahora un botón interactivo y se agregó el botón `[🔄]` en la columna "Acciones".
+  - **Tablero Kanban:** Incorporado el botón táctil `[🔄 Estado]` en cada tarjeta de orden.
+- **Pruebas Automatizadas (`tests/order_status_buttons.test.js`):**
+  - Creadas 5 pruebas unitarias verificando exportación, generación de botones interactivos en tabla y kanban, renderizado de opciones con resaltado del estado actual y ejecución de la actualización vía storage.
+  - Test suite global: 114 pruebas en 8 suites pasando al 100% (0 errores).
+- **Metodología SDD:** Especificación completa en `specs/015-botones-modificar-status-pedido/` (`spec.md`, `plan.md`, `tasks.md`).
 
 ### 2026-11-06 (Edición y Eliminación de Compras de Insumos — Spec 014)
 - **Corrección en Botón de Edición de Compras:** Se corrigió un error en `assets/js/ui.js` (`editarCompra`) que invocaba una función inexistente (`renderizarFilasItemsCompra` en vez de `renderTablaItemsCompraFormulario`), se garantizó la asignación de IDs de fila para los ítems editados, se aisló el estado en compras de faltantes y se añadió la prueba `tests/ui_purchase.test.js` (alcanzando 109/109 pruebas pasando).
