@@ -70,6 +70,16 @@ Registro de todo lo que debe preservarse entre sesiones de trabajo: arquitectura
   - **Spec 017 (Implementada):** Opción para Modificar el Stock de Inventarios (Ajuste Rápido y Cuadratura).
   - **Spec 018 (Implementada):** Módulo de Contabilidad con Plan de Cuentas, Activos, Pasivos, Ingresos por Ventas de Poleras y Gastos Enlazados (Balance General, P&L y Libro Diario).
   - **Spec 019 (Implementada):** Asientos Contables al Registrar Pedidos: Abono a Banco y Saldo a Cuentas por Cobrar.
+  - **Spec 020 (Implementada):** Inclusión de Compra de Estampados en Material Faltante (Adelante, Atrás, Ambos con Precios Diferenciados).
+- **Compra de Estampados en Material Faltante (Spec 020):**
+  - **Opciones Oficiales y Precios Diferenciados:** Se parametrizaron las 3 opciones oficiales de estampado en `OPCIONES_ESTAMPADO` (`assets/js/production.js`):
+    - **Adelante:** Costo de compra $1.800 CLP | Precio venta sugerido $3.200 CLP.
+    - **Atrás:** Costo de compra $2.200 CLP | Precio venta sugerido $3.500 CLP.
+    - **Ambos (Adelante y Atrás):** Costo de compra $3.500 CLP | Precio venta sugerido $5.500 CLP.
+  - **Cálculo de Material Faltante:** `calcularFaltantesPedido(pedido, inventario, { incluirEstampados: true })` contabiliza tanto las prendas base faltantes en bodega como 1 unidad de estampado por cada prenda del pedido, asignando su costo de compra según la opción seleccionada.
+  - **Auto-creación y Enlace en Inventario (`storage.asegurarItemInventarioEstampado`):** Crea o recupera el ítem en bodega bajo categoría `Insumos DTF` con stock 0 y costo de compra oficial, permitiendo enlazarlo a la orden de compra con `inventoryItemId` formal para incrementar el stock físico al confirmar la compra.
+  - **Selector y Dinamismo en Formulario de Pedido (`#dialog-order` y `ui.js`):** La columna de estampado se presenta como `<select>` con las 3 opciones oficiales y sus precios. Al cambiar la opción o la cantidad, se recalculan inmediatamente el precio sugerido de venta, el subtotal de la fila, el resumen financiero y la alerta informativa de material faltante.
+  - **Carga en Orden de Compra (`abrirModalCompraConFaltantes`):** Al presionar "🛒 Comprar Material Faltante", el modal `#dialog-purchase` precarga automáticamente tanto las prendas faltantes como los insumos de estampado necesarios con sus cantidades y costos respectivos.
 - **Asientos Contables al Registrar Pedidos (Spec 019):**
   - **Partida Doble por Pedido:** Al registrar o actualizar una orden en el taller (`NovaprintStorage.saveOrder` o formulario de pedidos), se invoca `generarAsientosPedido` para desglosar la transacción:
     - **Abono Inicial (`depositAmount > 0`):** Se asienta como débito (Debe) en la cuenta `1101 Caja y Bancos (Disponible)` contra crédito (Haber) en `4101 Ventas de Poleras y Confección`.
@@ -121,6 +131,25 @@ Registro de todo lo que debe preservarse entre sesiones de trabajo: arquitectura
 ---
 
 ## 3. Historial de cambios
+
+### 2026-11-09 (Compra de Estampados en Material Faltante: Adelante, Atrás, Ambos — Spec 020)
+- **Motor de Producción y Cotización (`assets/js/production.js`, `assets/js/sales.js`):**
+  - Implementación de `OPCIONES_ESTAMPADO`, `normalizarOpcionEstampado` y `obtenerCostoCompraEstampado`: Adelante ($1.800 compra / $3.200 sugerido), Atrás ($2.200 compra / $3.500 sugerido) y Ambos ($3.500 compra / $5.500 sugerido).
+  - Extensión de `calcularFaltantesPedido` para admitir `{ incluirEstampados: true }`, agregando 1 unidad de estampado por cada prenda confeccionada con su costo de compra correspondiente.
+  - Actualización de `calcularPrecioSugeridoPrenda` en `sales.js` para reflejar el precio sugerido de venta según la opción seleccionada.
+- **Capa de Persistencia (`assets/js/storage.js`):**
+  - Implementación de `asegurarItemInventarioEstampado(technique, location, datosExtra)`: crea o recupera ítems de estampado en `novaprint_inventory` con categoría de insumo y costo de compra, enlazando la compra de material faltante a bodega.
+- **Interfaz de Usuario (`assets/js/ui.js` e `index.html`):**
+  - Tabla de prendas en `#dialog-order`: conversión del campo de ubicación en selector `<select>` con opciones Adelante, Atrás y Ambos indicando costo de referencia.
+  - Recálculo reactivo en tiempo real de precios sugeridos y subtotales al cambiar de estampado.
+  - Actualización de la alerta visual `#order-stock-alert-container` para detallar conteo de prendas y estampados a adquirir.
+  - `abrirModalCompraConFaltantes`: carga transparente de prendas base e insumos de estampado en `#dialog-purchase`.
+- **Pruebas Automatizadas (`tests/print_purchases_faltantes.test.js`):**
+  - 12 nuevas pruebas unitarias cubriendo parametrización de costos, precios de venta, cálculo de faltantes con estampados, auto-creación de ítems de inventario y retrocompatibilidad.
+  - Suite global completa: 158 tests pasando exitosamente (0 fallos).
+- **Seguridad y Respaldo:**
+  - Respaldo previo creado en `backups/backup_pre_compra_estampados_20261109.json` y tag git `backup-pre-compra-estampados-20261109`.
+- **Metodología SDD:** Especificación completa en `specs/020-compra-material-faltante-estampados-adelante-atras-ambos/` (`spec.md`, `plan.md`, `tasks.md`).
 
 ### 2026-11-09 (Asientos Contables al Registrar Pedidos: Abono a Banco y Saldo a CxC — Spec 019)
 - **Motor Contable (`assets/js/accounting.js`):**

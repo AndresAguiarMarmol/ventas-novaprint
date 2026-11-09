@@ -256,3 +256,4 @@ describe('Spec 019 — Asientos Contables al Registrar Pedidos (accounting.js & 
     });
   });
 });
+

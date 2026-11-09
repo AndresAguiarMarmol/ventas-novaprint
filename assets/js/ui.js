@@ -515,9 +515,9 @@
       color: datos.color || 'Negro',
       size: datos.size || 'L',
       technique: datos.technique || 'DTF',
-      printLocation: datos.printLocation || 'Pecho grande A4',
+      printLocation: datos.printLocation || 'Adelante',
       quantity: datos.quantity || 1,
-      unitPrice: datos.unitPrice || (sales ? sales.calcularPrecioSugeridoPrenda(datos) : 6700),
+      unitPrice: datos.unitPrice || (sales ? sales.calcularPrecioSugeridoPrenda({ garmentType: datos.garmentType || 'Polera', color: datos.color || 'Negro', size: datos.size || 'L', technique: datos.technique || 'DTF', printLocation: datos.printLocation || 'Adelante' }) : 6700),
       notes: datos.notes || ''
     };
     currentOrderItems.push(item);
@@ -636,6 +636,17 @@
     }
   }
 
+  function normalizarUbicacionEstampado(ubicacion) {
+    const prod = global.NovaprintProduction;
+    if (prod && typeof prod.normalizarOpcionEstampado === 'function') {
+      return prod.normalizarOpcionEstampado(ubicacion).nombre;
+    }
+    const txt = (ubicacion || '').toString().toLowerCase();
+    if (txt.includes('ambos') || txt.includes('adelante y atras') || txt.includes('pecho y espalda')) return 'Ambos';
+    if (txt.includes('atras') || txt.includes('espalda') || txt.includes('posterior')) return 'Atrás';
+    return 'Adelante';
+  }
+
   function renderTablaItemsFormulario() {
     const tbody = document.getElementById('order-items-tbody');
     if (!tbody) return;
@@ -680,13 +691,17 @@
           })()}
         </td>
         <td class="py-2 px-1">
-          <input type="text" value="${it.printLocation}" placeholder="Pecho / Espalda" class="w-28 p-1.5 border border-gray-300 rounded" oninput="NovaprintUI.actualizarItemProp('${it.id}', 'printLocation', this.value)">
+          <select class="w-32 p-1.5 border border-gray-300 rounded font-semibold text-gray-800" onchange="NovaprintUI.actualizarItemProp('${it.id}', 'printLocation', this.value)">
+            <option value="Adelante" ${normalizarUbicacionEstampado(it.printLocation) === 'Adelante' ? 'selected' : ''}>Adelante ($1.800)</option>
+            <option value="Atrás" ${normalizarUbicacionEstampado(it.printLocation) === 'Atrás' ? 'selected' : ''}>Atrás ($2.200)</option>
+            <option value="Ambos" ${normalizarUbicacionEstampado(it.printLocation) === 'Ambos' ? 'selected' : ''}>Ambos ($3.500)</option>
+          </select>
         </td>
         <td class="py-2 px-1">
           <input type="number" min="1" value="${it.quantity}" class="w-16 p-1.5 border border-gray-300 rounded text-center font-bold" oninput="NovaprintUI.actualizarItemProp('${it.id}', 'quantity', this.value)">
         </td>
         <td class="py-2 px-1">
-          <input type="number" step="any" value="${it.unitPrice ?? 0}" placeholder="0" class="w-24 p-1.5 border border-gray-300 rounded text-right font-medium focus:bg-white" oninput="NovaprintUI.actualizarItemProp('${it.id}', 'unitPrice', this.value)">
+          <input id="input-price-${it.id}" type="number" step="any" value="${it.unitPrice ?? 0}" placeholder="0" class="w-24 p-1.5 border border-gray-300 rounded text-right font-medium focus:bg-white" oninput="NovaprintUI.actualizarItemProp('${it.id}', 'unitPrice', this.value)">
         </td>
         <td class="py-2 px-1 text-right font-bold text-gray-900 subtotal-cell">
           $${it.quantity * it.unitPrice}
@@ -700,20 +715,29 @@
 
   function actualizarItemProp(itemId, prop, value) {
     const item = currentOrderItems.find(it => it.id === itemId);
+    const sales = global.NovaprintSales;
     if (item) {
       if (prop === 'quantity') {
         item.quantity = Math.max(0, parseInt(value, 10) || 0);
       } else if (prop === 'unitPrice') {
         item.unitPrice = Number(value) || 0;
+        item._manualPrice = true;
       } else {
         item[prop] = value;
+        if (!item._manualPrice && sales && typeof sales.calcularPrecioSugeridoPrenda === 'function') {
+          item.unitPrice = sales.calcularPrecioSugeridoPrenda(item);
+        }
       }
       item.subtotal = (item.quantity || 0) * (item.unitPrice || 0);
 
-      // Actualizar el badge de stock de esta fila si cambió prenda, color, talla o cantidad
-      const badgeEl = document.getElementById(`badge-stock-${itemId}`);
-      if (badgeEl) {
-        badgeEl.innerHTML = obtenerBadgeStockHtml(item);
+      // Si cambió un selector (no el input de cantidad/precio), re-renderizar para reflejar precio sugerido y subtotales
+      if (prop !== 'quantity' && prop !== 'unitPrice') {
+        renderTablaItemsFormulario();
+      } else {
+        const badgeEl = document.getElementById(`badge-stock-${itemId}`);
+        if (badgeEl) {
+          badgeEl.innerHTML = obtenerBadgeStockHtml(item);
+        }
       }
 
       recalcularTotalesFormulario();
@@ -817,22 +841,32 @@
       }
     });
 
-    // Spec 004: Evaluar faltantes en el inventario y mostrar banner de compra
+    // Spec 004 & Spec 020: Evaluar faltantes en el inventario y mostrar banner de compra (Prendas y Estampados)
     const prod = global.NovaprintProduction;
     const storage = global.NovaprintStorage;
     const alertContainer = document.getElementById('order-stock-alert-container');
     if (prod && storage && alertContainer) {
       const inventario = storage.getInventory();
-      const balance = prod.calcularFaltantesPedido(inventario, currentOrderItems);
+      const balance = prod.calcularFaltantesPedido(inventario, currentOrderItems, { incluirEstampados: true });
       if (balance.tieneFaltantes) {
         alertContainer.classList.remove('hidden');
+
+        let mensajeFaltantes = '';
+        if (balance.totalPrendasFaltantes > 0 && balance.totalEstampadosFaltantes > 0) {
+          mensajeFaltantes = `Este pedido requiere comprar <strong>${balance.totalPrendasFaltantes} prendas</strong> y <strong>${balance.totalEstampadosFaltantes} estampados</strong> adicionales para ser completado.`;
+        } else if (balance.totalPrendasFaltantes > 0) {
+          mensajeFaltantes = `Este pedido requiere comprar <strong>${balance.totalPrendasFaltantes} prendas</strong> adicionales para ser completado.`;
+        } else {
+          mensajeFaltantes = `Prendas disponibles en bodega. Requiere comprar <strong>${balance.totalEstampadosFaltantes} estampados</strong> para las unidades del pedido.`;
+        }
+
         alertContainer.innerHTML = `
           <div class="flex flex-col sm:flex-row justify-between sm:items-center gap-2 p-3 bg-red-50 border border-red-200 rounded-xl mb-4">
             <div class="flex items-center gap-2">
               <span class="text-xl">⚠️</span>
               <div>
-                <p class="text-xs font-bold text-red-900">Material Insuficiente en Bodega</p>
-                <p class="text-[11px] text-red-700">Este pedido requiere comprar <strong>${balance.totalPrendasFaltantes} prendas</strong> adicionales para ser completado.</p>
+                <p class="text-xs font-bold text-red-900">Material de Pedido por Adquirir</p>
+                <p class="text-[11px] text-red-700">${mensajeFaltantes}</p>
               </div>
             </div>
             <button type="button" class="px-3 py-1.5 bg-red-600 hover:bg-red-700 text-white text-xs font-bold rounded-lg shadow-xs flex items-center justify-center gap-1.5 transition-colors cursor-pointer" onclick="NovaprintUI.abrirModalCompraConFaltantes()">
@@ -1903,7 +1937,7 @@
     const inventario = storage ? storage.getInventory() : [];
 
     if (!itemsFaltantes) {
-      const balance = prod ? prod.calcularFaltantesPedido(inventario, currentOrderItems) : null;
+      const balance = prod ? prod.calcularFaltantesPedido(inventario, currentOrderItems, { incluirEstampados: true }) : null;
       itemsFaltantes = balance ? balance.faltantesParaCompra : [];
     }
 
@@ -1912,19 +1946,32 @@
       return;
     }
 
-    // Spec 008: Asegurar que todos los faltantes existan en inventario con su respectivo ID
+    // Spec 008 & Spec 020: Asegurar que todos los faltantes (prendas y estampados) existan en inventario con ID
     itemsFaltantes = itemsFaltantes.map(f => {
-      if (!f.inventoryId && storage && typeof storage.asegurarItemInventarioPrenda === 'function') {
-        const itemCreado = storage.asegurarItemInventarioPrenda(f.garmentType, f.color, f.size, { unitCost: f.unitCost });
-        return {
-          ...f,
-          inventoryId: itemCreado.id,
-          code: itemCreado.code,
-          name: itemCreado.name,
-          supplierId: f.supplierId || itemCreado.supplierId || '',
-          supplierName: f.supplierName || itemCreado.supplierName || '',
-          unitCost: Number(itemCreado.unitCost) || f.unitCost
-        };
+      if (!f.inventoryId && storage) {
+        if (f.isEstampado && typeof storage.asegurarItemInventarioEstampado === 'function') {
+          const itemEstampado = storage.asegurarItemInventarioEstampado(f.technique, f.printLocation, { unitCost: f.unitCost });
+          return {
+            ...f,
+            inventoryId: itemEstampado.id,
+            code: itemEstampado.code,
+            name: itemEstampado.name,
+            supplierId: f.supplierId || itemEstampado.supplierId || '',
+            supplierName: f.supplierName || itemEstampado.supplierName || '',
+            unitCost: Number(itemEstampado.unitCost) || f.unitCost
+          };
+        } else if (typeof storage.asegurarItemInventarioPrenda === 'function') {
+          const itemCreado = storage.asegurarItemInventarioPrenda(f.garmentType, f.color, f.size, { unitCost: f.unitCost });
+          return {
+            ...f,
+            inventoryId: itemCreado.id,
+            code: itemCreado.code,
+            name: itemCreado.name,
+            supplierId: f.supplierId || itemCreado.supplierId || '',
+            supplierName: f.supplierName || itemCreado.supplierName || '',
+            unitCost: Number(itemCreado.unitCost) || f.unitCost
+          };
+        }
       }
       return f;
     });
@@ -1996,7 +2043,7 @@
     const pedido = storage ? storage.getOrderById(orderId) : null;
     if (!pedido) return;
 
-    const balance = prod ? prod.calcularFaltantesPedido(storage.getInventory(), pedido.items || []) : null;
+    const balance = prod ? prod.calcularFaltantesPedido(storage.getInventory(), pedido.items || [], { incluirEstampados: true }) : null;
     if (balance && balance.tieneFaltantes) {
       abrirModalCompraConFaltantes(balance.faltantesParaCompra);
     } else {

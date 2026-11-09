@@ -464,6 +464,74 @@
     return saveInventoryItem(nuevoItem);
   }
 
+  /**
+   * Spec 020: Busca o auto-crea en el catálogo de inventario un ítem de estampado
+   * según la técnica (DTF, Serigrafía, Sublimación, Vinilo) y ubicación (Adelante, Atrás, Ambos).
+   */
+  function asegurarItemInventarioEstampado(technique = 'DTF', location = 'Adelante', datosExtra = {}) {
+    const normalizar = (txt) => (txt || '').toString().toLowerCase().trim();
+    const tecNorm = normalizar(technique || 'DTF');
+    const ubiNorm = normalizar(location || 'Adelante');
+
+    let opNombre = 'Adelante';
+    let costoCompra = 1800;
+    if (ubiNorm.includes('ambos') || ubiNorm.includes('adelante y atras') || ubiNorm.includes('pecho y espalda')) {
+      opNombre = 'Ambos';
+      costoCompra = 3500;
+    } else if (ubiNorm.includes('atras') || ubiNorm.includes('espalda') || ubiNorm.includes('posterior')) {
+      opNombre = 'Atrás';
+      costoCompra = 2200;
+    } else {
+      opNombre = 'Adelante';
+      costoCompra = 1800;
+    }
+
+    const items = getInventory();
+    const encontrado = items.find(inv => {
+      const n = normalizar(inv.name);
+      const c = normalizar(inv.category);
+      const g = normalizar(inv.garmentType);
+      const matchTec = n.includes(tecNorm) || c.includes(tecNorm);
+      const matchUbi = n.includes(normalizar(opNombre));
+      return (g === 'estampado' || c.includes('estampado') || c.includes('dtf')) && matchTec && matchUbi;
+    });
+
+    if (encontrado) {
+      return encontrado;
+    }
+
+    const tecCode = (technique || 'DTF').toUpperCase().replace(/[^A-Z]/g, '').slice(0, 3) || 'DTF';
+    const ubiCode = opNombre.toUpperCase().replace(/[^A-Z]/g, '').slice(0, 3) || 'ADE';
+    const code = `EST-${tecCode}-${ubiCode}`;
+    const category = tecNorm.includes('dtf') ? 'Insumos DTF' : 'Insumos de Estampado';
+
+    const nuevoItem = {
+      code,
+      name: `Estampado ${technique || 'DTF'} - ${opNombre}`,
+      category,
+      garmentType: 'Estampado',
+      color: 'Full Color',
+      size: opNombre,
+      unit: 'unidad',
+      currentStock: 0,
+      minStock: 5,
+      unitCost: Number(datosExtra && datosExtra.unitCost) > 0 ? Number(datosExtra.unitCost) : costoCompra,
+      supplierId: (datosExtra && datosExtra.supplierId) || '',
+      supplierName: (datosExtra && datosExtra.supplierName) || ''
+    };
+
+    if (!nuevoItem.supplierId) {
+      const proveedores = getSuppliers();
+      const prov = proveedores.find(p => normalizar(p.category).includes('dtf') || normalizar(p.category).includes('insumo')) || proveedores[0];
+      if (prov) {
+        nuevoItem.supplierId = prov.id;
+        nuevoItem.supplierName = prov.name;
+      }
+    }
+
+    return saveInventoryItem(nuevoItem);
+  }
+
   // --- COMPRAS DE INSUMOS ---
   function getPurchases() {
     const items = getItem(STORAGE_KEYS.PURCHASES);
@@ -1160,6 +1228,7 @@
     updateInventoryStock,
     deleteInventoryItem,
     asegurarItemInventarioPrenda,
+    asegurarItemInventarioEstampado,
     getPurchases,
     getPurchaseById,
     savePurchase,

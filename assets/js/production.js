@@ -59,6 +59,47 @@
 
   const TASA_IVA_CHILE = 0.19;
 
+  // Spec 020: Opciones oficiales de estampado y costos de compra / precios sugeridos
+  const OPCIONES_ESTAMPADO = Object.freeze({
+    ADELANTE: {
+      id: 'Adelante',
+      nombre: 'Adelante',
+      label: 'Adelante (Pecho)',
+      costoCompra: 1800,
+      precioVentaSugerido: 3200
+    },
+    ATRAS: {
+      id: 'Atrás',
+      nombre: 'Atrás',
+      label: 'Atrás (Espalda)',
+      costoCompra: 2200,
+      precioVentaSugerido: 3500
+    },
+    AMBOS: {
+      id: 'Ambos',
+      nombre: 'Ambos',
+      label: 'Ambos (Adelante y Atrás)',
+      costoCompra: 3500,
+      precioVentaSugerido: 5500
+    }
+  });
+
+  function normalizarOpcionEstampado(ubicacion) {
+    if (!ubicacion) return OPCIONES_ESTAMPADO.ADELANTE;
+    const txt = normalizarTexto(String(ubicacion));
+    if (txt.includes('ambos') || txt.includes('adelante y atras') || txt.includes('pecho y espalda')) {
+      return OPCIONES_ESTAMPADO.AMBOS;
+    }
+    if (txt.includes('atras') || txt.includes('espalda') || txt.includes('posterior')) {
+      return OPCIONES_ESTAMPADO.ATRAS;
+    }
+    return OPCIONES_ESTAMPADO.ADELANTE;
+  }
+
+  function obtenerCostoCompraEstampado(ubicacion) {
+    return normalizarOpcionEstampado(ubicacion).costoCompra;
+  }
+
   function calcularTotalesCompra(items = [], opciones = {}) {
     const aplicarIva = Boolean(opciones && opciones.aplicarIva);
     const montoDelivery = Math.max(0, Number(opciones && opciones.montoDelivery) || 0);
@@ -328,15 +369,18 @@
   }
 
   /**
-   * Spec 004 — Evalúa todas las prendas de un pedido y calcula los materiales a comprar
+   * Spec 004 & Spec 020 — Evalúa todas las prendas de un pedido y calcula los materiales a comprar.
+   * Si opciones.incluirEstampados es true, considera la compra del estampado para cada unidad
+   * según sea Adelante ($1.800), Atrás ($2.200) o Ambos ($3.500).
    */
-  function calcularFaltantesPedido(inventario = [], itemsPedido = []) {
+  function calcularFaltantesPedido(inventario = [], itemsPedido = [], opciones = {}) {
     if (!Array.isArray(inventario)) inventario = [];
     if (!Array.isArray(itemsPedido)) itemsPedido = [];
 
     const detalle = [];
     const faltantesParaCompra = [];
     let totalPrendasFaltantes = 0;
+    let totalEstampadosFaltantes = 0;
 
     itemsPedido.forEach(it => {
       const verif = verificarDisponibilidadPrenda(inventario, it);
@@ -348,6 +392,7 @@
           const inv = verif.itemInventario;
           faltantesParaCompra.push({
             inventoryId: inv.id,
+            isEstampado: false,
             code: inv.code,
             name: inv.name,
             garmentType: it.garmentType || inv.garmentType,
@@ -371,6 +416,7 @@
           faltantesParaCompra.push({
             inventoryId: null,
             isNew: true,
+            isEstampado: false,
             code: '',
             name: `${it.garmentType || 'Prenda'} Lisa - ${it.color || 'Estándar'} Talla ${it.size || 'L'}`,
             garmentType: it.garmentType || 'Polera',
@@ -384,11 +430,53 @@
           });
         }
       }
+
+      // Spec 020: Considerar compra del estampado para cada unidad
+      if (opciones && opciones.incluirEstampados) {
+        const qty = Math.max(0, Number(it.quantity) || 0);
+        if (qty > 0) {
+          totalEstampadosFaltantes += qty;
+          const opEstampado = normalizarOpcionEstampado(it.printLocation || 'Adelante');
+          const tecnica = it.technique || 'DTF';
+          const unitCost = opEstampado.costoCompra;
+          const subtotal = qty * unitCost;
+
+          // Buscar si existe en inventario
+          const itemInvEstampado = inventario.find(inv => {
+            const n = normalizarTexto(inv.name || '');
+            const c = normalizarTexto(inv.category || '');
+            const matchTec = n.includes(normalizarTexto(tecnica)) || c.includes(normalizarTexto(tecnica));
+            const matchUbi = n.includes(normalizarTexto(opEstampado.nombre));
+            return (inv.garmentType === 'Estampado' || c.includes('estampado') || c.includes('dtf')) && matchTec && matchUbi;
+          });
+
+          faltantesParaCompra.push({
+            inventoryId: itemInvEstampado ? itemInvEstampado.id : null,
+            isNew: !itemInvEstampado,
+            isEstampado: true,
+            code: itemInvEstampado ? itemInvEstampado.code : `EST-${tecnica.toUpperCase().slice(0, 3)}-${opEstampado.nombre.toUpperCase().slice(0, 3)}`,
+            name: `Estampado ${tecnica} - ${opEstampado.nombre}`,
+            garmentType: 'Estampado',
+            color: 'Full Color',
+            size: opEstampado.nombre,
+            technique: tecnica,
+            printLocation: opEstampado.nombre,
+            supplierId: itemInvEstampado ? (itemInvEstampado.supplierId || '') : '',
+            supplierName: itemInvEstampado ? (itemInvEstampado.supplierName || 'Proveedor de Insumos') : 'Proveedor Insumos DTF',
+            quantityNeeded: qty,
+            unitCost,
+            subtotal
+          });
+        }
+      }
     });
 
+    const tieneFaltantes = totalPrendasFaltantes > 0 || (Boolean(opciones && opciones.incluirEstampados) && totalEstampadosFaltantes > 0);
+
     return {
-      tieneFaltantes: totalPrendasFaltantes > 0,
+      tieneFaltantes,
       totalPrendasFaltantes,
+      totalEstampadosFaltantes,
       detalle,
       faltantesParaCompra
     };
@@ -462,7 +550,11 @@
     // Spec 004: Enlace Pedidos ➔ Inventario y Faltantes
     verificarDisponibilidadPrenda,
     calcularFaltantesPedido,
-    descontarInventarioPorPedido
+    descontarInventarioPorPedido,
+    // Spec 020: Opciones y Compra de Estampados
+    OPCIONES_ESTAMPADO,
+    normalizarOpcionEstampado,
+    obtenerCostoCompraEstampado
   };
 
   if (typeof module !== 'undefined' && module.exports) {

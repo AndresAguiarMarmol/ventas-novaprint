@@ -82,3 +82,4 @@
 3. Prueba unitaria con pedido 100% a crédito ($40.000 total, $0 abono): genera 1 asiento exclusivo en Cuentas por Cobrar.
 4. Prueba de integración con `saveOrder`: verifica que `asientosContables` se asocie al pedido al registrarse.
 5. Ejecución completa del test suite: verificar 100% pasando sin regresiones.
+
