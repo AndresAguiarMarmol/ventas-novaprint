@@ -1,0 +1,26 @@
+{
+  "version": "1.0",
+  "exportedAt": "2026-11-09T17:18:00.000Z",
+  "appName": "Novaprint App",
+  "backupType": "Pre-Compra-Estampados-Faltantes Snapshot",
+  "description": "Copia de respaldo previa a la implementación de compra de estampados (Adelante, Atrás, Ambos con precios diferenciados) en Material Faltante de Pedidos - Spec 020",
+  "data": {
+    "settings": {
+      "businessName": "Novaprint Estampados",
+      "rut": "76.890.123-4",
+      "phone": "+56987654321",
+      "email": "contacto@novaprint.cl",
+      "address": "Av. Salvador 450, Providencia, Santiago",
+      "currencySymbol": "$",
+      "ticketFooter": "¡Gracias por confiar en Novaprint! Plazo de reclamo: 48 hrs con comprobante.",
+      "theme": "system"
+    },
+    "clients": [],
+    "orders": [],
+    "suppliers": [],
+    "inventory": [],
+    "purchases": [],
+    "expenses": [],
+    "projects": []
+  }
+}
