@@ -28,3 +28,4 @@
 ## 3. Riesgos y Mitigaciones
 - **Riesgo:** Conflicto con los cálculos de disponibilidad de prendas en pedidos (`verificarDisponibilidadPrenda`).
 - **Mitigación:** Al actualizar el stock mediante `updateInventoryStock`, `NovaprintMain.refrescarDatos()` refresca automáticamente la tabla de inventario, métricas de inventario y badges de pedidos en tiempo real.
+
