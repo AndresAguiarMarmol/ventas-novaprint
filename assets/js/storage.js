@@ -13,7 +13,8 @@
     SUPPLIERS: 'novaprint_suppliers',
     INVENTORY: 'novaprint_inventory',
     PURCHASES: 'novaprint_purchases',
-    PROJECTS: 'novaprint_projects'
+    PROJECTS: 'novaprint_projects',
+    EXPENSES: 'novaprint_expenses'
   };
 
   const DEFAULT_SETTINGS = {
@@ -89,6 +90,7 @@
     setItem(STORAGE_KEYS.INVENTORY, []);
     setItem(STORAGE_KEYS.PURCHASES, []);
     setItem(STORAGE_KEYS.PROJECTS, []);
+    setItem(STORAGE_KEYS.EXPENSES, []);
     return true;
   }
 
@@ -620,6 +622,42 @@
     return false;
   }
 
+  // --- GASTOS OPERACIONALES Y CONTABILIDAD (SPEC 018) ---
+  function getExpenses() {
+    const items = getItem(STORAGE_KEYS.EXPENSES);
+    return Array.isArray(items) ? items : [];
+  }
+
+  function getExpenseById(id) {
+    return getExpenses().find(e => e.id === id) || null;
+  }
+
+  function saveExpense(expense) {
+    const items = getExpenses();
+    const id = expense.id || `EXP-${Date.now().toString(36).toUpperCase()}-${Math.random().toString(36).substr(2, 4).toUpperCase()}`;
+    const toSave = { ...expense, id };
+    const idx = items.findIndex(e => e.id === id);
+    if (idx !== -1) {
+      toSave.updatedAt = new Date().toISOString();
+      items[idx] = { ...items[idx], ...toSave };
+    } else {
+      toSave.createdAt = new Date().toISOString();
+      items.push(toSave);
+    }
+    setItem(STORAGE_KEYS.EXPENSES, items);
+    return toSave;
+  }
+
+  function deleteExpense(id) {
+    const items = getExpenses();
+    const filtered = items.filter(e => e.id !== id);
+    if (filtered.length !== items.length) {
+      setItem(STORAGE_KEYS.EXPENSES, filtered);
+      return true;
+    }
+    return false;
+  }
+
   // --- RESPALDO Y RESTAURACIÓN JSON ---
   function exportBackup() {
     const payload = {
@@ -633,7 +671,8 @@
         suppliers: getSuppliers(),
         inventory: getInventory(),
         purchases: getPurchases(),
-        projects: getProjects()
+        projects: getProjects(),
+        expenses: getExpenses()
       }
     };
     return JSON.stringify(payload, null, 2);
@@ -653,6 +692,7 @@
       if (Array.isArray(data.inventory)) setItem(STORAGE_KEYS.INVENTORY, data.inventory);
       if (Array.isArray(data.purchases)) setItem(STORAGE_KEYS.PURCHASES, data.purchases);
       if (Array.isArray(data.projects)) setItem(STORAGE_KEYS.PROJECTS, data.projects);
+      if (Array.isArray(data.expenses)) setItem(STORAGE_KEYS.EXPENSES, data.expenses);
       return { success: true };
     } catch (e) {
       return { success: false, error: e.message };
@@ -1119,6 +1159,11 @@
     saveProject,
     updateProjectStage,
     deleteProject,
+    // Spec 018: Gastos y Contabilidad
+    getExpenses,
+    getExpenseById,
+    saveExpense,
+    deleteExpense,
     exportBackup,
     importBackup,
     initDemoData

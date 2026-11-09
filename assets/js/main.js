@@ -452,6 +452,22 @@
       });
     }
 
+    // Contabilidad y Gastos (Spec 018)
+    const btnNuevoGasto = document.getElementById('btn-new-expense');
+    if (btnNuevoGasto) {
+      btnNuevoGasto.addEventListener('click', () => {
+        global.NovaprintUI.abrirModalNuevoGasto();
+      });
+    }
+
+    const formExpense = document.getElementById('form-expense');
+    if (formExpense) {
+      formExpense.addEventListener('submit', (e) => {
+        e.preventDefault();
+        global.NovaprintUI.guardarGastoDesdeFormulario();
+      });
+    }
+
     // Botón Imprimir Ticket en modal (Spec 011)
     const btnPrintTicket = document.getElementById('btn-ticket-print');
     if (btnPrintTicket) {
@@ -719,6 +735,21 @@
     ui.renderFabricationKanban(filtrados);
   }
 
+  function refrescarContabilidad() {
+    const storage = global.NovaprintStorage;
+    const ui = global.NovaprintUI;
+
+    if (!storage || !ui) return;
+
+    const pedidos = storage.getOrders ? storage.getOrders() : [];
+    const compras = storage.getPurchases ? storage.getPurchases() : [];
+    const inventario = storage.getInventory ? storage.getInventory() : [];
+    const gastos = storage.getExpenses ? storage.getExpenses() : [];
+    const settings = storage.getSettings ? storage.getSettings() : {};
+
+    ui.renderAccountingModule(pedidos, compras, inventario, gastos, settings);
+  }
+
   function refrescarDatos() {
     refrescarPedidos();
     refrescarClientes();
@@ -726,6 +757,7 @@
     refrescarProveedores();
     refrescarCompras();
     refrescarFabricacion();
+    refrescarContabilidad();
   }
 
   if (typeof document !== 'undefined') {

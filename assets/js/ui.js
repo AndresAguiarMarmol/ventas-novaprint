@@ -2542,6 +2542,351 @@
     }
   }
 
+  // ==========================================
+  // --- MÓDULO DE CONTABILIDAD (SPEC 018) ---
+  // ==========================================
+  let currentAccountingSubView = 'balance'; // 'balance' | 'pnl' | 'journal'
+  let currentJournalFilter = 'todos';
+
+  function cambiarSubVistaContable(subview) {
+    currentAccountingSubView = subview;
+
+    const btnBal = document.getElementById('btn-acc-sub-balance');
+    const btnPnl = document.getElementById('btn-acc-sub-pnl');
+    const btnJou = document.getElementById('btn-acc-sub-journal');
+
+    const viewBal = document.getElementById('acc-subview-balance');
+    const viewPnl = document.getElementById('acc-subview-pnl');
+    const viewJou = document.getElementById('acc-subview-journal');
+
+    [btnBal, btnPnl, btnJou].forEach(btn => {
+      if (btn) {
+        btn.className = 'px-4 py-2 rounded-lg text-xs font-bold bg-gray-100 text-gray-700 hover:bg-gray-200 transition';
+      }
+    });
+
+    [viewBal, viewPnl, viewJou].forEach(v => {
+      if (v) v.classList.add('hidden');
+    });
+
+    if (subview === 'balance') {
+      if (btnBal) btnBal.className = 'px-4 py-2 rounded-lg text-xs font-bold bg-blue-600 text-white shadow-xs transition';
+      if (viewBal) viewBal.classList.remove('hidden');
+    } else if (subview === 'pnl') {
+      if (btnPnl) btnPnl.className = 'px-4 py-2 rounded-lg text-xs font-bold bg-blue-600 text-white shadow-xs transition';
+      if (viewPnl) viewPnl.classList.remove('hidden');
+    } else if (subview === 'journal') {
+      if (btnJou) btnJou.className = 'px-4 py-2 rounded-lg text-xs font-bold bg-blue-600 text-white shadow-xs transition';
+      if (viewJou) viewJou.classList.remove('hidden');
+    }
+  }
+
+  function renderAccountingModule(pedidos = [], compras = [], inventario = [], gastos = [], settings = {}) {
+    if (typeof document === 'undefined') return;
+
+    const acc = global.NovaprintAccounting;
+    const sales = global.NovaprintSales;
+    if (!acc || !sales) return;
+
+    const metricas = acc.calcularMetricasContables(pedidos, compras, inventario, gastos, settings);
+    const balance = acc.calcularBalanceGeneral(pedidos, compras, inventario, gastos, settings);
+    const pnl = acc.calcularEstadoResultados(pedidos, compras, gastos);
+    const asientos = acc.generarLibroDiario(pedidos, compras, gastos);
+
+    renderAccountingMetrics(metricas, sales);
+    renderAccountingBalance(balance, sales);
+    renderAccountingIncomeStatement(pnl, sales);
+    renderAccountingJournal(asientos, sales);
+  }
+
+  function renderAccountingMetrics(m, sales) {
+    const elAssets = document.getElementById('acc-metric-total-assets');
+    const elLiabilities = document.getElementById('acc-metric-total-liabilities');
+    const elRevenue = document.getElementById('acc-metric-total-revenue');
+    const elNetIncome = document.getElementById('acc-metric-net-income');
+    const elMargin = document.getElementById('acc-metric-margin-percent');
+    const elIvaNeto = document.getElementById('acc-metric-iva-neto');
+
+    if (elAssets) elAssets.textContent = sales.formatearMoneda(m.totalActivos || 0);
+    if (elLiabilities) elLiabilities.textContent = sales.formatearMoneda(m.totalPasivos || 0);
+    if (elRevenue) elRevenue.textContent = sales.formatearMoneda(m.ingresosTotales || 0);
+    if (elNetIncome) {
+      elNetIncome.textContent = sales.formatearMoneda(m.utilidadNeta || 0);
+      elNetIncome.className = `text-2xl font-black mt-1 ${m.utilidadNeta >= 0 ? 'text-emerald-600' : 'text-red-600'}`;
+    }
+    if (elMargin) {
+      elMargin.textContent = `Margen: ${(m.margenNetoPorcentaje || 0).toFixed(1)}%`;
+      elMargin.className = `text-[10px] font-bold mt-0.5 ${m.utilidadNeta >= 0 ? 'text-emerald-600' : 'text-red-600'}`;
+    }
+    if (elIvaNeto) {
+      elIvaNeto.textContent = `IVA Neto: ${sales.formatearMoneda(m.ivaNetoPagar || 0)}`;
+    }
+  }
+
+  function renderAccountingBalance(b, sales) {
+    const act = b.activos;
+    const pas = b.pasivos;
+    const pat = b.patrimonio;
+
+    const setTxt = (id, val) => {
+      const el = document.getElementById(id);
+      if (el) el.textContent = val;
+    };
+
+    setTxt('acc-balance-caja', sales.formatearMoneda(act.circulante.cajaBancos || 0));
+    setTxt('acc-balance-cxc', sales.formatearMoneda(act.circulante.cuentasPorCobrar || 0));
+    setTxt('acc-balance-inventario', sales.formatearMoneda(act.circulante.inventarioBodega || 0));
+    setTxt('acc-balance-iva-credito', sales.formatearMoneda(act.circulante.creditoFiscalIva || 0));
+    setTxt('acc-balance-activo-circulante', sales.formatearMoneda(act.circulante.subtotal || 0));
+    setTxt('acc-balance-total-activos', sales.formatearMoneda(act.total || 0));
+    setTxt('acc-badge-total-activos', sales.formatearMoneda(act.total || 0));
+
+    setTxt('acc-balance-iva-debito', sales.formatearMoneda(pas.circulante.debitoFiscalIva || 0));
+    setTxt('acc-balance-cxp', sales.formatearMoneda(pas.circulante.cuentasPorPagar || 0));
+    setTxt('acc-balance-total-pasivos', sales.formatearMoneda(pas.total || 0));
+
+    setTxt('acc-balance-capital', sales.formatearMoneda(pat.capital || 0));
+    setTxt('acc-balance-utilidad', sales.formatearMoneda(pat.utilidadEjercicio || 0));
+    setTxt('acc-balance-total-patrimonio', sales.formatearMoneda(pat.total || 0));
+    setTxt('acc-badge-total-pasivo-patrimonio', sales.formatearMoneda((pas.total || 0) + (pat.total || 0)));
+    setTxt('acc-balance-total-pasivo-patrimonio', sales.formatearMoneda((pas.total || 0) + (pat.total || 0)));
+
+    setTxt('acc-cuad-activo', sales.formatearMoneda(act.total || 0).replace('$', ''));
+    setTxt('acc-cuad-pasivo', sales.formatearMoneda(pas.total || 0).replace('$', ''));
+    setTxt('acc-cuad-patrimonio', sales.formatearMoneda(pat.total || 0).replace('$', ''));
+  }
+
+  function renderAccountingIncomeStatement(pnl, sales) {
+    const setTxt = (id, val) => {
+      const el = document.getElementById(id);
+      if (el) el.textContent = val;
+    };
+
+    setTxt('acc-pnl-ventas', sales.formatearMoneda(pnl.ingresos.ventasPrendas || 0));
+    setTxt('acc-pnl-delivery', sales.formatearMoneda(pnl.ingresos.delivery || 0));
+    setTxt('acc-pnl-descuentos', `-${sales.formatearMoneda(pnl.ingresos.descuentosVolumen || 0)}`);
+    setTxt('acc-pnl-total-ingresos', sales.formatearMoneda(pnl.ingresos.total || 0));
+
+    setTxt('acc-pnl-costo-insumos', `-${sales.formatearMoneda(pnl.costos.insumosTextiles || 0)}`);
+    setTxt('acc-pnl-compras-netas', sales.formatearMoneda(pnl.costos.insumosTextiles || 0));
+    setTxt('acc-pnl-margen-bruto', sales.formatearMoneda(pnl.costos.margenBruto || 0));
+    setTxt('acc-pnl-margen-bruto-pct', `(${(pnl.costos.margenBrutoPorcentaje || 0).toFixed(1)}%)`);
+
+    setTxt('acc-pnl-gastos-generales', `-${sales.formatearMoneda(pnl.gastos.total || 0)}`);
+
+    const containerGastos = document.getElementById('acc-pnl-desglose-gastos');
+    if (containerGastos) {
+      const cats = pnl.gastos.desgloseCategorias || {};
+      const entries = Object.entries(cats);
+      if (entries.length === 0 && pnl.gastos.fletesProveedores === 0) {
+        containerGastos.innerHTML = `<div class="text-gray-400 py-1 sm:col-span-2">Sin gastos operacionales registrados en el periodo.</div>`;
+      } else {
+        let html = '';
+        if (pnl.gastos.fletesProveedores > 0) {
+          html += `
+            <div class="flex justify-between py-1 border-b border-gray-50">
+              <span class="text-gray-600">🚚 Fletes a Proveedores:</span>
+              <span class="font-bold font-mono text-gray-800">${sales.formatearMoneda(pnl.gastos.fletesProveedores)}</span>
+            </div>
+          `;
+        }
+        entries.forEach(([cat, monto]) => {
+          html += `
+            <div class="flex justify-between py-1 border-b border-gray-50">
+              <span class="text-gray-600">${cat}:</span>
+              <span class="font-bold font-mono text-gray-800">${sales.formatearMoneda(monto)}</span>
+            </div>
+          `;
+        });
+        containerGastos.innerHTML = html;
+      }
+    }
+
+    setTxt('acc-pnl-utilidad-neta', sales.formatearMoneda(pnl.utilidadNeta || 0));
+    setTxt('acc-pnl-margen-neto-pct', `Margen Neto: ${(pnl.margenNetoPorcentaje || 0).toFixed(1)}%`);
+
+    const elPill = document.getElementById('acc-pnl-status-pill');
+    if (elPill) {
+      if (pnl.utilidadNeta > 0) {
+        elPill.textContent = 'Rentable';
+        elPill.className = 'px-3 py-1 rounded-full text-xs font-black bg-emerald-100 text-emerald-800';
+      } else if (pnl.utilidadNeta < 0) {
+        elPill.textContent = 'En Pérdida';
+        elPill.className = 'px-3 py-1 rounded-full text-xs font-black bg-red-100 text-red-800';
+      } else {
+        elPill.textContent = 'Punto de Equilibrio';
+        elPill.className = 'px-3 py-1 rounded-full text-xs font-black bg-gray-100 text-gray-700';
+      }
+    }
+  }
+
+  function renderAccountingJournal(asientos = [], sales) {
+    const countEl = document.getElementById('acc-journal-count');
+    const tbody = document.getElementById('acc-journal-tbody');
+    if (!tbody) return;
+
+    const filtrados = asientos.filter(a => {
+      if (currentJournalFilter === 'todos') return true;
+      return a.tipo === currentJournalFilter;
+    });
+
+    if (countEl) countEl.textContent = filtrados.length;
+
+    if (filtrados.length === 0) {
+      tbody.innerHTML = `
+        <tr>
+          <td colspan="7" class="py-8 text-center text-gray-400 text-xs">
+            No hay movimientos contables registrados para el filtro seleccionado.
+          </td>
+        </tr>
+      `;
+      return;
+    }
+
+    tbody.innerHTML = filtrados.map(a => {
+      const fechaFmt = a.fecha ? a.fecha.split('T')[0] : '-';
+      const esGastoManual = a.id && a.id.startsWith('AS-EXP-');
+
+      let tipoBadge = '';
+      if (a.tipo === 'Ingreso') {
+        tipoBadge = '<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-purple-100 text-purple-800 border border-purple-200">Venta Poleras</span>';
+      } else if (a.tipo === 'Costo') {
+        tipoBadge = '<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-800 border border-amber-200">Compra Insumo</span>';
+      } else {
+        tipoBadge = '<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-red-100 text-red-800 border border-red-200">Gasto Taller</span>';
+      }
+
+      return `
+        <tr class="border-b border-gray-100 hover:bg-slate-50 text-xs">
+          <td class="py-2.5 px-3 font-mono text-gray-500 whitespace-nowrap">${fechaFmt}</td>
+          <td class="py-2.5 px-3 whitespace-nowrap">${tipoBadge}</td>
+          <td class="py-2.5 px-3">
+            <div class="font-bold text-gray-900">${a.concepto}</div>
+            <div class="text-[10px] text-gray-400 font-mono">Ref: ${a.referenciaId}</div>
+          </td>
+          <td class="py-2.5 px-3 text-gray-700 font-medium">
+            <div class="text-xs">${a.cuentaDebe}</div>
+            <div class="text-[10px] text-gray-400">vs ${a.cuentaHaber}</div>
+          </td>
+          <td class="py-2.5 px-3 text-right font-mono font-bold text-gray-900">${sales ? sales.formatearMoneda(a.debe || 0) : `$${a.debe}`}</td>
+          <td class="py-2.5 px-3 text-right font-mono font-bold text-gray-900">${sales ? sales.formatearMoneda(a.haber || 0) : `$${a.haber}`}</td>
+          <td class="py-2.5 px-3 text-right whitespace-nowrap">
+            ${esGastoManual ? `
+              <button type="button" class="p-1 text-red-500 hover:text-red-700 rounded transition cursor-pointer" title="Eliminar este gasto" onclick="NovaprintUI.confirmarEliminarGasto('${a.referenciaId}')">
+                🗑️
+              </button>
+            ` : `
+              <span class="text-gray-300 text-[10px]">Auto</span>
+            `}
+          </td>
+        </tr>
+      `;
+    }).join('');
+  }
+
+  function filtrarLibroDiario() {
+    const sel = document.getElementById('acc-journal-filter-type');
+    if (sel) {
+      currentJournalFilter = sel.value;
+    }
+    if (global.NovaprintMain && typeof global.NovaprintMain.refrescarDatos === 'function') {
+      global.NovaprintMain.refrescarDatos();
+    }
+  }
+
+  function abrirModalNuevoGasto() {
+    if (typeof document === 'undefined') return;
+    const form = document.getElementById('form-expense');
+    if (form) form.reset();
+
+    const idInput = document.getElementById('expense-id-hidden');
+    if (idInput) idInput.value = '';
+
+    const dateInput = document.getElementById('expense-date-input');
+    if (dateInput) {
+      dateInput.value = new Date().toISOString().split('T')[0];
+    }
+
+    const titleEl = document.getElementById('expense-modal-title');
+    if (titleEl) titleEl.textContent = 'Registrar Gasto de Taller';
+
+    const dialog = document.getElementById('dialog-expense');
+    if (dialog && typeof dialog.showModal === 'function') {
+      dialog.showModal();
+    }
+  }
+
+  function guardarGastoDesdeFormulario() {
+    if (typeof document === 'undefined') return;
+
+    const idInput = document.getElementById('expense-id-hidden');
+    const dateInput = document.getElementById('expense-date-input');
+    const catInput = document.getElementById('expense-category-select');
+    const descInput = document.getElementById('expense-desc-input');
+    const amountInput = document.getElementById('expense-amount-input');
+    const methodInput = document.getElementById('expense-payment-method');
+    const notesInput = document.getElementById('expense-notes-input');
+
+    const id = idInput ? idInput.value.trim() : '';
+    const date = dateInput && dateInput.value ? dateInput.value : new Date().toISOString().split('T')[0];
+    const category = catInput ? catInput.value : 'Otros Gastos';
+    const description = descInput ? descInput.value.trim() : '';
+    const amount = Number(amountInput ? amountInput.value : 0);
+    const paymentMethod = methodInput ? methodInput.value : 'Transferencia / Banco';
+    const notes = notesInput ? notesInput.value.trim() : '';
+
+    if (!description) {
+      showToast('Ingresa una descripción del gasto.', 'warning');
+      return;
+    }
+
+    if (!amount || amount <= 0) {
+      showToast('Ingresa un monto válido mayor a 0.', 'warning');
+      return;
+    }
+
+    const storage = global.NovaprintStorage;
+    if (!storage || typeof storage.saveExpense !== 'function') {
+      showToast('Error interno: storage no disponible', 'error');
+      return;
+    }
+
+    storage.saveExpense({
+      id: id || undefined,
+      date,
+      category,
+      description,
+      amount,
+      paymentMethod,
+      notes
+    });
+
+    const dialog = document.getElementById('dialog-expense');
+    if (dialog && typeof dialog.close === 'function') {
+      dialog.close();
+    }
+
+    showToast(`Gasto "${description}" guardado con éxito.`, 'success');
+
+    if (global.NovaprintMain && typeof global.NovaprintMain.refrescarDatos === 'function') {
+      global.NovaprintMain.refrescarDatos();
+    }
+  }
+
+  function confirmarEliminarGasto(gastoId) {
+    const storage = global.NovaprintStorage;
+    if (!storage) return;
+
+    const g = storage.getExpenseById(gastoId);
+    if (confirm(`¿Eliminar el registro de gasto "${g ? g.description : gastoId}"?`)) {
+      storage.deleteExpense(gastoId);
+      showToast('Gasto operacional eliminado.', 'info');
+      if (global.NovaprintMain && typeof global.NovaprintMain.refrescarDatos === 'function') {
+        global.NovaprintMain.refrescarDatos();
+      }
+    }
+  }
+
   const uiModule = {
     showToast,
     renderMetrics,
@@ -2613,7 +2958,18 @@
     abrirModalNuevaOrdenFabricacion,
     editarOrdenFabricacion,
     guardarProyectoDesdeFormulario,
-    confirmarEliminarProyecto
+    confirmarEliminarProyecto,
+    // Spec 018: Contabilidad y Balance General
+    cambiarSubVistaContable,
+    renderAccountingModule,
+    renderAccountingMetrics,
+    renderAccountingBalance,
+    renderAccountingIncomeStatement,
+    renderAccountingJournal,
+    filtrarLibroDiario,
+    abrirModalNuevoGasto,
+    guardarGastoDesdeFormulario,
+    confirmarEliminarGasto
   };
 
   if (typeof module !== 'undefined' && module.exports) {

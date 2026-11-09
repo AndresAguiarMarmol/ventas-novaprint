@@ -1,0 +1,25 @@
+{
+  "version": "1.0",
+  "exportedAt": "2026-11-09T15:40:00.000Z",
+  "appName": "Novaprint App",
+  "backupType": "Pre-Contabilidad Snapshot",
+  "description": "Copia de respaldo previa a la implementación del módulo de contabilidad (Spec 018)",
+  "data": {
+    "settings": {
+      "businessName": "Novaprint Estampados",
+      "rut": "76.890.123-4",
+      "phone": "+56987654321",
+      "email": "contacto@novaprint.cl",
+      "address": "Av. Salvador 450, Providencia, Santiago",
+      "currencySymbol": "$",
+      "ticketFooter": "¡Gracias por confiar en Novaprint! Plazo de reclamo: 48 hrs con comprobante.",
+      "theme": "system"
+    },
+    "clients": [],
+    "orders": [],
+    "suppliers": [],
+    "inventory": [],
+    "purchases": [],
+    "projects": []
+  }
+}

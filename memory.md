@@ -15,6 +15,7 @@ Registro de todo lo que debe preservarse entre sesiones de trabajo: arquitectura
 - **`novaprint_inventory`:** Existencias de insumos y prendas base (`id, code, name, category, garmentType, color, size, unit, currentStock, minStock, unitCost, supplierId, supplierName, createdAt, updatedAt`).
 - **`novaprint_purchases`:** Historial de compras de insumos/prendas a proveedores (`id, supplierId, supplierName, invoiceNumber, date, items, subtotalNeto, applyIva, ivaPercent, ivaAmount, applyDelivery, deliveryAmount, totalAmount, notes, createdAt`).
 - **`novaprint_projects`:** Órdenes de fabricación / proyectos de taller vinculadas a pedidos o stock (`id, code, orderId, name, garmentType, quantity, printTechnique, stage, startDate, targetDate, assignedTo, notes`).
+- **`novaprint_expenses`:** Registro de gastos operacionales de taller (`id, date, category, description, amount, paymentMethod, reference, notes, createdAt`).
 
 ---
 
@@ -67,6 +68,13 @@ Registro de todo lo que debe preservarse entre sesiones de trabajo: arquitectura
   - **Spec 015 (Implementada):** Botones Dedicados para Modificar el Status de un Pedido en Tabla y Tablero Kanban.
   - **Spec 016 (Implementada):** Eliminación de Opciones "Vaciar Base de Datos" y "Cargar datos de Prueba" en Ajustes y Respaldos.
   - **Spec 017 (Implementada):** Opción para Modificar el Stock de Inventarios (Ajuste Rápido y Cuadratura).
+  - **Spec 018 (Implementada):** Módulo de Contabilidad con Plan de Cuentas, Activos, Pasivos, Ingresos por Ventas de Poleras y Gastos Enlazados (Balance General, P&L y Libro Diario).
+- **Módulo de Contabilidad Integral Enlazado (Spec 018):**
+  - **Plan de Cuentas Estándar:** Estructuración en 5 grupos contables (`1. ACTIVOS`, `2. PASIVOS`, `3. PATRIMONIO`, `4. INGRESOS`, `5. COSTOS Y GASTOS`) con códigos estándar (1101 Caja y Bancos, 1102 Cuentas por Cobrar, 1103 Inventario Bodega, 1104 IVA Crédito Fiscal, 2101 Cuentas por Pagar, 2102 IVA Débito Fiscal, 3101 Capital, 3201 Utilidad del Ejercicio, 4101 Venta de Poleras y Prendas, 4102 Delivery Cobrado, 5101 Costo de Insumos Comprados, 5201 Gastos Operacionales de Taller).
+  - **Enlace Reactivo Automático:** La contabilidad no requiere duplicar registros manuales; se alimenta directamente de los pedidos de clientes (`novaprint_orders`), compras de insumos (`novaprint_purchases`), inventario físico (`novaprint_inventory`) y gastos de taller (`novaprint_expenses`). Al guardar o editar cualquiera de estas entidades, `refrescarDatos()` ejecuta `refrescarContabilidad()`.
+  - **Ecuación Patrimonial Balanceada:** $\text{Activos} = \text{Pasivos} + \text{Patrimonio}$. El balance cuadra estrictamente: la Utilidad Neta del Ejercicio ($\text{Ingresos} - \text{Costos/Gastos}$) se transfiere al patrimonio, y el disponible en Caja/Bancos refleja el flujo de efectivo neto (Cobros de pedidos - Compras pagadas - Gastos pagados).
+  - **Subvistas Contables y Libro Diario:** La vista `#view-accounting` incluye pestañas internas para alternar entre "Balance General", "Estado de Resultados" y "Libro Diario de Movimientos", este último con filtrado cronológico y desglose de debe/haber por cada transacción.
+  - **Gestión de Gastos de Taller:** Modal `<dialog id="dialog-expense">` con persistencia en `storage.saveExpense` / `storage.deleteExpense` y exportación/importación JSON.
 - **Modificación Rápida y Ajuste de Stock en Inventario (Spec 017):**
   - **Flujo Especializado de Existencias:** Permite ajustar existencias de prendas base e insumos sin requerir la edición integral del catálogo (código, nombre, proveedor, costo).
   - **Puntos de Acceso en Tabla de Inventario (`renderInventoryTable`):** Botón directo de acción rápida `[📦]` con tooltip "Modificar Stock" y conversión de la cifra en la columna "Stock Actual" en un botón interactivo táctil con previsualización del ícono lápiz.
@@ -105,6 +113,24 @@ Registro de todo lo que debe preservarse entre sesiones de trabajo: arquitectura
 ---
 
 ## 3. Historial de cambios
+
+### 2026-11-09 (Módulo de Contabilidad Integral — Spec 018)
+- **Motor Contable (`assets/js/accounting.js`):**
+  - Implementación del Plan de Cuentas estándar (`CUENTAS_CONTABLES`) y consolidadores de datos enlazados a la operativa actual: `obtenerConsolidadoPedidos` (ventas de poleras, abonos, cuentas por cobrar, débito fiscal IVA), `obtenerConsolidadoCompras` (costo de insumos, crédito fiscal IVA, cuentas por pagar), `obtenerValorizacionInventario` (activos en existencias de bodega) y `obtenerConsolidadoGastos` (gastos operacionales de taller).
+  - Funciones de cálculo contable y financiero: `calcularEstadoResultados` (P&L), `calcularBalanceGeneral` (con ecuación $\text{Activos} = \text{Pasivos} + \text{Patrimonio}$ balanceada), `generarLibroDiario` (asientos cronológicos) y `calcularMetricasContables`.
+- **Capa de Persistencia (`assets/js/storage.js`):**
+  - Agregada clave `novaprint_expenses` (`STORAGE_KEYS.EXPENSES`) y métodos CRUD: `getExpenses`, `getExpenseById`, `saveExpense`, `deleteExpense`.
+  - Actualización de `clearAllData`, `exportBackup` e `importBackup` para respaldar y restaurar gastos de taller.
+- **Interfaz de Usuario (`index.html`, `assets/js/ui.js`, `assets/js/main.js`):**
+  - Pestaña de navegación "📊 Contabilidad" (`data-view="accounting"`).
+  - Sección `#view-accounting` con tarjetas KPI (Total Activos, Total Pasivos, Patrimonio Neto, Utilidad Neta), sub-pestañas ("Balance General", "Estado de Resultados", "Libro Diario de Movimientos") y tablas detalladas con códigos contables.
+  - Modal nativo `<dialog id="dialog-expense">` con selector de categorías estándar de taller, método de pago, monto y notas.
+  - Sincronización reactiva en `refrescarDatos()` que actualiza el módulo contable al registrar o modificar pedidos, compras, stock o gastos.
+- **Respaldo previo & Pruebas Automatizadas (`tests/accounting.test.js`):**
+  - Respaldo de seguridad previo generado en `backups/backup_pre_contabilidad_20261109.json` y tag git `backup-pre-contabilidad-20261109`.
+  - 11 nuevas pruebas unitarias cubriendo plan de cuentas, ventas de poleras, compras, inventario, estado de resultados, balance general, libro diario, persistencia y elementos UI.
+  - Test suite global: 138 pruebas pasando al 100% en verde (0 fallos).
+- **Metodología SDD:** Especificación completa en `specs/018-modulo-contabilidad-activos-pasivos-ingresos-gastos/` (`spec.md`, `plan.md`, `tasks.md`).
 
 ### 2026-11-08 (Opción para Modificar el Stock de Inventarios — Spec 017)
 - **Capa de Persistencia (`storage.js`):**

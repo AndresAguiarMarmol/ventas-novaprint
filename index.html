@@ -123,6 +123,9 @@
         <button class="nav-tab-btn py-2.5 px-3 border-b-2 border-transparent text-gray-500 hover:text-gray-900 whitespace-nowrap" data-view="fabrication">
           ⚡ Control de Fabricación
         </button>
+        <button class="nav-tab-btn py-2.5 px-3 border-b-2 border-transparent text-gray-500 hover:text-gray-900 whitespace-nowrap" data-view="accounting">
+          📊 Contabilidad
+        </button>
       </nav>
     </div>
   </header>
@@ -575,6 +578,352 @@
           <div id="col-fab-terminado" class="space-y-3 flex-1 overflow-y-auto max-h-[70vh]"></div>
         </div>
       </div>
+    </section>
+
+    <!-- ========================================== -->
+    <!-- VISTA 7: CONTABILIDAD Y FINANZAS (SPEC 018)-->
+    <!-- ========================================== -->
+    <section id="view-accounting" class="view-panel space-y-6">
+
+      <!-- Cabecera de Contabilidad -->
+      <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white p-4 rounded-xl border border-gray-200 shadow-xs">
+        <div>
+          <h2 class="text-lg font-black text-gray-900 flex items-center gap-2">
+            <span>Contabilidad del Taller & Balance General</span>
+            <span class="text-[10px] bg-emerald-100 text-emerald-800 font-bold px-2 py-0.5 rounded-full uppercase">Enlazado en Vivo</span>
+          </h2>
+          <p class="text-xs text-gray-500">Control integrado de Activos, Pasivos, Ventas de Poleras y Gastos Operacionales</p>
+        </div>
+
+        <div class="flex items-center gap-2 w-full sm:w-auto justify-end">
+          <button id="btn-new-expense" type="button" class="px-3.5 py-2 bg-red-600 hover:bg-red-700 text-white text-xs font-bold rounded-lg shadow-xs flex items-center gap-1.5 transition">
+            <span>+ Registrar Gasto</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Tarjetas de Métricas Contables (KPIs) -->
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div class="bg-white p-4 rounded-xl border border-gray-200 shadow-xs flex items-center justify-between">
+          <div>
+            <div class="text-xs text-gray-500 font-bold uppercase tracking-wider">Total Activos</div>
+            <div id="acc-metric-total-assets" class="text-2xl font-black text-gray-900 mt-1">$0</div>
+            <div class="text-[10px] text-gray-400 mt-0.5">Caja + CxC + Bodega</div>
+          </div>
+          <div class="w-10 h-10 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center font-bold text-lg">🏛️</div>
+        </div>
+
+        <div class="bg-white p-4 rounded-xl border border-gray-200 shadow-xs flex items-center justify-between">
+          <div>
+            <div class="text-xs text-amber-700 font-bold uppercase tracking-wider">Total Pasivos</div>
+            <div id="acc-metric-total-liabilities" class="text-2xl font-black text-amber-600 mt-1">$0</div>
+            <div id="acc-metric-iva-neto" class="text-[10px] text-amber-600 mt-0.5">IVA Débito Fiscal</div>
+          </div>
+          <div class="w-10 h-10 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center font-bold text-lg">📑</div>
+        </div>
+
+        <div class="bg-white p-4 rounded-xl border border-gray-200 shadow-xs flex items-center justify-between">
+          <div>
+            <div class="text-xs text-purple-700 font-bold uppercase tracking-wider">Ventas de Poleras</div>
+            <div id="acc-metric-total-revenue" class="text-2xl font-black text-purple-700 mt-1">$0</div>
+            <div class="text-[10px] text-purple-500 mt-0.5">Ingresos operacionales netos</div>
+          </div>
+          <div class="w-10 h-10 rounded-lg bg-purple-50 text-purple-600 flex items-center justify-center font-bold text-lg">👕</div>
+        </div>
+
+        <div class="bg-white p-4 rounded-xl border border-gray-200 shadow-xs flex items-center justify-between">
+          <div>
+            <div class="text-xs text-emerald-700 font-bold uppercase tracking-wider">Utilidad Neta Taller</div>
+            <div id="acc-metric-net-income" class="text-2xl font-black text-emerald-600 mt-1">$0</div>
+            <div id="acc-metric-margin-percent" class="text-[10px] text-emerald-600 font-bold mt-0.5">Margen: 0%</div>
+          </div>
+          <div class="w-10 h-10 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center font-bold text-lg">💰</div>
+        </div>
+      </div>
+
+      <!-- Barra de Sub-Navegación Contable -->
+      <div class="bg-white p-2 rounded-xl border border-gray-200 shadow-xs flex flex-wrap gap-2 items-center">
+        <button id="btn-acc-sub-balance" type="button" class="px-4 py-2 rounded-lg text-xs font-bold bg-blue-600 text-white shadow-xs transition" onclick="NovaprintUI.cambiarSubVistaContable('balance')">
+          🏛️ Balance General
+        </button>
+        <button id="btn-acc-sub-pnl" type="button" class="px-4 py-2 rounded-lg text-xs font-bold bg-gray-100 text-gray-700 hover:bg-gray-200 transition" onclick="NovaprintUI.cambiarSubVistaContable('pnl')">
+          📈 Estado de Resultados (P&L)
+        </button>
+        <button id="btn-acc-sub-journal" type="button" class="px-4 py-2 rounded-lg text-xs font-bold bg-gray-100 text-gray-700 hover:bg-gray-200 transition" onclick="NovaprintUI.cambiarSubVistaContable('journal')">
+          📖 Libro Diario de Movimientos
+        </button>
+      </div>
+
+      <!-- SUB-VISTA 1: BALANCE GENERAL -->
+      <div id="acc-subview-balance" class="space-y-6">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+
+          <!-- COLUMNA ACTIVOS -->
+          <div class="bg-white rounded-xl border border-gray-200 shadow-xs overflow-hidden flex flex-col">
+            <div class="p-4 bg-blue-50 border-b border-blue-100 flex items-center justify-between">
+              <h3 class="text-sm font-black text-blue-900 uppercase tracking-wider flex items-center gap-1.5">
+                <span>1. ACTIVOS (Bienes y Derechos)</span>
+              </h3>
+              <span id="acc-badge-total-activos" class="px-2.5 py-1 bg-blue-600 text-white font-black text-xs rounded-lg">$0</span>
+            </div>
+
+            <div class="p-5 space-y-4 flex-1">
+              <div class="space-y-2">
+                <div class="text-xs font-bold text-gray-400 uppercase tracking-wider">Activo Circulante</div>
+
+                <div class="flex items-center justify-between py-2 border-b border-gray-100 text-xs">
+                  <div>
+                    <div class="font-bold text-gray-800">1101 — Caja y Bancos (Disponible)</div>
+                    <div class="text-[10px] text-gray-400">Cobros recibidos menos compras y gastos pagados</div>
+                  </div>
+                  <span id="acc-balance-caja" class="font-bold text-gray-900 font-mono">$0</span>
+                </div>
+
+                <div class="flex items-center justify-between py-2 border-b border-gray-100 text-xs">
+                  <div>
+                    <div class="font-bold text-gray-800">1102 — Cuentas por Cobrar a Clientes</div>
+                    <div class="text-[10px] text-gray-400">Saldos pendientes de pedidos de poleras</div>
+                  </div>
+                  <span id="acc-balance-cxc" class="font-bold text-gray-900 font-mono">$0</span>
+                </div>
+
+                <div class="flex items-center justify-between py-2 border-b border-gray-100 text-xs">
+                  <div>
+                    <div class="font-bold text-gray-800">1103 — Inventario y Existencias Bodega</div>
+                    <div class="text-[10px] text-gray-400">Prendas lisas, gorras, tintas y vinilos en stock</div>
+                  </div>
+                  <span id="acc-balance-inventario" class="font-bold text-gray-900 font-mono">$0</span>
+                </div>
+
+                <div class="flex items-center justify-between py-2 border-b border-gray-100 text-xs">
+                  <div>
+                    <div class="font-bold text-gray-800">1104 — Crédito Fiscal IVA (Compras)</div>
+                    <div class="text-[10px] text-gray-400">IVA 19% recuperable pagado en compras de insumos</div>
+                  </div>
+                  <span id="acc-balance-iva-credito" class="font-bold text-gray-900 font-mono">$0</span>
+                </div>
+              </div>
+
+              <div class="pt-2">
+                <div class="flex items-center justify-between py-2 text-xs font-bold text-blue-900 bg-blue-50/60 px-3 rounded-lg">
+                  <span>Subtotal Activo Circulante</span>
+                  <span id="acc-balance-activo-circulante" class="font-mono font-black">$0</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="p-4 bg-gray-50 border-t border-gray-200 flex items-center justify-between font-black text-sm">
+              <span class="text-gray-900">TOTAL ACTIVOS</span>
+              <span id="acc-balance-total-activos" class="text-blue-700 font-mono text-base">$0</span>
+            </div>
+          </div>
+
+          <!-- COLUMNA PASIVOS Y PATRIMONIO -->
+          <div class="bg-white rounded-xl border border-gray-200 shadow-xs overflow-hidden flex flex-col">
+            <div class="p-4 bg-amber-50 border-b border-amber-100 flex items-center justify-between">
+              <h3 class="text-sm font-black text-amber-900 uppercase tracking-wider flex items-center gap-1.5">
+                <span>2. PASIVOS Y 3. PATRIMONIO</span>
+              </h3>
+              <span id="acc-badge-total-pasivo-patrimonio" class="px-2.5 py-1 bg-amber-600 text-white font-black text-xs rounded-lg">$0</span>
+            </div>
+
+            <div class="p-5 space-y-4 flex-1">
+              <!-- PASIVOS -->
+              <div class="space-y-2">
+                <div class="text-xs font-bold text-amber-800 uppercase tracking-wider">Pasivos Circulantes (Obligaciones)</div>
+
+                <div class="flex items-center justify-between py-2 border-b border-gray-100 text-xs">
+                  <div>
+                    <div class="font-bold text-gray-800">2102 — Débito Fiscal IVA (Ventas)</div>
+                    <div class="text-[10px] text-gray-400">IVA 19% generado en pedidos facturados</div>
+                  </div>
+                  <span id="acc-balance-iva-debito" class="font-bold text-gray-900 font-mono">$0</span>
+                </div>
+
+                <div class="flex items-center justify-between py-2 border-b border-gray-100 text-xs">
+                  <div>
+                    <div class="font-bold text-gray-800">2101 — Cuentas por Pagar Proveedores</div>
+                    <div class="text-[10px] text-gray-400">Compras al crédito con distribuidores</div>
+                  </div>
+                  <span id="acc-balance-cxp" class="font-bold text-gray-900 font-mono">$0</span>
+                </div>
+
+                <div class="flex items-center justify-between py-2 text-xs font-bold text-amber-900 bg-amber-50/60 px-3 rounded-lg">
+                  <span>Total Pasivos</span>
+                  <span id="acc-balance-total-pasivos" class="font-mono font-black">$0</span>
+                </div>
+              </div>
+
+              <!-- PATRIMONIO -->
+              <div class="space-y-2 pt-2">
+                <div class="text-xs font-bold text-emerald-800 uppercase tracking-wider">Patrimonio Neto</div>
+
+                <div class="flex items-center justify-between py-2 border-b border-gray-100 text-xs">
+                  <div>
+                    <div class="font-bold text-gray-800">3101 — Capital del Taller & Fondos</div>
+                    <div class="text-[10px] text-gray-400">Capital de trabajo y balance de apertura</div>
+                  </div>
+                  <span id="acc-balance-capital" class="font-bold text-gray-900 font-mono">$0</span>
+                </div>
+
+                <div class="flex items-center justify-between py-2 border-b border-gray-100 text-xs">
+                  <div>
+                    <div class="font-bold text-gray-800">3201 — Resultado del Ejercicio (Utilidad)</div>
+                    <div class="text-[10px] text-gray-400">Utilidad operacional acumulada del taller</div>
+                  </div>
+                  <span id="acc-balance-utilidad" class="font-bold text-emerald-600 font-mono">$0</span>
+                </div>
+
+                <div class="flex items-center justify-between py-2 text-xs font-bold text-emerald-900 bg-emerald-50/60 px-3 rounded-lg">
+                  <span>Total Patrimonio</span>
+                  <span id="acc-balance-total-patrimonio" class="font-mono font-black">$0</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="p-4 bg-gray-50 border-t border-gray-200 flex items-center justify-between font-black text-sm">
+              <span class="text-gray-900">TOTAL PASIVO + PATRIMONIO</span>
+              <span id="acc-balance-total-pasivo-patrimonio" class="text-amber-700 font-mono text-base">$0</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Indicador de Cuadratura Contable -->
+        <div id="acc-balance-status-card" class="p-4 rounded-xl border border-emerald-200 bg-emerald-50 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs">
+          <div class="flex items-center gap-2">
+            <span class="text-xl">⚖️</span>
+            <div>
+              <span class="font-bold text-emerald-900">Ecuación Patrimonial Cuadrada:</span>
+              <span class="text-emerald-700 ml-1">Activo ($<span id="acc-cuad-activo">0</span>) = Pasivo ($<span id="acc-cuad-pasivo">0</span>) + Patrimonio ($<span id="acc-cuad-patrimonio">0</span>)</span>
+            </div>
+          </div>
+          <span class="px-2.5 py-1 bg-emerald-600 text-white rounded-full font-bold text-[11px]">Exacto</span>
+        </div>
+      </div>
+
+      <!-- SUB-VISTA 2: ESTADO DE RESULTADOS (P&L) -->
+      <div id="acc-subview-pnl" class="hidden space-y-6">
+        <div class="bg-white rounded-xl border border-gray-200 shadow-xs overflow-hidden">
+          <div class="p-4 bg-gray-50 border-b border-gray-200 flex justify-between items-center">
+            <div>
+              <h3 class="text-sm font-black text-gray-900 uppercase tracking-wider">Estado de Resultados (P&L)</h3>
+              <p class="text-xs text-gray-500">Ingresos por ventas de poleras, costos de insumos y gastos de operación</p>
+            </div>
+            <div id="acc-pnl-status-pill" class="px-3 py-1 rounded-full text-xs font-black bg-emerald-100 text-emerald-800">
+              Rentable
+            </div>
+          </div>
+
+          <div class="p-6 space-y-6">
+            <!-- 1. Ingresos Operacionales -->
+            <div class="space-y-2">
+              <h4 class="text-xs font-black text-blue-900 uppercase tracking-wider flex items-center justify-between border-b pb-1.5">
+                <span>1. Ingresos Operacionales</span>
+                <span id="acc-pnl-total-ingresos" class="text-blue-700 font-mono font-bold">$0</span>
+              </h4>
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1 text-xs">
+                <div class="flex justify-between py-1 border-b border-gray-50">
+                  <span class="text-gray-600">Ventas de Poleras y Confección (Neto):</span>
+                  <span id="acc-pnl-ventas" class="font-bold font-mono">$0</span>
+                </div>
+                <div class="flex justify-between py-1 border-b border-gray-50">
+                  <span class="text-gray-600">Servicios de Despacho / Delivery:</span>
+                  <span id="acc-pnl-delivery" class="font-bold font-mono">$0</span>
+                </div>
+                <div class="flex justify-between py-1 border-b border-gray-50 sm:col-span-2 text-gray-400 text-[11px]">
+                  <span>Descuentos por volumen otorgados a clientes:</span>
+                  <span id="acc-pnl-descuentos" class="font-mono">-$0</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- 2. Costo de Ventas e Insumos -->
+            <div class="space-y-2">
+              <h4 class="text-xs font-black text-amber-900 uppercase tracking-wider flex items-center justify-between border-b pb-1.5">
+                <span>2. Costo de Ventas (Insumos y Prendas Base)</span>
+                <span id="acc-pnl-costo-insumos" class="text-amber-700 font-mono font-bold">-$0</span>
+              </h4>
+              <div class="text-xs py-1 text-gray-600 flex justify-between">
+                <span>Compras netas de prendas lisas, tintas y vinilos a proveedores:</span>
+                <span id="acc-pnl-compras-netas" class="font-bold font-mono">$0</span>
+              </div>
+            </div>
+
+            <!-- Margen Bruto -->
+            <div class="p-3 bg-slate-50 border border-slate-200 rounded-xl flex items-center justify-between text-xs font-bold">
+              <span class="text-slate-800 uppercase tracking-wider">MARGEN BRUTO OPERACIONAL</span>
+              <div class="text-right">
+                <span id="acc-pnl-margen-bruto" class="font-mono font-black text-sm text-slate-900">$0</span>
+                <span id="acc-pnl-margen-bruto-pct" class="text-[10px] text-gray-500 ml-1 font-normal">(0%)</span>
+              </div>
+            </div>
+
+            <!-- 3. Gastos Operacionales de Taller -->
+            <div class="space-y-2">
+              <h4 class="text-xs font-black text-red-900 uppercase tracking-wider flex items-center justify-between border-b pb-1.5">
+                <span>3. Gastos Operacionales de Taller</span>
+                <span id="acc-pnl-gastos-generales" class="text-red-700 font-mono font-bold">-$0</span>
+              </h4>
+              <div id="acc-pnl-desglose-gastos" class="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1 text-xs text-gray-600">
+                <!-- Se llena dinámicamente -->
+              </div>
+            </div>
+
+            <!-- 4. Utilidad Neta Final -->
+            <div class="p-4 bg-emerald-50 border border-emerald-300 rounded-xl flex items-center justify-between font-black">
+              <div>
+                <div class="text-xs text-emerald-900 uppercase tracking-wider">RESULTADO DEL EJERCICIO (UTILIDAD NETA)</div>
+                <div class="text-[10px] text-emerald-700 font-normal">Ganancia neta consolidada del negocio</div>
+              </div>
+              <div class="text-right">
+                <div id="acc-pnl-utilidad-neta" class="text-2xl text-emerald-700 font-mono">$0</div>
+                <div id="acc-pnl-margen-neto-pct" class="text-[11px] text-emerald-800 font-bold">Margen Neto: 0%</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- SUB-VISTA 3: LIBRO DIARIO DE MOVIMIENTOS -->
+      <div id="acc-subview-journal" class="hidden space-y-4">
+        <!-- Filtros del Libro Diario -->
+        <div class="bg-white p-4 rounded-xl border border-gray-200 shadow-xs flex flex-col sm:flex-row gap-3 items-center justify-between">
+          <div class="flex items-center gap-2 w-full sm:w-auto">
+            <label class="text-xs font-bold text-gray-600">Filtrar por Tipo:</label>
+            <select id="acc-journal-filter-type" class="text-xs py-1.5 px-3 bg-gray-50 border border-gray-300 rounded-lg font-medium" onchange="NovaprintUI.filtrarLibroDiario()">
+              <option value="todos">Todos los Movimientos</option>
+              <option value="Ingreso">Ventas de Poleras (Ingresos)</option>
+              <option value="Costo">Compras de Insumos (Costos)</option>
+              <option value="Gasto">Gastos Operacionales</option>
+            </select>
+          </div>
+
+          <div class="text-xs text-gray-500 font-medium">
+            Mostrando <span id="acc-journal-count" class="font-bold text-gray-800">0</span> asientos contables
+          </div>
+        </div>
+
+        <!-- Tabla del Libro Diario -->
+        <div class="bg-white rounded-xl border border-gray-200 shadow-xs overflow-hidden">
+          <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse">
+              <thead>
+                <tr class="bg-gray-50 border-b border-gray-200 text-gray-500 uppercase text-[11px] font-bold tracking-wider">
+                  <th class="py-3 px-3">Fecha</th>
+                  <th class="py-3 px-3">Tipo / Origen</th>
+                  <th class="py-3 px-3">Concepto / Glosa</th>
+                  <th class="py-3 px-3">Cuenta Contable</th>
+                  <th class="py-3 px-3 text-right">Debe</th>
+                  <th class="py-3 px-3 text-right">Haber</th>
+                  <th class="py-3 px-3 text-right">Acciones</th>
+                </tr>
+              </thead>
+              <tbody id="acc-journal-tbody" class="divide-y divide-gray-100"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
     </section>
 
   </main>
@@ -1354,6 +1703,77 @@
     </div>
   </dialog>
 
+  <!-- MODAL DE REGISTRAR GASTO OPERACIONAL (SPEC 018) -->
+  <dialog id="dialog-expense" class="w-full max-w-lg p-0 bg-transparent">
+    <div class="bg-white rounded-2xl shadow-2xl border border-gray-200 overflow-hidden">
+      <div class="px-6 py-4 bg-gray-50 border-b border-gray-200 flex justify-between items-center">
+        <div>
+          <h3 id="expense-modal-title" class="text-base font-black text-gray-900">Registrar Gasto de Taller</h3>
+          <p class="text-xs text-gray-500">Arriendo, electricidad, mantención de equipos u otros gastos</p>
+        </div>
+        <button type="button" class="text-gray-400 hover:text-gray-700 text-lg font-bold p-1" onclick="document.getElementById('dialog-expense').close()">✕</button>
+      </div>
+
+      <form id="form-expense" class="p-6 space-y-4">
+        <input type="hidden" id="expense-id-hidden">
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <label for="expense-date-input" class="block text-xs font-bold text-gray-700 uppercase mb-1">Fecha *</label>
+            <input id="expense-date-input" type="date" required class="w-full p-2.5 bg-gray-50 border border-gray-300 rounded-lg text-xs font-medium focus:outline-none focus:bg-white">
+          </div>
+
+          <div>
+            <label for="expense-category-select" class="block text-xs font-bold text-gray-700 uppercase mb-1">Categoría de Gasto *</label>
+            <select id="expense-category-select" required class="w-full p-2.5 bg-gray-50 border border-gray-300 rounded-lg text-xs font-medium focus:outline-none focus:bg-white">
+              <option value="Arriendo de Taller">🏠 Arriendo de Taller</option>
+              <option value="Electricidad y Servicios">⚡ Electricidad y Servicios Básicos</option>
+              <option value="Mantenimiento de Maquinaria">🔧 Mantenimiento de Maquinaria Textil</option>
+              <option value="Fletes y Envíos">🚚 Fletes y Despachos</option>
+              <option value="Mermas y Pruebas">⚠️ Mermas y Pruebas de Calibración</option>
+              <option value="Otros Gastos">📋 Otros Gastos Operacionales</option>
+            </select>
+          </div>
+        </div>
+
+        <div>
+          <label for="expense-desc-input" class="block text-xs font-bold text-gray-700 uppercase mb-1">Descripción / Concepto *</label>
+          <input id="expense-desc-input" type="text" placeholder="Ej: Pago arriendo galpón mes actual, mantención plotter..." required class="w-full p-2.5 bg-gray-50 border border-gray-300 rounded-lg text-xs font-medium focus:outline-none focus:bg-white">
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <label for="expense-amount-input" class="block text-xs font-bold text-gray-700 uppercase mb-1">Monto Total ($ CLP) *</label>
+            <input id="expense-amount-input" type="number" min="1" step="1" placeholder="Ej: 45000" required class="w-full p-2.5 bg-gray-50 border border-gray-300 rounded-lg text-xs font-black text-gray-900 focus:outline-none focus:bg-white">
+          </div>
+
+          <div>
+            <label for="expense-payment-method" class="block text-xs font-bold text-gray-700 uppercase mb-1">Medio de Pago</label>
+            <select id="expense-payment-method" class="w-full p-2.5 bg-gray-50 border border-gray-300 rounded-lg text-xs font-medium focus:outline-none focus:bg-white">
+              <option value="Transferencia / Banco">Transferencia / Banco</option>
+              <option value="Efectivo / Caja Chica">Efectivo / Caja Chica</option>
+              <option value="Tarjeta / Débito">Tarjeta / Débito</option>
+            </select>
+          </div>
+        </div>
+
+        <div>
+          <label for="expense-notes-input" class="block text-xs font-bold text-gray-700 uppercase mb-1">Comentarios / Nº Comprobante</label>
+          <input id="expense-notes-input" type="text" placeholder="Nº de boleta, factura o notas opcionales..." class="w-full p-2.5 bg-gray-50 border border-gray-300 rounded-lg text-xs font-medium focus:outline-none focus:bg-white">
+        </div>
+
+        <div class="pt-3 border-t border-gray-200 flex justify-end gap-3">
+          <button type="button" class="px-4 py-2 border border-gray-300 text-gray-700 font-bold rounded-lg hover:bg-gray-100 text-xs" onclick="document.getElementById('dialog-expense').close()">
+            Cancelar
+          </button>
+          <button type="submit" class="px-5 py-2 bg-red-600 hover:bg-red-700 text-white font-bold rounded-lg shadow-sm text-xs flex items-center gap-1.5">
+            💾 Guardar Gasto
+          </button>
+        </div>
+      </form>
+    </div>
+  </dialog>
+
   <!-- 8. MODAL DE REGISTRAR COMPRA (SPEC 002) -->
   <dialog id="dialog-purchase" class="w-full max-w-3xl p-0 bg-transparent">
     <div class="bg-white rounded-2xl shadow-2xl border border-gray-200 overflow-hidden flex flex-col max-h-[92vh]">
@@ -1575,6 +1995,7 @@
   <script src="assets/js/storage.js"></script>
   <script src="assets/js/sales.js"></script>
   <script src="assets/js/production.js"></script>
+  <script src="assets/js/accounting.js"></script>
   <script src="assets/js/ticket.js"></script>
   <script src="assets/js/ui.js"></script>
   <script src="assets/js/main.js"></script>
