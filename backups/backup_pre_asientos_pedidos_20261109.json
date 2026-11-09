@@ -1,0 +1,26 @@
+{
+  "version": "1.0",
+  "exportedAt": "2026-11-09T16:45:00.000Z",
+  "appName": "Novaprint App",
+  "backupType": "Pre-Asientos-Pedidos-Contables Snapshot",
+  "description": "Copia de respaldo previa a la implementación de asientos contables automáticos por pedido (Abono a Banco y Saldo a Cuentas por Cobrar) - Spec 019",
+  "data": {
+    "settings": {
+      "businessName": "Novaprint Estampados",
+      "rut": "76.890.123-4",
+      "phone": "+56987654321",
+      "email": "contacto@novaprint.cl",
+      "address": "Av. Salvador 450, Providencia, Santiago",
+      "currencySymbol": "$",
+      "ticketFooter": "¡Gracias por confiar en Novaprint! Plazo de reclamo: 48 hrs con comprobante.",
+      "theme": "system"
+    },
+    "clients": [],
+    "orders": [],
+    "suppliers": [],
+    "inventory": [],
+    "purchases": [],
+    "expenses": [],
+    "projects": []
+  }
+}
