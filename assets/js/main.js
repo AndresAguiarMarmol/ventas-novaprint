@@ -404,6 +404,15 @@
       });
     }
 
+    // Spec 017: Formulario Modificar Stock de Inventario
+    const formAdjustStock = document.getElementById('form-adjust-stock');
+    if (formAdjustStock) {
+      formAdjustStock.addEventListener('submit', (e) => {
+        e.preventDefault();
+        global.NovaprintUI.guardarModificacionStock();
+      });
+    }
+
     // Compras (Spec 002)
     const btnNuevaCompra = document.getElementById('btn-new-purchase');
     if (btnNuevaCompra) {

@@ -1416,10 +1416,14 @@
             <div class="text-[11px] text-gray-400">${it.category} ${it.size ? `• Talla: ${it.size}` : ''} ${it.color ? `• Color: ${it.color}` : ''}</div>
           </td>
           <td class="py-3 px-3">
-            <div class="flex items-center gap-1.5">
-              <span class="text-sm font-black ${isCritico ? 'text-red-600' : 'text-gray-900'}">${it.currentStock || 0}</span>
-              <span class="text-[11px] text-gray-400">${it.unit || 'un.'}</span>
-            </div>
+            <button type="button"
+              class="group flex items-center gap-1.5 hover:bg-blue-50 px-1.5 py-0.5 -mx-1.5 rounded transition text-left cursor-pointer"
+              title="Modificar stock actual de ${it.name}"
+              onclick="NovaprintUI.abrirModalModificarStock('${it.id}')">
+              <span class="text-sm font-black ${isCritico ? 'text-red-600' : 'text-gray-900'} group-hover:text-blue-700">${it.currentStock || 0}</span>
+              <span class="text-[11px] text-gray-400 group-hover:text-blue-500">${it.unit || 'un.'}</span>
+              <span class="text-[10px] text-blue-600 opacity-60 group-hover:opacity-100 font-bold transition">✏️</span>
+            </button>
             <div class="text-[10px] text-gray-400">Mínimo: ${it.minStock || 0}</div>
           </td>
           <td class="py-3 px-3">
@@ -1435,7 +1439,8 @@
           </td>
           <td class="py-3 px-3 text-gray-700 font-medium">${costoU}</td>
           <td class="py-3 px-3 font-bold text-gray-900">${valorTotal}</td>
-          <td class="py-3 px-3 text-right space-x-1">
+          <td class="py-3 px-3 text-right space-x-1 whitespace-nowrap">
+            <button class="p-1 text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded" title="Modificar Stock" onclick="NovaprintUI.abrirModalModificarStock('${it.id}')">📦</button>
             <button class="p-1 text-gray-500 hover:text-gray-800 rounded" title="Editar Artículo" onclick="NovaprintUI.editarItemInventario('${it.id}')">✏️</button>
             <button class="p-1 text-red-500 hover:text-red-700 rounded" title="Eliminar Artículo" onclick="NovaprintUI.confirmarEliminarItemInventario('${it.id}')">🗑️</button>
           </td>
@@ -1550,6 +1555,158 @@
     if (confirm(`¿Eliminar el artículo "${it ? it.name : itemId}" del inventario?`)) {
       storage.deleteInventoryItem(itemId);
       showToast('Artículo eliminado del inventario.', 'info');
+      global.NovaprintMain.refrescarDatos();
+    }
+  }
+
+  // --- MODIFICACIÓN RÁPIDA DE STOCK (SPEC 017) ---
+  let currentStockEditingItem = null;
+
+  function abrirModalModificarStock(itemId) {
+    if (typeof document === 'undefined') return;
+    const dialog = document.getElementById('dialog-adjust-stock');
+    if (!dialog) return;
+
+    const storage = global.NovaprintStorage;
+    const item = storage ? storage.getInventoryItemById(itemId) : null;
+    if (!item) {
+      showToast('Artículo de inventario no encontrado', 'error');
+      return;
+    }
+
+    currentStockEditingItem = item;
+
+    const idInput = document.getElementById('adjust-stock-item-id');
+    const codeEl = document.getElementById('adjust-stock-code');
+    const catEl = document.getElementById('adjust-stock-category');
+    const nameEl = document.getElementById('adjust-stock-name');
+    const specsEl = document.getElementById('adjust-stock-specs');
+    const curStockEl = document.getElementById('adjust-stock-current');
+    const unitLabelEl = document.getElementById('adjust-stock-unit-label');
+    const minAlertEl = document.getElementById('adjust-stock-min-alert');
+    const newInput = document.getElementById('adjust-stock-new-input');
+    const reasonSelect = document.getElementById('adjust-stock-reason-select');
+    const notesInput = document.getElementById('adjust-stock-notes-input');
+
+    if (idInput) idInput.value = item.id;
+    if (codeEl) codeEl.textContent = item.code || item.id;
+    if (catEl) catEl.textContent = item.category || 'General';
+    if (nameEl) nameEl.textContent = item.name;
+    if (specsEl) {
+      const specs = [
+        item.garmentType,
+        item.size ? `Talla: ${item.size}` : null,
+        item.color ? `Color: ${item.color}` : null,
+        `Unidad: ${item.unit || 'un.'}`
+      ].filter(Boolean);
+      specsEl.textContent = specs.join(' • ');
+    }
+    if (curStockEl) curStockEl.textContent = item.currentStock != null ? String(item.currentStock) : '0';
+    if (unitLabelEl) unitLabelEl.textContent = item.unit || 'un.';
+    if (minAlertEl) minAlertEl.textContent = `Mínimo sugerido: ${item.minStock || 0} ${item.unit || 'un.'}`;
+
+    if (newInput) {
+      newInput.value = item.currentStock != null ? String(item.currentStock) : '0';
+    }
+    if (reasonSelect) reasonSelect.value = 'Conteo físico / Cuadratura';
+    if (notesInput) notesInput.value = '';
+
+    recalcularDeltaStock();
+
+    if (typeof dialog.showModal === 'function') {
+      dialog.showModal();
+    }
+  }
+
+  function recalcularDeltaStock() {
+    if (typeof document === 'undefined') return;
+    const item = currentStockEditingItem;
+    const currentStock = item ? (Number(item.currentStock) || 0) : 0;
+    const newInput = document.getElementById('adjust-stock-new-input');
+    const deltaBadge = document.getElementById('adjust-stock-delta-badge');
+    const deltaText = document.getElementById('adjust-stock-delta-text');
+
+    if (!newInput || !deltaBadge) return;
+
+    let nuevoValor = Number(newInput.value);
+    if (isNaN(nuevoValor) || nuevoValor < 0) nuevoValor = 0;
+
+    const delta = nuevoValor - currentStock;
+    const signo = delta > 0 ? '+' : '';
+
+    deltaBadge.textContent = `${signo}${delta}`;
+
+    if (deltaText) {
+      if (delta > 0) {
+        deltaText.textContent = `Aumento de ${delta} unidades`;
+        deltaText.className = 'text-[10px] text-emerald-600 font-bold mt-0.5';
+      } else if (delta < 0) {
+        deltaText.textContent = `Disminución de ${Math.abs(delta)} unidades`;
+        deltaText.className = 'text-[10px] text-red-600 font-bold mt-0.5';
+      } else {
+        deltaText.textContent = 'Sin variación de existencias';
+        deltaText.className = 'text-[10px] text-gray-500 font-medium mt-0.5';
+      }
+    }
+  }
+
+  function aplicarAjusteStockDelta(delta) {
+    if (typeof document === 'undefined') return;
+    const newInput = document.getElementById('adjust-stock-new-input');
+    if (!newInput) return;
+
+    if (delta === 'zero') {
+      newInput.value = '0';
+    } else {
+      const actual = Number(newInput.value) || 0;
+      const nuevo = Math.max(0, actual + Number(delta));
+      newInput.value = String(nuevo);
+    }
+
+    recalcularDeltaStock();
+  }
+
+  function guardarModificacionStock() {
+    if (typeof document === 'undefined') return;
+    const dialog = document.getElementById('dialog-adjust-stock');
+    const idInput = document.getElementById('adjust-stock-item-id');
+    const newInput = document.getElementById('adjust-stock-new-input');
+    const reasonSelect = document.getElementById('adjust-stock-reason-select');
+    const notesInput = document.getElementById('adjust-stock-notes-input');
+
+    const itemId = idInput ? idInput.value : null;
+    if (!itemId) {
+      showToast('Error: No se identificó el artículo a modificar', 'error');
+      return;
+    }
+
+    let nuevoStock = Number(newInput ? newInput.value : 0);
+    if (isNaN(nuevoStock) || nuevoStock < 0) {
+      nuevoStock = 0;
+    }
+
+    const reason = reasonSelect ? reasonSelect.value : 'Ajuste manual';
+    const notes = notesInput ? notesInput.value.trim() : '';
+
+    const storage = global.NovaprintStorage;
+    if (!storage || typeof storage.updateInventoryStock !== 'function') {
+      showToast('Error interno: storage no disponible', 'error');
+      return;
+    }
+
+    const updated = storage.updateInventoryStock(itemId, nuevoStock, { reason, notes });
+    if (!updated) {
+      showToast('No se pudo actualizar el stock en inventario', 'error');
+      return;
+    }
+
+    if (dialog && typeof dialog.close === 'function') {
+      dialog.close();
+    }
+
+    showToast(`Stock de "${updated.name}" actualizado a ${updated.currentStock} ${updated.unit || 'un.'}`, 'success');
+
+    if (global.NovaprintMain && typeof global.NovaprintMain.refrescarDatos === 'function') {
       global.NovaprintMain.refrescarDatos();
     }
   }
@@ -2428,6 +2585,11 @@
     manejarCambioColorInventario,
     guardarItemInventarioDesdeFormulario,
     confirmarEliminarItemInventario,
+    // Spec 017: Modificar Stock de Inventario
+    abrirModalModificarStock,
+    recalcularDeltaStock,
+    aplicarAjusteStockDelta,
+    guardarModificacionStock,
     // Spec 002 & 014: Compras
     renderPurchasesTable,
     abrirModalNuevaCompra,

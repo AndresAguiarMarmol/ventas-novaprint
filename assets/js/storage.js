@@ -338,6 +338,40 @@
     return false;
   }
 
+  /**
+   * Spec 017 — Modifica directamente las existencias (stock actual) de un artículo de inventario.
+   * Valida que no sea negativo (>= 0) y registra metadatos del ajuste.
+   */
+  function updateInventoryStock(id, newStock, options = {}) {
+    const items = getInventory();
+    const idx = items.findIndex(i => i.id === id);
+    if (idx === -1) return null;
+
+    const item = items[idx];
+    const prevStock = Number(item.currentStock) || 0;
+    const validatedStock = Math.max(0, Number(newStock) || 0);
+
+    const adjustment = {
+      previousStock: prevStock,
+      newStock: validatedStock,
+      delta: validatedStock - prevStock,
+      date: new Date().toISOString(),
+      reason: options.reason || 'Ajuste manual',
+      notes: options.notes || ''
+    };
+
+    const updatedItem = {
+      ...item,
+      currentStock: validatedStock,
+      updatedAt: new Date().toISOString(),
+      lastStockAdjustment: adjustment
+    };
+
+    items[idx] = updatedItem;
+    setItem(STORAGE_KEYS.INVENTORY, items);
+    return updatedItem;
+  }
+
   function generarCodigoPrenda(garmentType, color, size) {
     const clean = (str, len) => String(str || '')
       .normalize('NFD')
@@ -1072,6 +1106,7 @@
     getInventory,
     getInventoryItemById,
     saveInventoryItem,
+    updateInventoryStock,
     deleteInventoryItem,
     asegurarItemInventarioPrenda,
     getPurchases,

@@ -1250,6 +1250,110 @@
     </div>
   </dialog>
 
+  <!-- MODAL MODIFICAR STOCK DE INVENTARIO (SPEC 017) -->
+  <dialog id="dialog-adjust-stock" class="w-full max-w-lg p-0 bg-transparent">
+    <div class="bg-white rounded-2xl shadow-2xl border border-gray-200 overflow-hidden">
+      <div class="px-6 py-4 bg-gray-50 border-b border-gray-200 flex justify-between items-center">
+        <div>
+          <h3 class="text-base font-black text-gray-900">Modificar Stock de Inventario</h3>
+          <p class="text-xs text-gray-500">Ajusta directamente las existencias de este artículo</p>
+        </div>
+        <button type="button" class="text-gray-400 hover:text-gray-700 text-lg font-bold p-1" onclick="document.getElementById('dialog-adjust-stock').close()">✕</button>
+      </div>
+
+      <form id="form-adjust-stock" class="p-6 space-y-4">
+        <input type="hidden" id="adjust-stock-item-id">
+
+        <!-- Ficha Resumen del Artículo -->
+        <div class="p-3.5 bg-slate-50 border border-slate-200 rounded-xl space-y-1.5">
+          <div class="flex items-center justify-between">
+            <span id="adjust-stock-code" class="font-mono text-xs font-bold text-blue-700 bg-blue-50 px-2 py-0.5 rounded border border-blue-200">COD</span>
+            <span id="adjust-stock-category" class="text-[11px] font-semibold text-gray-500">Categoría</span>
+          </div>
+          <div id="adjust-stock-name" class="text-sm font-black text-gray-900 leading-tight">Nombre del Artículo</div>
+          <div id="adjust-stock-specs" class="text-xs text-gray-500 font-medium">Talla • Color • Unidad</div>
+        </div>
+
+        <!-- Comparador de Stock Actual y Variación -->
+        <div class="grid grid-cols-2 gap-3">
+          <div class="p-3 bg-gray-50 rounded-xl border border-gray-200 text-center">
+            <div class="text-[10px] text-gray-400 font-bold uppercase">Stock Registrado Actual</div>
+            <div class="flex items-center justify-center gap-1 mt-1">
+              <span id="adjust-stock-current" class="text-2xl font-black text-gray-800">0</span>
+              <span id="adjust-stock-unit-label" class="text-xs text-gray-500">un.</span>
+            </div>
+            <div id="adjust-stock-min-alert" class="text-[10px] text-gray-400 mt-0.5">Mínimo sugerido: 5</div>
+          </div>
+
+          <div class="p-3 bg-blue-50 rounded-xl border border-blue-200 text-center">
+            <div class="text-[10px] text-blue-700 font-bold uppercase">Variación Calculada</div>
+            <div class="flex items-center justify-center gap-1 mt-1">
+              <span id="adjust-stock-delta-badge" class="text-2xl font-black text-blue-800">0</span>
+              <span class="text-xs text-blue-600">un.</span>
+            </div>
+            <div id="adjust-stock-delta-text" class="text-[10px] text-blue-600 font-medium mt-0.5">Sin variación</div>
+          </div>
+        </div>
+
+        <!-- Entrada del Nuevo Stock y Botones Rápidos -->
+        <div class="space-y-2">
+          <label for="adjust-stock-new-input" class="block text-xs font-bold text-gray-700 uppercase">
+            Nuevo Stock Físico *
+          </label>
+          <div class="relative">
+            <input id="adjust-stock-new-input" type="number" min="0" step="1" required
+              class="w-full text-center text-xl font-black p-2.5 bg-gray-50 border border-gray-300 rounded-xl focus:outline-none focus:bg-white focus:ring-2 focus:ring-blue-500 text-gray-900"
+              oninput="NovaprintUI.recalcularDeltaStock()">
+            <span class="absolute right-3 top-3 text-xs text-gray-400 font-bold">unidades</span>
+          </div>
+
+          <!-- Botones de incremento / decremento rápido -->
+          <div class="flex flex-wrap items-center justify-center gap-1.5 pt-1">
+            <button type="button" class="px-2.5 py-1 text-xs font-bold rounded-lg border border-red-200 bg-red-50 text-red-700 hover:bg-red-100 transition" onclick="NovaprintUI.aplicarAjusteStockDelta(-10)">-10</button>
+            <button type="button" class="px-2.5 py-1 text-xs font-bold rounded-lg border border-red-200 bg-red-50 text-red-700 hover:bg-red-100 transition" onclick="NovaprintUI.aplicarAjusteStockDelta(-5)">-5</button>
+            <button type="button" class="px-2.5 py-1 text-xs font-bold rounded-lg border border-red-200 bg-red-50 text-red-700 hover:bg-red-100 transition" onclick="NovaprintUI.aplicarAjusteStockDelta(-1)">-1</button>
+            <button type="button" class="px-2.5 py-1 text-xs font-bold rounded-lg border border-gray-300 bg-gray-100 text-gray-700 hover:bg-gray-200 transition" onclick="NovaprintUI.aplicarAjusteStockDelta('zero')">Agotado (0)</button>
+            <button type="button" class="px-2.5 py-1 text-xs font-bold rounded-lg border border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 transition" onclick="NovaprintUI.aplicarAjusteStockDelta(1)">+1</button>
+            <button type="button" class="px-2.5 py-1 text-xs font-bold rounded-lg border border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 transition" onclick="NovaprintUI.aplicarAjusteStockDelta(5)">+5</button>
+            <button type="button" class="px-2.5 py-1 text-xs font-bold rounded-lg border border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 transition" onclick="NovaprintUI.aplicarAjusteStockDelta(10)">+10</button>
+          </div>
+        </div>
+
+        <!-- Motivo del Ajuste -->
+        <div class="space-y-2">
+          <div>
+            <label for="adjust-stock-reason-select" class="block text-xs font-bold text-gray-700 uppercase mb-1">
+              Motivo del Ajuste
+            </label>
+            <select id="adjust-stock-reason-select" class="w-full p-2.5 bg-gray-50 border border-gray-300 rounded-lg text-xs font-medium focus:outline-none focus:bg-white">
+              <option value="Conteo físico / Cuadratura">📋 Conteo físico / Cuadratura de inventario</option>
+              <option value="Ingreso manual de stock">📥 Ingreso manual de stock (sin factura)</option>
+              <option value="Merma o daño en producción">⚠️ Merma / Daño en taller (planchado, tintas)</option>
+              <option value="Consumo en taller / Muestra">🎨 Consumo en taller / Muestra cliente</option>
+              <option value="Devolución">🔄 Devolución de cliente / proveedor</option>
+              <option value="Ajuste manual">✏️ Corrección / Otro motivo</option>
+            </select>
+          </div>
+
+          <div>
+            <input id="adjust-stock-notes-input" type="text" placeholder="Nota o comentario adicional (opcional)..."
+              class="w-full p-2 bg-gray-50 border border-gray-300 rounded-lg text-xs focus:outline-none focus:bg-white">
+          </div>
+        </div>
+
+        <!-- Botones de Acción -->
+        <div class="pt-3 border-t border-gray-200 flex justify-end gap-3">
+          <button type="button" class="px-4 py-2 border border-gray-300 text-gray-700 font-bold rounded-lg hover:bg-gray-100 text-xs" onclick="document.getElementById('dialog-adjust-stock').close()">
+            Cancelar
+          </button>
+          <button type="submit" class="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-lg shadow-sm text-xs flex items-center gap-1.5">
+            💾 Actualizar Stock
+          </button>
+        </div>
+      </form>
+    </div>
+  </dialog>
+
   <!-- 8. MODAL DE REGISTRAR COMPRA (SPEC 002) -->
   <dialog id="dialog-purchase" class="w-full max-w-3xl p-0 bg-transparent">
     <div class="bg-white rounded-2xl shadow-2xl border border-gray-200 overflow-hidden flex flex-col max-h-[92vh]">

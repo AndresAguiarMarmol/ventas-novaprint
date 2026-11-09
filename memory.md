@@ -66,6 +66,12 @@ Registro de todo lo que debe preservarse entre sesiones de trabajo: arquitectura
   - **Spec 014 (Implementada):** Edición y Eliminación de Compras de Insumos & Textiles con Ajuste Diferencial y Reversión de Stock en Inventario.
   - **Spec 015 (Implementada):** Botones Dedicados para Modificar el Status de un Pedido en Tabla y Tablero Kanban.
   - **Spec 016 (Implementada):** Eliminación de Opciones "Vaciar Base de Datos" y "Cargar datos de Prueba" en Ajustes y Respaldos.
+  - **Spec 017 (Implementada):** Opción para Modificar el Stock de Inventarios (Ajuste Rápido y Cuadratura).
+- **Modificación Rápida y Ajuste de Stock en Inventario (Spec 017):**
+  - **Flujo Especializado de Existencias:** Permite ajustar existencias de prendas base e insumos sin requerir la edición integral del catálogo (código, nombre, proveedor, costo).
+  - **Puntos de Acceso en Tabla de Inventario (`renderInventoryTable`):** Botón directo de acción rápida `[📦]` con tooltip "Modificar Stock" y conversión de la cifra en la columna "Stock Actual" en un botón interactivo táctil con previsualización del ícono lápiz.
+  - **Modal Especializado `<dialog id="dialog-adjust-stock">`:** Despliega código, nombre, categoría, especificaciones textiles (talla/color), stock actual, cálculo en vivo de la variación ($\Delta$), entrada numérica directa, botones de incremento/decremento rápido (`-10, -5, -1, Agotado (0), +1, +5, +10`) y selección opcional de motivo (conteo físico, merma, consumo en taller, devolución) con notas.
+  - **Capa de Persistencia (`storage.updateInventoryStock`):** Valida que el stock nunca sea negativo ($\ge 0$), actualiza `currentStock`, `updatedAt` y guarda el registro del ajuste en `lastStockAdjustment`. Al guardar, dispara `refrescarDatos()` sincronizando inventarios, alertas de stock crítico y disponibilidad en pedidos.
 - **Protección de Datos en Producción y Eliminación de Acciones Destructivas (Spec 016):**
   - **Limpieza en `#dialog-settings`:** Se retiró la sección completa "Gestión de Registros" junto con los botones `#btn-clear-database` y `#btn-load-demo-data`.
   - **Preservación Total de Capacidades Operativas:** Se conservaron íntegras las opciones de configuración de empresa, RUT, teléfono/WhatsApp, dirección, pie de ticket, selector de tema (claro/oscuro/sistema) y el sistema de copias de seguridad JSON (`#btn-export-backup` y `#file-import-backup`).
@@ -99,6 +105,18 @@ Registro de todo lo que debe preservarse entre sesiones de trabajo: arquitectura
 ---
 
 ## 3. Historial de cambios
+
+### 2026-11-08 (Opción para Modificar el Stock de Inventarios — Spec 017)
+- **Capa de Persistencia (`storage.js`):**
+  - Implementada la función `updateInventoryStock(id, newStock, options)` con validación de límite inferior ($\ge 0$), actualización de timestamp y registro de metadatos en `lastStockAdjustment` (stock anterior, nuevo stock, delta, motivo y notas).
+- **Interfaz y Diálogos (`index.html` & `ui.js`):**
+  - Creado el diálogo modal nativo `<dialog id="dialog-adjust-stock">` con ficha técnica del artículo, comparación de existencias, cálculo en vivo de variación ($\Delta$), selector numérico con botones rápidos (`-10, -5, -1, Agotado (0), +1, +5, +10`) y selección de motivo.
+  - En la tabla de inventarios (`renderInventoryTable`), la celda de stock actual se convirtió en un botón interactivo y se añadió el botón directo `[📦]` ("Modificar Stock") en la columna de operaciones.
+  - Implementadas `abrirModalModificarStock`, `recalcularDeltaStock`, `aplicarAjusteStockDelta` y `guardarModificacionStock` en `NovaprintUI`, y conectado el envío de formulario en `main.js`.
+- **Pruebas Automatizadas (`tests/inventory_stock_adjustment.test.js`):**
+  - 8 pruebas unitarias cubriendo persistencia, corrección de números negativos, preservación de atributos, renderizado de botones y ciclo completo de guardado/cierre.
+  - Test suite global: 127 pruebas en 10 suites pasando al 100% (0 errores).
+- **Metodología SDD:** Especificación completa en `specs/017-modificar-stock-inventario/` (`spec.md`, `plan.md`, `tasks.md`).
 
 ### 2026-11-08 (Eliminación de Opciones "Vaciar Base de Datos" y "Cargar datos de Prueba" — Spec 016)
 - **Seguridad en Ajustes & Respaldo (`index.html` & `assets/js/main.js`):**

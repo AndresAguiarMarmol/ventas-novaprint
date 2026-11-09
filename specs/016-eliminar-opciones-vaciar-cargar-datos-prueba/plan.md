@@ -19,3 +19,4 @@
 ## 3. Riesgos y Mitigación
 - **Riesgo:** Que alguna prueba unitaria existente dependa de la presencia en el DOM de `#btn-clear-database` o `#btn-load-demo-data`.
 - **Mitigación:** Previamente revisamos todo el directorio `tests/` y comprobamos que ningún test busca esos botones en el DOM; `storage.test.js` invoca `storage.clearAllData` y `storage.initDemoData` a nivel de API programática, las cuales se mantendrán intactas en `storage.js`.
+
