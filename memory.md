@@ -69,6 +69,14 @@ Registro de todo lo que debe preservarse entre sesiones de trabajo: arquitectura
   - **Spec 016 (Implementada):** Eliminación de Opciones "Vaciar Base de Datos" y "Cargar datos de Prueba" en Ajustes y Respaldos.
   - **Spec 017 (Implementada):** Opción para Modificar el Stock de Inventarios (Ajuste Rápido y Cuadratura).
   - **Spec 018 (Implementada):** Módulo de Contabilidad con Plan de Cuentas, Activos, Pasivos, Ingresos por Ventas de Poleras y Gastos Enlazados (Balance General, P&L y Libro Diario).
+  - **Spec 019 (Implementada):** Asientos Contables al Registrar Pedidos: Abono a Banco y Saldo a Cuentas por Cobrar.
+- **Asientos Contables al Registrar Pedidos (Spec 019):**
+  - **Partida Doble por Pedido:** Al registrar o actualizar una orden en el taller (`NovaprintStorage.saveOrder` o formulario de pedidos), se invoca `generarAsientosPedido` para desglosar la transacción:
+    - **Abono Inicial (`depositAmount > 0`):** Se asienta como débito (Debe) en la cuenta `1101 Caja y Bancos (Disponible)` contra crédito (Haber) en `4101 Ventas de Poleras y Confección`.
+    - **Saldo Pendiente (`balanceAmount > 0`):** Se asienta como débito (Debe) en la cuenta `1102 Cuentas por Cobrar Clientes` contra crédito (Haber) en `4101 Ventas de Poleras y Confección`.
+    - **Suma de Partida Doble:** Cumple estrictamente $\text{Debe}_{Banco} + \text{Debe}_{CxC} = \text{Total del Pedido} = \text{Haber}_{Ventas}$.
+  - **Visualización en Libro Diario (`generarLibroDiario` & `ui.js`):** Cada componente del pedido se presenta con su respectiva insignia identificadora (*Abono Banco* con tono esmeralda o *Saldo Crédito* con tono azul) permitiendo auditar tanto el efectivo ingresado como los saldos adeudados por cobrar.
+  - **Persistencia en la Orden:** La propiedad `order.asientosContables` se asocia automáticamente a la entidad del pedido, manteniendo retrocompatibilidad total con pedidos preexistentes.
 - **Módulo de Contabilidad Integral Enlazado (Spec 018):**
   - **Plan de Cuentas Estándar:** Estructuración en 5 grupos contables (`1. ACTIVOS`, `2. PASIVOS`, `3. PATRIMONIO`, `4. INGRESOS`, `5. COSTOS Y GASTOS`) con códigos estándar (1101 Caja y Bancos, 1102 Cuentas por Cobrar, 1103 Inventario Bodega, 1104 IVA Crédito Fiscal, 2101 Cuentas por Pagar, 2102 IVA Débito Fiscal, 3101 Capital, 3201 Utilidad del Ejercicio, 4101 Venta de Poleras y Prendas, 4102 Delivery Cobrado, 5101 Costo de Insumos Comprados, 5201 Gastos Operacionales de Taller).
   - **Enlace Reactivo Automático:** La contabilidad no requiere duplicar registros manuales; se alimenta directamente de los pedidos de clientes (`novaprint_orders`), compras de insumos (`novaprint_purchases`), inventario físico (`novaprint_inventory`) y gastos de taller (`novaprint_expenses`). Al guardar o editar cualquiera de estas entidades, `refrescarDatos()` ejecuta `refrescarContabilidad()`.
@@ -113,6 +121,21 @@ Registro de todo lo que debe preservarse entre sesiones de trabajo: arquitectura
 ---
 
 ## 3. Historial de cambios
+
+### 2026-11-09 (Asientos Contables al Registrar Pedidos: Abono a Banco y Saldo a CxC — Spec 019)
+- **Motor Contable (`assets/js/accounting.js`):**
+  - Implementación de `generarAsientosPedido(pedido)`: separa el monto abonado en débito a `1101 Caja y Bancos (Disponible)` y el saldo pendiente en débito a `1102 Cuentas por Cobrar Clientes`, contrapartiendo en crédito a `4101 Ventas de Poleras y Confección`.
+  - Normalización unificada en `normalizarMontosPedido(p)` para leer tanto atributos en la raíz como dentro del objeto anidado `totals`.
+  - Actualización de `generarLibroDiario` para incorporar los asientos contables detallados de cada pedido activo.
+- **Capa de Persistencia (`assets/js/storage.js`):**
+  - Actualización de `saveOrder`: al registrar o editar un pedido, calcula y adjunta automáticamente el array `asientosContables` al objeto de la orden preservando la inmutabilidad de los datos.
+- **Interfaz de Usuario (`assets/js/ui.js`):**
+  - En `renderAccountingJournal`, se añadieron insignias contextuales para distinguir los asientos de ventas: *Abono Banco* (verde esmeralda) y *Saldo Crédito* (azul cielo), mejorando la legibilidad del Libro Diario.
+- **Respaldo previo & Pruebas Automatizadas (`tests/order_accounting_entries.test.js`):**
+  - Respaldo de seguridad previo generado en `backups/backup_pre_asientos_pedidos_20261109.json` y tag git `backup-pre-asientos-pedidos-20261109`.
+  - 8 nuevas pruebas unitarias cubriendo generación de asientos para abono parcial, pago total, pedidos a crédito, persistencia en storage y consistencia de Balance General.
+  - Test suite global: 146 pruebas unitarias pasando al 100% en verde (0 fallos).
+- **Metodología SDD:** Especificación completa en `specs/019-asientos-contables-abono-banco-saldo-cuentas-por-cobrar/` (`spec.md`, `plan.md`, `tasks.md`).
 
 ### 2026-11-09 (Módulo de Contabilidad Integral — Spec 018)
 - **Motor Contable (`assets/js/accounting.js`):**

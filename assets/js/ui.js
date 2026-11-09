@@ -2749,7 +2749,13 @@
 
       let tipoBadge = '';
       if (a.tipo === 'Ingreso') {
-        tipoBadge = '<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-purple-100 text-purple-800 border border-purple-200">Venta Poleras</span>';
+        if (a.subcuenta === 'Banco') {
+          tipoBadge = '<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-200">Abono Banco</span>';
+        } else if (a.subcuenta === 'Cuentas por Cobrar') {
+          tipoBadge = '<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-blue-100 text-blue-800 border border-blue-200">Saldo Crédito</span>';
+        } else {
+          tipoBadge = '<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-purple-100 text-purple-800 border border-purple-200">Venta Poleras</span>';
+        }
       } else if (a.tipo === 'Costo') {
         tipoBadge = '<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-800 border border-amber-200">Compra Insumo</span>';
       } else {

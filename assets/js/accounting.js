@@ -51,6 +51,150 @@
   ]);
 
   /**
+   * Extrae y normaliza los montos clave de un pedido textil considerando tanto
+   * propiedades en la raíz del objeto como en la estructura anidada totals.
+   */
+  function normalizarMontosPedido(p) {
+    if (!p) {
+      return {
+        subtotalItems: 0,
+        descuento: 0,
+        neto: 0,
+        iva: 0,
+        delivery: 0,
+        total: 0,
+        abono: 0,
+        saldo: 0
+      };
+    }
+
+    const items = Array.isArray(p.items) ? p.items : [];
+    let subtotalItems = 0;
+    items.forEach(it => {
+      const qty = Number(it.quantity) || 0;
+      const price = Number(it.unitPrice) || 0;
+      subtotalItems += (it.total != null ? Number(it.total) : qty * price);
+    });
+
+    const descuento = Number(p.volumeDiscountAmount) || (p.totals?.volumeDiscountAmount != null ? Number(p.totals.volumeDiscountAmount) : 0);
+    const netoCalculado = Math.max(0, subtotalItems - descuento);
+    const neto = p.netSubtotal != null ? Number(p.netSubtotal) : (p.totals?.netAmount != null ? Number(p.totals.netAmount) : (p.totals?.subtotalNeto != null ? Number(p.totals.subtotalNeto) : netoCalculado));
+
+    const iva = Number(p.ivaAmount) || (p.totals?.ivaAmount != null ? Number(p.totals.ivaAmount) : 0);
+    const delivery = Number(p.deliveryAmount) || (p.totals?.deliveryAmount != null ? Number(p.totals.deliveryAmount) : 0);
+
+    const totalCalculado = neto + iva + delivery;
+    const total = p.total != null ? Number(p.total) : (p.totals?.totalAmount != null ? Number(p.totals.totalAmount) : (subtotalItems > 0 ? totalCalculado : 0));
+
+    const depositVal = p.deposit != null ? Number(p.deposit) : (p.totals?.depositAmount != null ? Number(p.totals.depositAmount) : 0);
+    const deposit = Math.max(0, depositVal);
+    const isEntregado = p.status === 'Entregado';
+
+    // Si está entregado y sin abono registrado, o si el abono cubre el total, se considera cobrado
+    const cobrado = (isEntregado && deposit === 0) ? total : Math.min(total, deposit);
+    const balanceVal = p.balance != null ? Number(p.balance) : (p.totals?.balanceAmount != null ? Number(p.totals.balanceAmount) : Math.max(0, total - cobrado));
+    const saldo = Math.max(0, balanceVal);
+
+    return {
+      subtotalItems,
+      descuento,
+      neto,
+      iva,
+      delivery,
+      total,
+      abono: cobrado,
+      saldo
+    };
+  }
+
+  /**
+   * Genera los asientos contables detallados de un pedido al momento de registrarse.
+   * Spec 019:
+   * 1. El monto abonado va a la cuenta 1101 Caja y Bancos (Disponible).
+   * 2. El saldo pendiente va a la cuenta 1102 Cuentas por Cobrar Clientes.
+   * La contrapartida en el Haber se reconoce en 4101 Ventas de Poleras y Confección.
+   */
+  function generarAsientosPedido(p) {
+    if (!p || p.status === 'Cancelado') return [];
+
+    const m = normalizarMontosPedido(p);
+    const fecha = p.date || p.dates?.deliveryDate || p.dates?.createdAt || p.createdAt || new Date().toISOString();
+    const cliente = p.clientName || 'Cliente General';
+    const pedidoId = p.id || 'S/N';
+    const asientos = [];
+
+    // 1. Asiento para el monto abonado (Caja y Bancos)
+    if (m.abono > 0) {
+      asientos.push({
+        id: `AS-ORD-${pedidoId}-BANCO`,
+        fecha,
+        tipo: 'Ingreso',
+        origen: 'Venta de Pedido (Abono)',
+        subcuenta: 'Banco',
+        referenciaId: pedidoId,
+        concepto: `Abono Pedido — ${cliente} (${pedidoId})`,
+        cuentaDebe: CUENTAS_CONTABLES.CAJA_BANCOS.nombre,
+        debe: m.abono,
+        cuentaHaber: CUENTAS_CONTABLES.VENTAS_POLERAS.nombre,
+        haber: m.abono,
+        detalle: {
+          total: m.total,
+          abono: m.abono,
+          saldo: m.saldo,
+          neto: m.neto,
+          iva: m.iva,
+          delivery: m.delivery
+        }
+      });
+    }
+
+    // 2. Asiento para el saldo pendiente (Cuentas por Cobrar)
+    if (m.saldo > 0) {
+      asientos.push({
+        id: `AS-ORD-${pedidoId}-CXC`,
+        fecha,
+        tipo: 'Ingreso',
+        origen: 'Venta de Pedido (Crédito)',
+        subcuenta: 'Cuentas por Cobrar',
+        referenciaId: pedidoId,
+        concepto: `Saldo Pendiente Pedido — ${cliente} (${pedidoId})`,
+        cuentaDebe: CUENTAS_CONTABLES.CUENTAS_POR_COBRAR.nombre,
+        debe: m.saldo,
+        cuentaHaber: CUENTAS_CONTABLES.VENTAS_POLERAS.nombre,
+        haber: m.saldo,
+        detalle: {
+          total: m.total,
+          abono: m.abono,
+          saldo: m.saldo,
+          neto: m.neto,
+          iva: m.iva,
+          delivery: m.delivery
+        }
+      });
+    }
+
+    // Caso borde: Pedido promocional $0 (ambos son 0)
+    if (asientos.length === 0 && m.total === 0) {
+      asientos.push({
+        id: `AS-ORD-${pedidoId}`,
+        fecha,
+        tipo: 'Ingreso',
+        origen: 'Venta de Pedido ($0)',
+        subcuenta: 'Banco',
+        referenciaId: pedidoId,
+        concepto: `Venta Promocional $0 — ${cliente} (${pedidoId})`,
+        cuentaDebe: CUENTAS_CONTABLES.CAJA_BANCOS.nombre,
+        debe: 0,
+        cuentaHaber: CUENTAS_CONTABLES.VENTAS_POLERAS.nombre,
+        haber: 0,
+        detalle: { total: 0, abono: 0, saldo: 0 }
+      });
+    }
+
+    return asientos;
+  }
+
+  /**
    * Consolida métricas de pedidos enlazadas a cobranza, facturación y cuentas por cobrar.
    */
   function obtenerConsolidadoPedidos(pedidos = []) {
@@ -66,37 +210,15 @@
     let totalCuentasPorCobrar = 0;
 
     validos.forEach(p => {
-      const items = Array.isArray(p.items) ? p.items : [];
-      let subtotalItems = 0;
-      items.forEach(it => {
-        const qty = Number(it.quantity) || 0;
-        const price = Number(it.unitPrice) || 0;
-        subtotalItems += (it.total != null ? Number(it.total) : qty * price);
-      });
-
-      const descuento = Number(p.volumeDiscountAmount) || 0;
-      const netoCalculado = Math.max(0, subtotalItems - descuento);
-      const neto = p.netSubtotal != null ? Number(p.netSubtotal) : netoCalculado;
-
-      const iva = Number(p.ivaAmount) || 0;
-      const delivery = Number(p.deliveryAmount) || 0;
-      const total = p.total != null ? Number(p.total) : (neto + iva + delivery);
-
-      const deposit = Math.max(0, Number(p.deposit) || 0);
-      const isEntregado = p.status === 'Entregado';
-
-      // Si está entregado o el abono cubre el total, se considera cobrado en su totalidad; sino el abono
-      const cobrado = isEntregado && deposit === 0 ? total : Math.min(total, deposit);
-      const saldo = Math.max(0, total - cobrado);
-
-      totalBruto += subtotalItems;
-      totalDescuentos += descuento;
-      totalNeto += neto;
-      totalIva += iva;
-      totalDelivery += delivery;
-      totalFacturado += total;
-      totalCobradoEfectivo += cobrado;
-      totalCuentasPorCobrar += saldo;
+      const m = normalizarMontosPedido(p);
+      totalBruto += m.subtotalItems;
+      totalDescuentos += m.descuento;
+      totalNeto += m.neto;
+      totalIva += m.iva;
+      totalDelivery += m.delivery;
+      totalFacturado += m.total;
+      totalCobradoEfectivo += m.abono;
+      totalCuentasPorCobrar += m.saldo;
     });
 
     return {
@@ -329,37 +451,11 @@
   function generarLibroDiario(pedidos = [], compras = [], gastos = []) {
     const asientos = [];
 
-    // 1. Asientos de Pedidos (Ventas de Poleras)
+    // 1. Asientos de Pedidos (Ventas de Poleras) — Spec 019: Abono a Banco y Saldo a Cuentas por Cobrar
     (Array.isArray(pedidos) ? pedidos : []).forEach(p => {
       if (!p || p.status === 'Cancelado') return;
-
-      const total = Number(p.total) || 0;
-      const neto = Number(p.netSubtotal) || total;
-      const iva = Number(p.ivaAmount) || 0;
-      const delivery = Number(p.deliveryAmount) || 0;
-      const abono = Math.max(0, Number(p.deposit) || 0);
-      const cobrado = (p.status === 'Entregado' && abono === 0) ? total : Math.min(total, abono);
-      const porCobrar = Math.max(0, total - cobrado);
-
-      asientos.push({
-        id: `AS-ORD-${p.id}`,
-        fecha: p.date || p.createdAt || new Date().toISOString(),
-        tipo: 'Ingreso',
-        origen: 'Venta de Pedido',
-        referenciaId: p.id,
-        concepto: `Venta de Prendas — ${p.clientName || 'Cliente'} (${p.id})`,
-        cuentaDebe: cobrado > 0 ? CUENTAS_CONTABLES.CAJA_BANCOS.nombre : CUENTAS_CONTABLES.CUENTAS_POR_COBRAR.nombre,
-        debe: total,
-        cuentaHaber: CUENTAS_CONTABLES.VENTAS_POLERAS.nombre,
-        haber: total,
-        detalle: {
-          neto,
-          iva,
-          delivery,
-          cobrado,
-          porCobrar
-        }
-      });
+      const asientosPedido = generarAsientosPedido(p);
+      asientosPedido.forEach(a => asientos.push(a));
     });
 
     // 2. Asientos de Compras de Insumos
@@ -443,6 +539,8 @@
   const accountingModule = {
     CUENTAS_CONTABLES,
     CATEGORIAS_GASTO,
+    normalizarMontosPedido,
+    generarAsientosPedido,
     obtenerConsolidadoPedidos,
     obtenerConsolidadoCompras,
     obtenerValorizacionInventario,

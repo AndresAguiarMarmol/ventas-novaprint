@@ -238,6 +238,17 @@
       orders.unshift(orderToSave);
     }
 
+    // Spec 019: Asociar asientos contables automáticos al registrar el pedido (Abono a Banco y Saldo a CxC)
+    try {
+      let acc = global.NovaprintAccounting;
+      if (!acc && typeof require !== 'undefined') {
+        try { acc = require('./accounting.js'); } catch (_) {}
+      }
+      if (acc && typeof acc.generarAsientosPedido === 'function') {
+        orderToSave.asientosContables = acc.generarAsientosPedido(orderToSave);
+      }
+    } catch (_) {}
+
     setItem(STORAGE_KEYS.ORDERS, orders);
     return orderToSave;
   }
