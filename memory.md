@@ -31,7 +31,7 @@ Registro de todo lo que debe preservarse entre sesiones de trabajo: arquitectura
   - **Fórmula financiera en Ventas:** $\text{Neto} = \text{Subtotal} - \text{Descuento Volumen}$; $\text{IVA} = \text{round}(\text{Neto} \times 0.19)$; $\text{Total} = \text{Neto} + \text{IVA} + \text{Delivery}$; $\text{Saldo} = \text{Total} - \text{Abono}$.
   - **Fórmula financiera en Compras:** $\text{Subtotal Neto} = \sum (\text{cantidad} \times \text{costo unitario})$; $\text{IVA} = \text{round}(\text{Subtotal Neto} \times 0.19)$; $\text{Total} = \text{Subtotal Neto} + \text{IVA} + \text{Delivery}$.
   - **Soporte en comprobantes:** Desglose en vivo en los modales, en tickets imprimibles/térmicos (`ticket.js`) y en mensajes estructurados de WhatsApp (`sales.js`).
-- **Datos Propios vs Datos Demo:** La aplicación no inserta datos de muestra automáticamente al iniciar. Inicia con las entidades vacías (`[]`) para uso con datos reales. En `Ajustes` (⚙️) existen botones para vaciar la base de datos o cargar datos de muestra manualmente si se desea hacer pruebas.
+- **Datos Propios y Seguridad en Producción (Spec 016):** La aplicación opera exclusivamente con datos reales propios sin precarga de datos de muestra. Se eliminaron de la interfaz de usuario de "Ajustes & Respaldo" (`#dialog-settings`) los botones "Vaciar Base de Datos" y "Cargar datos de Prueba", erradicando el riesgo de eliminación accidental de registros en el taller. La seguridad y portabilidad de datos se gestiona exclusivamente mediante las opciones oficiales de Descargar Respaldo JSON y Restaurar Respaldo JSON. Los métodos `storage.clearAllData` e `initDemoData` permanecen intactos como APIs de bajo nivel para suites de pruebas automatizadas.
 - **Selector de Colores Textiles Unificado:** Tanto en el formulario de "Nuevo Pedido" como en "Registrar Artículo en Inventario" (`#dialog-inventory`) se utiliza la misma lista desplegable estandarizada con los colores de la industria textil de estampados (`COLORES_TEXTILES`), garantizando concordancia exacta de stock y permitiendo además especificar colores personalizados mediante la opción interactiva "Otro".
 - **Catálogo de Tallas Textiles Estandarizado (Spec 007):** Tanto en Pedidos como en Bodega e Inventario se soportan formalmente las tallas infantiles numéricas (`4, 6, 8, 10, 12, 14, 16, 18`) junto con las tallas adultas (`XS, S, M, L, XL, XXL, Única`). En la interfaz se organizan mediante `<optgroup>` semánticos ("Niños" y "Adultos / Estándar"). Las tallas infantiles no reciben recargo por talla especial y son plenamente compatibles con el cálculo de disponibilidad de bodega y cotizaciones de pedidos.
 - **Enlace Prenda-Color-Talla y Auto-creación en Inventario (Spec 008):** Toda prenda de pedido se vincula con el inventario mediante la coincidencia normalizada de su terna `garmentType`, `color` y `size`. Si una prenda requerida no existe previamente en `novaprint_inventory`, el sistema la contabiliza como faltante (`totalPrendasFaltantes`) y, al proceder a la compra de faltantes (`abrirModalCompraConFaltantes`) o guardar el pedido, crea automáticamente el ítem en bodega (`asegurarItemInventarioPrenda`) con stock 0, código estructurado (`POL-AZU-10`) y costo base de referencia. Esto permite enlazarla a la orden de compra con un `inventoryItemId` formal y, al confirmar la compra, incrementar su stock automáticamente en bodega.
@@ -65,6 +65,11 @@ Registro de todo lo que debe preservarse entre sesiones de trabajo: arquitectura
   - **Spec 013 (Implementada):** Flexibilidad de Precios Libres y Escala Oficial de Descuentos por Volumen.
   - **Spec 014 (Implementada):** Edición y Eliminación de Compras de Insumos & Textiles con Ajuste Diferencial y Reversión de Stock en Inventario.
   - **Spec 015 (Implementada):** Botones Dedicados para Modificar el Status de un Pedido en Tabla y Tablero Kanban.
+  - **Spec 016 (Implementada):** Eliminación de Opciones "Vaciar Base de Datos" y "Cargar datos de Prueba" en Ajustes y Respaldos.
+- **Protección de Datos en Producción y Eliminación de Acciones Destructivas (Spec 016):**
+  - **Limpieza en `#dialog-settings`:** Se retiró la sección completa "Gestión de Registros" junto con los botones `#btn-clear-database` y `#btn-load-demo-data`.
+  - **Preservación Total de Capacidades Operativas:** Se conservaron íntegras las opciones de configuración de empresa, RUT, teléfono/WhatsApp, dirección, pie de ticket, selector de tema (claro/oscuro/sistema) y el sistema de copias de seguridad JSON (`#btn-export-backup` y `#file-import-backup`).
+  - **Depuración de Eventos en `main.js`:** Se eliminaron los escuchadores de clic asociados a dichos botones en `initEventosConfiguracion`, manteniendo la carga del sistema limpia y sin referencias a elementos inexistentes.
 - **Botones Dedicados para Modificación Rápida de Estados de Pedido (Spec 015):**
   - **Modal de Selección Rápida de Estados:** Se implementó el diálogo nativo `<dialog id="dialog-change-order-status">` con presentación accesible de los 6 estados del flujo textil (`Cotización`, `Confirmado`, `En producción`, `Listo para entrega`, `Entregado`, `Cancelado`), resaltando visualmente el estado actual con la insignia `Actual` e ícono de selección.
   - **Accesibilidad y Puntos de Activación en UI:**
@@ -94,6 +99,16 @@ Registro de todo lo que debe preservarse entre sesiones de trabajo: arquitectura
 ---
 
 ## 3. Historial de cambios
+
+### 2026-11-08 (Eliminación de Opciones "Vaciar Base de Datos" y "Cargar datos de Prueba" — Spec 016)
+- **Seguridad en Ajustes & Respaldo (`index.html` & `assets/js/main.js`):**
+  - Removido el bloque "Gestión de Registros" con los botones `#btn-clear-database` ("Vaciar Base de Datos") y `#btn-load-demo-data` ("Cargar Datos de Prueba") de `#dialog-settings`.
+  - Retirados los listeners de eventos en `main.js` (`initEventosConfiguracion`), evitando referencias colgantes a elementos eliminados.
+  - Preservadas al 100% las funciones de configuración empresarial, preferencias de tema y herramientas de respaldo JSON (`#btn-export-backup` y `#file-import-backup`).
+- **Pruebas Automatizadas (`tests/settings_cleanup.test.js`):**
+  - 5 pruebas unitarias verificando la ausencia de botones de vaciado/demo en `index.html`, la conservación de herramientas de respaldo y la integridad del formulario de ajustes.
+  - Test suite global: 119 pruebas en 9 suites pasando al 100% (0 errores).
+- **Metodología SDD:** Especificación completa en `specs/016-eliminar-opciones-vaciar-cargar-datos-prueba/` (`spec.md`, `plan.md`, `tasks.md`).
 
 ### 2026-11-08 (Botones para Modificar el Status de un Pedido — Spec 015)
 - **Modal de Selección Rápida de Estados (`index.html` & `assets/js/ui.js`):**

@@ -612,30 +612,6 @@
         reader.readAsText(file);
       });
     }
-
-    const btnClearDb = document.getElementById('btn-clear-database');
-    if (btnClearDb) {
-      btnClearDb.addEventListener('click', () => {
-        if (confirm('¿Estás seguro de que deseas vaciar todos los registros (pedidos, clientes, insumos, compras y taller)? Esta acción dejará el sistema en blanco.')) {
-          global.NovaprintStorage.clearAllData(true);
-          dialogSettings.close();
-          refrescarDatos();
-          global.NovaprintUI.showToast('Todos los datos han sido eliminados. Base de datos vacía.', 'info');
-        }
-      });
-    }
-
-    const btnLoadDemo = document.getElementById('btn-load-demo-data');
-    if (btnLoadDemo) {
-      btnLoadDemo.addEventListener('click', () => {
-        if (confirm('¿Deseas cargar los datos de prueba de ejemplo?')) {
-          global.NovaprintStorage.initDemoData(true);
-          dialogSettings.close();
-          refrescarDatos();
-          global.NovaprintUI.showToast('Datos de prueba cargados con éxito.', 'success');
-        }
-      });
-    }
   }
 
   function refrescarPedidos() {

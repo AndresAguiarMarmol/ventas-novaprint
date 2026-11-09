@@ -52,3 +52,4 @@ En `index.html`:
 - Actualizar `memory.md` (Sección 2 y Sección 3).
 - Marcar `tasks.md` y `spec.md`.
 - Versionar y sincronizar en GitHub (`main`).
+
