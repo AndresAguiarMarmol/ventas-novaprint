@@ -1787,6 +1787,22 @@
 
       <form id="form-purchase" class="p-6 overflow-y-auto space-y-5 flex-1">
         <input type="hidden" id="purchase-id-hidden">
+
+        <!-- Spec 021: Banner de Separación de Compras Mixtas (Poleras / DTF) -->
+        <div id="purchase-split-banner" class="hidden p-3.5 bg-linear-to-r from-amber-50 to-orange-50 border border-amber-200 rounded-xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-2xs">
+          <div class="flex items-center gap-2.5">
+            <span class="text-xl">✂️</span>
+            <div>
+              <h5 class="text-xs font-bold text-amber-900">Compra Mixta Detectada: Poleras y Estampados DTF</h5>
+              <p class="text-[11px] text-amber-700">Esta compra combina prendas y estampados. Puedes separarla en 2 facturas para 2 proveedores diferentes.</p>
+            </div>
+          </div>
+          <button id="btn-split-purchase" type="button" class="w-full sm:w-auto px-3.5 py-1.5 bg-amber-600 hover:bg-amber-700 text-white font-bold rounded-lg text-xs shadow-xs cursor-pointer whitespace-nowrap transition-colors flex items-center justify-center gap-1.5" onclick="NovaprintUI.abrirModalSepararCompra()">
+            <span>✂️</span>
+            <span>Separar en 2 Facturas</span>
+          </button>
+        </div>
+
         <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
           <div class="sm:col-span-2">
             <label class="block text-xs font-bold text-gray-700 uppercase mb-1">Proveedor *</label>
@@ -1883,6 +1899,177 @@
           </button>
         </div>
       </form>
+    </div>
+  </dialog>
+
+  <!-- 8b. MODAL SEPARAR COMPRA EN 2 FACTURAS (SPEC 021) -->
+  <dialog id="dialog-split-purchase" class="w-full max-w-5xl p-0 bg-transparent">
+    <div class="bg-white rounded-2xl shadow-2xl border border-gray-200 overflow-hidden flex flex-col max-h-[92vh]">
+      <div class="px-6 py-4 bg-linear-to-r from-amber-50 via-orange-50 to-amber-50 border-b border-amber-200 flex justify-between items-center">
+        <div class="flex items-center gap-2.5">
+          <span class="p-2 bg-amber-100 text-amber-800 rounded-xl text-lg font-bold">✂️</span>
+          <div>
+            <h3 class="text-base font-black text-gray-900">Separar Compra en 2 Facturas para 2 Proveedores</h3>
+            <p class="text-xs text-amber-800 font-medium">Divide las prendas textiles y los estampados DTF en documentos y proveedores independientes</p>
+          </div>
+        </div>
+        <button type="button" class="text-gray-400 hover:text-gray-700 text-lg font-bold p-1 cursor-pointer" onclick="document.getElementById('dialog-split-purchase').close()">✕</button>
+      </div>
+
+      <div class="p-6 overflow-y-auto space-y-6 flex-1">
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <!-- FACTURA 1: POLERAS Y PRENDAS TEXTILES -->
+          <div class="bg-blue-50/50 rounded-2xl border border-blue-200 p-5 space-y-4 flex flex-col justify-between shadow-2xs">
+            <div class="space-y-4">
+              <div class="flex items-center justify-between pb-2 border-b border-blue-200">
+                <div class="flex items-center gap-2">
+                  <span class="text-base">👕</span>
+                  <h4 class="text-xs font-black text-blue-900 uppercase tracking-wider">Factura 1 — Poleras y Confección</h4>
+                </div>
+                <span id="split-badge-count-poleras" class="px-2 py-0.5 bg-blue-100 text-blue-800 text-[10px] font-bold rounded-full">0 prendas</span>
+              </div>
+
+              <div>
+                <label class="block text-xs font-bold text-gray-700 uppercase mb-1">Proveedor Textil *</label>
+                <select id="split-supplier-poleras" class="w-full p-2.5 bg-white border border-gray-300 rounded-lg text-xs font-medium focus:outline-none focus:border-blue-500"></select>
+              </div>
+
+              <div class="grid grid-cols-2 gap-2">
+                <div>
+                  <label class="block text-xs font-bold text-gray-700 uppercase mb-1">N° Factura / Boleta</label>
+                  <input id="split-invoice-poleras" type="text" placeholder="FAC-POL-001" class="w-full p-2 bg-white border border-gray-300 rounded-lg text-xs font-medium focus:outline-none focus:border-blue-500">
+                </div>
+                <div>
+                  <label class="block text-xs font-bold text-gray-700 uppercase mb-1">Fecha</label>
+                  <input id="split-date-poleras" type="date" class="w-full p-2 bg-white border border-gray-300 rounded-lg text-xs font-bold text-gray-800 focus:outline-none">
+                </div>
+              </div>
+
+              <!-- Tabla de prendas -->
+              <div class="border border-blue-200 rounded-xl overflow-hidden bg-white">
+                <table class="w-full text-left text-xs">
+                  <thead class="bg-blue-100/70 text-blue-950 font-bold uppercase text-[10px]">
+                    <tr>
+                      <th class="py-2 px-2.5">Prenda / Color / Talla</th>
+                      <th class="py-2 px-1 text-center">Cant.</th>
+                      <th class="py-2 px-1 text-right">Costo</th>
+                      <th class="py-2 pr-2.5 text-right">Subtotal</th>
+                    </tr>
+                  </thead>
+                  <tbody id="split-items-poleras-tbody" class="divide-y divide-gray-100"></tbody>
+                </table>
+              </div>
+
+              <!-- Opciones IVA y Flete Poleras -->
+              <div class="space-y-2 text-xs">
+                <label class="flex items-center justify-between p-2 bg-white rounded-lg border border-gray-200 cursor-pointer">
+                  <span class="font-bold text-gray-700">¿Factura con IVA (19%)?</span>
+                  <input id="split-iva-poleras" type="checkbox" class="rounded text-blue-600 cursor-pointer" onchange="NovaprintUI.recalcularTotalesSeparacion()">
+                </label>
+                <div class="p-2 bg-white rounded-lg border border-gray-200 space-y-1.5">
+                  <label class="flex items-center justify-between cursor-pointer">
+                    <span class="font-bold text-gray-700">¿Aplica Flete / Delivery?</span>
+                    <input id="split-delivery-check-poleras" type="checkbox" class="rounded text-blue-600 cursor-pointer" onchange="NovaprintUI.toggleSplitDeliveryPoleras()">
+                  </label>
+                  <div id="split-delivery-container-poleras" class="hidden flex items-center gap-1.5 pt-1">
+                    <span class="font-bold text-gray-600">$</span>
+                    <input id="split-delivery-poleras" type="number" min="0" step="500" value="0" class="w-full p-1.5 bg-gray-50 border border-gray-300 rounded text-xs font-bold text-gray-800" oninput="NovaprintUI.recalcularTotalesSeparacion()">
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Total Factura 1 -->
+            <div class="p-3 bg-blue-100/80 rounded-xl border border-blue-300 flex justify-between items-center text-xs mt-3">
+              <span class="font-black uppercase tracking-wider text-blue-950">Total Factura Poleras:</span>
+              <span id="split-total-poleras" class="text-xl font-black text-blue-900">$0</span>
+            </div>
+          </div>
+
+          <!-- FACTURA 2: ESTAMPADO DTF -->
+          <div class="bg-purple-50/50 rounded-2xl border border-purple-200 p-5 space-y-4 flex flex-col justify-between shadow-2xs">
+            <div class="space-y-4">
+              <div class="flex items-center justify-between pb-2 border-b border-purple-200">
+                <div class="flex items-center gap-2">
+                  <span class="text-base">🖨️</span>
+                  <h4 class="text-xs font-black text-purple-900 uppercase tracking-wider">Factura 2 — Estampado DTF / Insumos</h4>
+                </div>
+                <span id="split-badge-count-dtf" class="px-2 py-0.5 bg-purple-100 text-purple-800 text-[10px] font-bold rounded-full">0 estampados</span>
+              </div>
+
+              <div>
+                <label class="block text-xs font-bold text-gray-700 uppercase mb-1">Proveedor de Estampado / DTF *</label>
+                <select id="split-supplier-dtf" class="w-full p-2.5 bg-white border border-gray-300 rounded-lg text-xs font-medium focus:outline-none focus:border-purple-500"></select>
+              </div>
+
+              <div class="grid grid-cols-2 gap-2">
+                <div>
+                  <label class="block text-xs font-bold text-gray-700 uppercase mb-1">N° Factura / Boleta</label>
+                  <input id="split-invoice-dtf" type="text" placeholder="FAC-DTF-001" class="w-full p-2 bg-white border border-gray-300 rounded-lg text-xs font-medium focus:outline-none focus:border-purple-500">
+                </div>
+                <div>
+                  <label class="block text-xs font-bold text-gray-700 uppercase mb-1">Fecha</label>
+                  <input id="split-date-dtf" type="date" class="w-full p-2 bg-white border border-gray-300 rounded-lg text-xs font-bold text-gray-800 focus:outline-none">
+                </div>
+              </div>
+
+              <!-- Tabla de estampados -->
+              <div class="border border-purple-200 rounded-xl overflow-hidden bg-white">
+                <table class="w-full text-left text-xs">
+                  <thead class="bg-purple-100/70 text-purple-950 font-bold uppercase text-[10px]">
+                    <tr>
+                      <th class="py-2 px-2.5">Insumo de Estampado</th>
+                      <th class="py-2 px-1 text-center">Cant.</th>
+                      <th class="py-2 px-1 text-right">Costo</th>
+                      <th class="py-2 pr-2.5 text-right">Subtotal</th>
+                    </tr>
+                  </thead>
+                  <tbody id="split-items-dtf-tbody" class="divide-y divide-gray-100"></tbody>
+                </table>
+              </div>
+
+              <!-- Opciones IVA y Flete DTF -->
+              <div class="space-y-2 text-xs">
+                <label class="flex items-center justify-between p-2 bg-white rounded-lg border border-gray-200 cursor-pointer">
+                  <span class="font-bold text-gray-700">¿Factura con IVA (19%)?</span>
+                  <input id="split-iva-dtf" type="checkbox" class="rounded text-purple-600 cursor-pointer" onchange="NovaprintUI.recalcularTotalesSeparacion()">
+                </label>
+                <div class="p-2 bg-white rounded-lg border border-gray-200 space-y-1.5">
+                  <label class="flex items-center justify-between cursor-pointer">
+                    <span class="font-bold text-gray-700">¿Aplica Flete / Delivery?</span>
+                    <input id="split-delivery-check-dtf" type="checkbox" class="rounded text-purple-600 cursor-pointer" onchange="NovaprintUI.toggleSplitDeliveryDtf()">
+                  </label>
+                  <div id="split-delivery-container-dtf" class="hidden flex items-center gap-1.5 pt-1">
+                    <span class="font-bold text-gray-600">$</span>
+                    <input id="split-delivery-dtf" type="number" min="0" step="500" value="0" class="w-full p-1.5 bg-gray-50 border border-gray-300 rounded text-xs font-bold text-gray-800" oninput="NovaprintUI.recalcularTotalesSeparacion()">
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Total Factura 2 -->
+            <div class="p-3 bg-purple-100/80 rounded-xl border border-purple-300 flex justify-between items-center text-xs mt-3">
+              <span class="font-black uppercase tracking-wider text-purple-950">Total Factura DTF:</span>
+              <span id="split-total-dtf" class="text-xl font-black text-purple-900">$0</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="px-6 py-4 bg-gray-50 border-t border-gray-200 flex flex-col sm:flex-row justify-between items-center gap-3">
+        <div class="text-xs text-gray-600">
+          Total Combinado Ambas Facturas: <span id="split-grand-total" class="font-black text-gray-900 text-sm">$0</span>
+        </div>
+        <div class="flex gap-2.5 w-full sm:w-auto justify-end">
+          <button type="button" class="px-4 py-2 border border-gray-300 text-gray-700 font-bold rounded-lg hover:bg-gray-100 text-xs cursor-pointer" onclick="document.getElementById('dialog-split-purchase').close()">
+            Cancelar
+          </button>
+          <button id="btn-confirm-split-purchase" type="button" class="px-5 py-2 bg-amber-600 hover:bg-amber-700 text-white font-bold rounded-lg shadow-sm text-xs cursor-pointer transition-colors flex items-center gap-1.5" onclick="NovaprintUI.confirmarSeparacionCompra()">
+            <span>✅</span>
+            <span>Confirmar y Generar 2 Facturas</span>
+          </button>
+        </div>
+      </div>
     </div>
   </dialog>
 

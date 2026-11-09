@@ -68,3 +68,4 @@
   4. `asegurarItemInventarioEstampado` crea y recupera el ítem de estampado en bodega con su código y categoría.
   5. Cálculo del precio sugerido de venta en `sales.js` para las 3 opciones.
   6. Suite completa de 146+ pruebas pasando al 100%.
+

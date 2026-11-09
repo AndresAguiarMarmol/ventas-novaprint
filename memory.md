@@ -71,6 +71,15 @@ Registro de todo lo que debe preservarse entre sesiones de trabajo: arquitectura
   - **Spec 018 (Implementada):** Módulo de Contabilidad con Plan de Cuentas, Activos, Pasivos, Ingresos por Ventas de Poleras y Gastos Enlazados (Balance General, P&L y Libro Diario).
   - **Spec 019 (Implementada):** Asientos Contables al Registrar Pedidos: Abono a Banco y Saldo a Cuentas por Cobrar.
   - **Spec 020 (Implementada):** Inclusión de Compra de Estampados en Material Faltante (Adelante, Atrás, Ambos con Precios Diferenciados).
+  - **Spec 021 (Implementada):** Separar Compra de Poleras y Estampado DTF en 2 Facturas para 2 Proveedores Distintos.
+- **Separar Compra de Poleras y Estampado DTF (Spec 021):**
+  - **Clasificación y Detección de Ítems (`production.js`):** `clasificarItemCompra(item, inventario)` determina si un ítem corresponde a `'textil'` (Prendas Lisas, Gorras, Poleras, Polerones) o a `'dtf'` (Insumos DTF, Insumos de Estampado, transfers, películas). `esCompraMixta` evalúa si una compra combina ambos tipos de materiales.
+  - **Resolución Automática de Proveedores:** `resolverProveedorParaCategoria` sugiere automáticamente el proveedor textil (`Textiles Mayoristas Chile` o categoría 'Prendas Lisas') para la factura de poleras, y el proveedor gráfico/DTF (`Insumos Gráficos DTF Sur` o categoría 'Insumos DTF') para la factura de estampado.
+  - **Acción Rápida en Tabla y Modal de Compras (`ui.js` e `index.html`):**
+    - En `#dialog-purchase` (en "Editar Compra" o al registrar faltantes), se despliega el banner `#purchase-split-banner` con el botón `[✂️ Separar en 2 Facturas]`.
+    - En la tabla de compras `#view-purchases`, las compras mixtas muestran el botón de acción rápida `[✂️]` en su fila.
+  - **Modal de 2 Facturas (`<dialog id="dialog-split-purchase">`):** Presenta dos columnas independientes (Factura 1: Poleras / Factura 2: DTF) con selectores de proveedor, correlativos de factura (`-POL` y `-DTF`), tablas de artículos, casillas de IVA (19%) y Delivery, y cálculo en tiempo real del gran total consolidado.
+  - **Persistencia y Cuadratura Estricta de Inventario (`storage.separarCompraEnDos`):** Al confirmar, la compra previa se actualiza para retener solo los ítems textiles bajo el proveedor textil, y se genera una nueva compra independiente para DTF bajo el proveedor DTF. El stock de bodega se mantiene idéntico y cuadrado ($\Delta = 0$), garantizando la integridad de existencias y reflejando las 2 compras en el Libro Diario contable.
 - **Compra de Estampados en Material Faltante (Spec 020):**
   - **Opciones Oficiales y Precios Diferenciados:** Se parametrizaron las 3 opciones oficiales de estampado en `OPCIONES_ESTAMPADO` (`assets/js/production.js`):
     - **Adelante:** Costo de compra $1.800 CLP | Precio venta sugerido $3.200 CLP.
@@ -131,6 +140,25 @@ Registro de todo lo que debe preservarse entre sesiones de trabajo: arquitectura
 ---
 
 ## 3. Historial de cambios
+
+### 2026-11-09 (Separar Compra de Poleras y Estampado DTF en 2 Facturas para 2 Proveedores — Spec 021)
+- **Motor de Producción y Proveedores (`assets/js/production.js`):**
+  - Implementación de `clasificarItemCompra(item, inventario)`: clasifica con precisión insumos como `'textil'` o `'dtf'`.
+  - `esCompraMixta(items, inventario)`: detecta automáticamente si una compra combina prendas textiles y estampados DTF.
+  - `separarItemsCompra(items, inventario)`: agrupa los ítems en `{ itemsPoleras, itemsDtf }`.
+  - `resolverProveedorParaCategoria(categoria, proveedores)`: sugiere automáticamente el proveedor adecuado (textil o gráfico/DTF).
+- **Capa de Persistencia Atómica (`assets/js/storage.js`):**
+  - Implementación de `separarCompraEnDos(compraOriginalId, datosPoleras, datosDtf)`: actualiza la compra previa con los ítems y proveedor textil, y crea una nueva compra con los ítems y proveedor DTF garantizando cuadratura estricta de stock ($\Delta = 0$).
+- **Interfaz de Usuario y Modales (`assets/js/ui.js` e `index.html`):**
+  - Banner dinámico `#purchase-split-banner` con botón `[✂️ Separar en 2 Facturas]` en `#dialog-purchase` al editar o registrar compras mixtas.
+  - Botón de acción rápida `[✂️]` en la tabla de compras `#view-purchases`.
+  - Modal nativo `<dialog id="dialog-split-purchase">` con configuración simultánea de Factura 1 (Poleras) y Factura 2 (Estampados DTF), selectores de proveedor, numeración de factura, desglose de IVA (19%), Delivery y cálculo consolidado.
+- **Pruebas Automatizadas (`tests/split_purchases_poleras_dtf.test.js`):**
+  - 8 nuevas pruebas unitarias cubriendo clasificación, detección mixta, separación de ítems, resolución de proveedores, persistencia y cuadratura de bodega, y flujo de UI.
+  - Test suite global: 166 tests ejecutándose y pasando al 100% (0 fallos).
+- **Seguridad y Respaldo:**
+  - Respaldo de base de datos en `backups/backup_pre_separar_compras_poleras_dtf_20261109.json` y tag git `backup-pre-separar-compras-poleras-dtf-20261109`.
+- **Metodología SDD:** Especificación completa en `specs/021-separar-compra-poleras-estampado-dtf-dos-facturas-proveedores/` (`spec.md`, `plan.md`, `tasks.md`).
 
 ### 2026-11-09 (Compra de Estampados en Material Faltante: Adelante, Atrás, Ambos — Spec 020)
 - **Motor de Producción y Cotización (`assets/js/production.js`, `assets/js/sales.js`):**

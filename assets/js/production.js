@@ -531,6 +531,115 @@
     };
   }
 
+  /**
+   * Spec 021: Clasifica un ítem de compra como 'textil' (Poleras/prendas lisas)
+   * o 'dtf' (Estampados DTF/insumos de estampado).
+   */
+  function clasificarItemCompra(item, inventario = []) {
+    if (!item) return 'textil';
+    const normalizar = (txt) => (txt || '').toString().toLowerCase().trim();
+
+    const invId = item.inventoryItemId || item.inventoryId || item.id;
+    let invItem = null;
+    if (invId && Array.isArray(inventario)) {
+      invItem = inventario.find(i => i.id === invId || i.code === invId);
+    }
+
+    if (!invItem && item.name && Array.isArray(inventario)) {
+      const nomItem = normalizar(item.name);
+      invItem = inventario.find(i => normalizar(i.name) === nomItem);
+    }
+
+    const cat = normalizar(invItem ? invItem.category : (item.category || ''));
+    const gType = normalizar(invItem ? invItem.garmentType : (item.garmentType || ''));
+    const nombre = normalizar(item.name || (invItem ? invItem.name : ''));
+
+    const esDtf = cat.includes('dtf') ||
+                  cat.includes('estampado') ||
+                  gType === 'estampado' ||
+                  nombre.includes('dtf') ||
+                  nombre.includes('estampado') ||
+                  nombre.includes('transfer') ||
+                  nombre.includes('poliamida') ||
+                  nombre.includes('pelicula') ||
+                  nombre.includes('película') ||
+                  Boolean(item.isEstampado);
+
+    if (esDtf) {
+      return 'dtf';
+    }
+
+    return 'textil';
+  }
+
+  /**
+   * Spec 021: Determina si una lista de ítems contiene tanto prendas textiles como estampados DTF.
+   */
+  function esCompraMixta(items = [], inventario = []) {
+    if (!Array.isArray(items) || items.length < 2) return false;
+    let tieneTextil = false;
+    let tieneDtf = false;
+
+    for (const it of items) {
+      const tipo = clasificarItemCompra(it, inventario);
+      if (tipo === 'textil') tieneTextil = true;
+      if (tipo === 'dtf') tieneDtf = true;
+      if (tieneTextil && tieneDtf) return true;
+    }
+    return false;
+  }
+
+  /**
+   * Spec 021: Separa una lista de ítems de compra en dos listas:
+   * itemsPoleras (textiles) e itemsDtf (estampados).
+   */
+  function separarItemsCompra(items = [], inventario = []) {
+    const itemsPoleras = [];
+    const itemsDtf = [];
+
+    if (!Array.isArray(items)) {
+      return { itemsPoleras, itemsDtf };
+    }
+
+    items.forEach(it => {
+      const tipo = clasificarItemCompra(it, inventario);
+      if (tipo === 'dtf') {
+        itemsDtf.push(it);
+      } else {
+        itemsPoleras.push(it);
+      }
+    });
+
+    return { itemsPoleras, itemsDtf };
+  }
+
+  /**
+   * Spec 021: Resuelve el proveedor más adecuado según la categoría ('textil' o 'dtf').
+   */
+  function resolverProveedorParaCategoria(categoria, proveedores = []) {
+    if (!Array.isArray(proveedores) || proveedores.length === 0) return null;
+    const normalizar = (txt) => (txt || '').toString().toLowerCase().trim();
+    const catBuscada = normalizar(categoria);
+
+    if (catBuscada === 'dtf' || catBuscada.includes('dtf') || catBuscada.includes('estampado')) {
+      const provDtf = proveedores.find(p => {
+        const c = normalizar(p.category);
+        const n = normalizar(p.name);
+        return c.includes('dtf') || c.includes('insumo') || n.includes('dtf');
+      });
+      if (provDtf) return provDtf;
+    } else {
+      const provTextil = proveedores.find(p => {
+        const c = normalizar(p.category);
+        const n = normalizar(p.name);
+        return c.includes('prenda') || c.includes('textil') || c.includes('lisa') || n.includes('textil') || n.includes('mayorista');
+      });
+      if (provTextil) return provTextil;
+    }
+
+    return proveedores[0] || null;
+  }
+
   const modulo = {
     TASA_IVA_CHILE,
     evaluarEstadoStock,
@@ -554,7 +663,12 @@
     // Spec 020: Opciones y Compra de Estampados
     OPCIONES_ESTAMPADO,
     normalizarOpcionEstampado,
-    obtenerCostoCompraEstampado
+    obtenerCostoCompraEstampado,
+    // Spec 021: Separación de compras Poleras y Estampados DTF
+    clasificarItemCompra,
+    esCompraMixta,
+    separarItemsCompra,
+    resolverProveedorParaCategoria
   };
 
   if (typeof module !== 'undefined' && module.exports) {

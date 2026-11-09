@@ -1765,9 +1765,13 @@
       return;
     }
 
+    const prod = global.NovaprintProduction;
+    const inventario = storage ? storage.getInventory() : [];
+
     tableBody.innerHTML = compras.map(c => {
       const totalStr = sales ? sales.formatearMoneda(c.totalAmount || 0) : `$${c.totalAmount}`;
       const itemsStr = (c.items || []).map(i => `${i.quantity}x ${i.name}`).join(', ');
+      const esMixta = prod && typeof prod.esCompraMixta === 'function' ? prod.esCompraMixta(c.items || [], inventario) : false;
 
       return `
         <tr class="border-b border-gray-100 hover:bg-slate-50 text-xs">
@@ -1778,8 +1782,9 @@
           <td class="py-3 px-3 text-gray-600 max-w-xs truncate" title="${itemsStr}">${itemsStr || 'Sin ítems'}</td>
           <td class="py-3 px-3 font-bold text-gray-900">${totalStr}</td>
           <td class="py-3 px-3 text-right space-x-1 whitespace-nowrap">
-            <button type="button" class="p-1 text-gray-500 hover:text-gray-800 rounded" title="Editar Compra" onclick="NovaprintUI.editarCompra('${c.id}')">✏️</button>
-            <button type="button" class="p-1 text-red-500 hover:text-red-700 rounded" title="Eliminar Compra" onclick="NovaprintUI.confirmarEliminarCompra('${c.id}')">🗑️</button>
+            ${esMixta ? `<button type="button" class="p-1 text-amber-600 hover:text-amber-800 rounded font-bold cursor-pointer" title="Separar en 2 Facturas (Poleras y DTF)" onclick="NovaprintUI.abrirModalSepararCompra('${c.id}')">✂️</button>` : ''}
+            <button type="button" class="p-1 text-gray-500 hover:text-gray-800 rounded cursor-pointer" title="Editar Compra" onclick="NovaprintUI.editarCompra('${c.id}')">✏️</button>
+            <button type="button" class="p-1 text-red-500 hover:text-red-700 rounded cursor-pointer" title="Eliminar Compra" onclick="NovaprintUI.confirmarEliminarCompra('${c.id}')">🗑️</button>
           </td>
         </tr>
       `;
@@ -1814,6 +1819,9 @@
     if (inputDeliv) inputDeliv.value = 0;
     const contDeliv = document.getElementById('purchase-delivery-input-container');
     if (contDeliv) contDeliv.classList.add('hidden');
+
+    const splitBanner = document.getElementById('purchase-split-banner');
+    if (splitBanner) splitBanner.classList.add('hidden');
 
     // Poblar selector de proveedores
     const storage = global.NovaprintStorage;
@@ -2119,6 +2127,17 @@
         </tr>
       `;
     }).join('');
+
+    const prod = global.NovaprintProduction;
+    const splitBanner = document.getElementById('purchase-split-banner');
+    if (splitBanner) {
+      const esMixta = prod && typeof prod.esCompraMixta === 'function' ? prod.esCompraMixta(currentPurchaseItems, inventario) : false;
+      if (esMixta) {
+        splitBanner.classList.remove('hidden');
+      } else {
+        splitBanner.classList.add('hidden');
+      }
+    }
   }
 
   function actualizarItemCompraSelect(rowId, selectEl) {
@@ -2291,6 +2310,372 @@
     } else {
       showToast(`Compra ${compraGuardada.id} registrada. ¡Stock de inventario incrementado!`, 'success');
     }
+    if (global.NovaprintMain && typeof global.NovaprintMain.refrescarDatos === 'function') {
+      global.NovaprintMain.refrescarDatos();
+    }
+  }
+
+  // ========================================================
+  // SEPARACIÓN DE COMPRAS: POLERAS Y ESTAMPADOS DTF (SPEC 021)
+  // ========================================================
+
+  let currentSplitState = {
+    originalPurchaseId: null,
+    itemsPoleras: [],
+    itemsDtf: [],
+    baseNotes: ''
+  };
+
+  function abrirModalSepararCompra(purchaseId = null) {
+    const storage = global.NovaprintStorage;
+    const prod = global.NovaprintProduction;
+    const sales = global.NovaprintSales;
+    if (!storage || !prod) return;
+
+    const inventario = storage.getInventory();
+    const proveedores = storage.getSuppliers();
+
+    let itemsParaSeparar = [];
+    let baseInvoice = '';
+    let baseDate = new Date().toISOString().split('T')[0];
+    let originalId = null;
+    let baseNotes = '';
+    let applyIvaBase = false;
+    let applyDeliveryBase = false;
+    let deliveryAmountBase = 0;
+
+    if (purchaseId && typeof purchaseId === 'string') {
+      const compra = storage.getPurchaseById(purchaseId);
+      if (!compra) {
+        showToast('No se encontró la compra a separar.', 'error');
+        return;
+      }
+      originalId = compra.id;
+      itemsParaSeparar = Array.isArray(compra.items) ? JSON.parse(JSON.stringify(compra.items)) : [];
+      baseInvoice = compra.invoiceNumber || '';
+      baseDate = compra.date || baseDate;
+      baseNotes = compra.notes || '';
+      applyIvaBase = Boolean(compra.applyIva);
+      applyDeliveryBase = Boolean(compra.applyDelivery);
+      deliveryAmountBase = Number(compra.deliveryAmount) || 0;
+    } else {
+      const hiddenId = document.getElementById('purchase-id-hidden');
+      originalId = hiddenId && hiddenId.value ? hiddenId.value.trim() : null;
+      itemsParaSeparar = JSON.parse(JSON.stringify(currentPurchaseItems));
+
+      const invInput = document.getElementById('purchase-invoice-input');
+      baseInvoice = invInput ? invInput.value.trim() : '';
+
+      const dateInput = document.getElementById('purchase-date-input');
+      baseDate = dateInput && dateInput.value ? dateInput.value : baseDate;
+
+      const notesInput = document.getElementById('purchase-notes-input');
+      baseNotes = notesInput ? notesInput.value.trim() : '';
+
+      const checkIva = document.getElementById('purchase-apply-iva');
+      applyIvaBase = checkIva ? checkIva.checked : false;
+
+      const checkDeliv = document.getElementById('purchase-apply-delivery');
+      applyDeliveryBase = checkDeliv ? checkDeliv.checked : false;
+
+      const inputDeliv = document.getElementById('purchase-delivery-input');
+      deliveryAmountBase = (applyDeliveryBase && inputDeliv) ? Math.max(0, Number(inputDeliv.value) || 0) : 0;
+    }
+
+    if (!prod.esCompraMixta(itemsParaSeparar, inventario)) {
+      showToast('Esta compra no contiene una mezcla de Poleras y Estampados DTF para separar.', 'info');
+      return;
+    }
+
+    const separacion = prod.separarItemsCompra(itemsParaSeparar, inventario);
+    currentSplitState = {
+      originalPurchaseId: originalId,
+      itemsPoleras: separacion.itemsPoleras,
+      itemsDtf: separacion.itemsDtf,
+      baseNotes
+    };
+
+    // Proveedor sugerido para Poleras (Prendas Lisas)
+    const provPoleras = prod.resolverProveedorParaCategoria('textil', proveedores);
+    const selectPoleras = document.getElementById('split-supplier-poleras');
+    if (selectPoleras) {
+      selectPoleras.innerHTML = '<option value="">-- Seleccionar Proveedor Textil --</option>' +
+        proveedores.map(p => `<option value="${p.id}" data-name="${p.name}" ${provPoleras && provPoleras.id === p.id ? 'selected' : ''}>${p.name} (${p.category})</option>`).join('');
+      if (provPoleras) selectPoleras.value = provPoleras.id;
+    }
+
+    // Proveedor sugerido para Estampado DTF
+    const provDtf = prod.resolverProveedorParaCategoria('dtf', proveedores);
+    const selectDtf = document.getElementById('split-supplier-dtf');
+    if (selectDtf) {
+      selectDtf.innerHTML = '<option value="">-- Seleccionar Proveedor DTF --</option>' +
+        proveedores.map(p => `<option value="${p.id}" data-name="${p.name}" ${provDtf && provDtf.id === p.id ? 'selected' : ''}>${p.name} (${p.category})</option>`).join('');
+      if (provDtf) selectDtf.value = provDtf.id;
+    }
+
+    // Facturas sugeridas
+    const inputInvPoleras = document.getElementById('split-invoice-poleras');
+    if (inputInvPoleras) {
+      inputInvPoleras.value = baseInvoice ? `${baseInvoice}-POL` : 'FAC-POL-001';
+    }
+    const inputInvDtf = document.getElementById('split-invoice-dtf');
+    if (inputInvDtf) {
+      inputInvDtf.value = baseInvoice ? `${baseInvoice}-DTF` : 'FAC-DTF-001';
+    }
+
+    // Fechas
+    const inputDatePoleras = document.getElementById('split-date-poleras');
+    if (inputDatePoleras) inputDatePoleras.value = baseDate;
+    const inputDateDtf = document.getElementById('split-date-dtf');
+    if (inputDateDtf) inputDateDtf.value = baseDate;
+
+    // Badges de conteo
+    const countPoleras = currentSplitState.itemsPoleras.reduce((acc, it) => acc + (Number(it.quantity) || 0), 0);
+    const countDtf = currentSplitState.itemsDtf.reduce((acc, it) => acc + (Number(it.quantity) || 0), 0);
+    const badgePoleras = document.getElementById('split-badge-count-poleras');
+    if (badgePoleras) badgePoleras.textContent = `${countPoleras} prendas`;
+    const badgeDtf = document.getElementById('split-badge-count-dtf');
+    if (badgeDtf) badgeDtf.textContent = `${countDtf} estampados`;
+
+    // Renderizar tablas de items
+    const tbodyPoleras = document.getElementById('split-items-poleras-tbody');
+    if (tbodyPoleras) {
+      tbodyPoleras.innerHTML = currentSplitState.itemsPoleras.map(it => `
+        <tr class="hover:bg-blue-50/50">
+          <td class="py-2 px-2.5 font-medium text-gray-800">${it.name}</td>
+          <td class="py-2 px-1 text-center font-bold text-gray-900">${it.quantity}</td>
+          <td class="py-2 px-1 text-right text-gray-600">${sales ? sales.formatearMoneda(it.unitCost) : `$${it.unitCost}`}</td>
+          <td class="py-2 pr-2.5 text-right font-bold text-blue-900">${sales ? sales.formatearMoneda((it.quantity || 0) * (it.unitCost || 0)) : `$${(it.quantity || 0) * (it.unitCost || 0)}`}</td>
+        </tr>
+      `).join('');
+    }
+
+    const tbodyDtf = document.getElementById('split-items-dtf-tbody');
+    if (tbodyDtf) {
+      tbodyDtf.innerHTML = currentSplitState.itemsDtf.map(it => `
+        <tr class="hover:bg-purple-50/50">
+          <td class="py-2 px-2.5 font-medium text-gray-800">${it.name}</td>
+          <td class="py-2 px-1 text-center font-bold text-gray-900">${it.quantity}</td>
+          <td class="py-2 px-1 text-right text-gray-600">${sales ? sales.formatearMoneda(it.unitCost) : `$${it.unitCost}`}</td>
+          <td class="py-2 pr-2.5 text-right font-bold text-purple-900">${sales ? sales.formatearMoneda((it.quantity || 0) * (it.unitCost || 0)) : `$${(it.quantity || 0) * (it.unitCost || 0)}`}</td>
+        </tr>
+      `).join('');
+    }
+
+    // Configurar IVA y Delivery
+    const checkIvaPoleras = document.getElementById('split-iva-poleras');
+    if (checkIvaPoleras) checkIvaPoleras.checked = applyIvaBase;
+    const checkIvaDtf = document.getElementById('split-iva-dtf');
+    if (checkIvaDtf) checkIvaDtf.checked = applyIvaBase;
+
+    const checkDelivPoleras = document.getElementById('split-delivery-check-poleras');
+    const inputDelivPoleras = document.getElementById('split-delivery-poleras');
+    const contDelivPoleras = document.getElementById('split-delivery-container-poleras');
+    if (checkDelivPoleras) checkDelivPoleras.checked = applyDeliveryBase;
+    if (inputDelivPoleras) inputDelivPoleras.value = deliveryAmountBase;
+    if (contDelivPoleras) {
+      if (applyDeliveryBase) contDelivPoleras.classList.remove('hidden');
+      else contDelivPoleras.classList.add('hidden');
+    }
+
+    const checkDelivDtf = document.getElementById('split-delivery-check-dtf');
+    const inputDelivDtf = document.getElementById('split-delivery-dtf');
+    const contDelivDtf = document.getElementById('split-delivery-container-dtf');
+    if (checkDelivDtf) checkDelivDtf.checked = false;
+    if (inputDelivDtf) inputDelivDtf.value = 0;
+    if (contDelivDtf) contDelivDtf.classList.add('hidden');
+
+    recalcularTotalesSeparacion();
+
+    const dlg = document.getElementById('dialog-split-purchase');
+    if (dlg && typeof dlg.showModal === 'function') {
+      dlg.showModal();
+    }
+  }
+
+  function toggleSplitDeliveryPoleras() {
+    const chk = document.getElementById('split-delivery-check-poleras');
+    const cont = document.getElementById('split-delivery-container-poleras');
+    if (chk && cont) {
+      if (chk.checked) cont.classList.remove('hidden');
+      else cont.classList.add('hidden');
+    }
+    recalcularTotalesSeparacion();
+  }
+
+  function toggleSplitDeliveryDtf() {
+    const chk = document.getElementById('split-delivery-check-dtf');
+    const cont = document.getElementById('split-delivery-container-dtf');
+    if (chk && cont) {
+      if (chk.checked) cont.classList.remove('hidden');
+      else cont.classList.add('hidden');
+    }
+    recalcularTotalesSeparacion();
+  }
+
+  function recalcularTotalesSeparacion() {
+    const prod = global.NovaprintProduction;
+    const sales = global.NovaprintSales;
+
+    // Factura 1 (Poleras)
+    const chkIvaPoleras = document.getElementById('split-iva-poleras');
+    const aplicarIvaPoleras = chkIvaPoleras ? chkIvaPoleras.checked : false;
+    const chkDelivPoleras = document.getElementById('split-delivery-check-poleras');
+    const aplicarDelivPoleras = chkDelivPoleras ? chkDelivPoleras.checked : false;
+    const inputDelivPoleras = document.getElementById('split-delivery-poleras');
+    const montoDelivPoleras = (aplicarDelivPoleras && inputDelivPoleras) ? Math.max(0, Number(inputDelivPoleras.value) || 0) : 0;
+
+    const totalesPoleras = prod ? prod.calcularTotalesCompra(currentSplitState.itemsPoleras, {
+      aplicarIva: aplicarIvaPoleras,
+      montoDelivery: montoDelivPoleras
+    }) : { totalAmount: 0 };
+
+    const elTotalPoleras = document.getElementById('split-total-poleras');
+    if (elTotalPoleras) {
+      elTotalPoleras.textContent = sales ? sales.formatearMoneda(totalesPoleras.totalAmount) : `$${totalesPoleras.totalAmount}`;
+    }
+
+    // Factura 2 (DTF)
+    const chkIvaDtf = document.getElementById('split-iva-dtf');
+    const aplicarIvaDtf = chkIvaDtf ? chkIvaDtf.checked : false;
+    const chkDelivDtf = document.getElementById('split-delivery-check-dtf');
+    const aplicarDelivDtf = chkDelivDtf ? chkDelivDtf.checked : false;
+    const inputDelivDtf = document.getElementById('split-delivery-dtf');
+    const montoDelivDtf = (aplicarDelivDtf && inputDelivDtf) ? Math.max(0, Number(inputDelivDtf.value) || 0) : 0;
+
+    const totalesDtf = prod ? prod.calcularTotalesCompra(currentSplitState.itemsDtf, {
+      aplicarIva: aplicarIvaDtf,
+      montoDelivery: montoDelivDtf
+    }) : { totalAmount: 0 };
+
+    const elTotalDtf = document.getElementById('split-total-dtf');
+    if (elTotalDtf) {
+      elTotalDtf.textContent = sales ? sales.formatearMoneda(totalesDtf.totalAmount) : `$${totalesDtf.totalAmount}`;
+    }
+
+    // Gran Total
+    const granTotal = (totalesPoleras.totalAmount || 0) + (totalesDtf.totalAmount || 0);
+    const elGrandTotal = document.getElementById('split-grand-total');
+    if (elGrandTotal) {
+      elGrandTotal.textContent = sales ? sales.formatearMoneda(granTotal) : `$${granTotal}`;
+    }
+  }
+
+  function confirmarSeparacionCompra() {
+    const storage = global.NovaprintStorage;
+    const prod = global.NovaprintProduction;
+    if (!storage || !prod) return;
+
+    const selectProvPoleras = document.getElementById('split-supplier-poleras');
+    const supplierIdPoleras = selectProvPoleras ? selectProvPoleras.value : '';
+    const supplierNamePoleras = selectProvPoleras && selectProvPoleras.selectedIndex >= 0
+      ? selectProvPoleras.options[selectProvPoleras.selectedIndex].getAttribute('data-name') || 'Proveedor Textil'
+      : 'Proveedor Textil';
+
+    const selectProvDtf = document.getElementById('split-supplier-dtf');
+    const supplierIdDtf = selectProvDtf ? selectProvDtf.value : '';
+    const supplierNameDtf = selectProvDtf && selectProvDtf.selectedIndex >= 0
+      ? selectProvDtf.options[selectProvDtf.selectedIndex].getAttribute('data-name') || 'Proveedor DTF'
+      : 'Proveedor DTF';
+
+    if (!supplierIdPoleras) {
+      showToast('Por favor selecciona el proveedor para la Factura de Poleras.', 'warning');
+      return;
+    }
+    if (!supplierIdDtf) {
+      showToast('Por favor selecciona el proveedor para la Factura de Estampado DTF.', 'warning');
+      return;
+    }
+
+    const invoicePoleras = (document.getElementById('split-invoice-poleras')?.value || '').trim();
+    const datePoleras = document.getElementById('split-date-poleras')?.value || new Date().toISOString().split('T')[0];
+    const chkIvaPoleras = document.getElementById('split-iva-poleras');
+    const aplicarIvaPoleras = chkIvaPoleras ? chkIvaPoleras.checked : false;
+    const chkDelivPoleras = document.getElementById('split-delivery-check-poleras');
+    const aplicarDelivPoleras = chkDelivPoleras ? chkDelivPoleras.checked : false;
+    const montoDelivPoleras = (aplicarDelivPoleras && document.getElementById('split-delivery-poleras'))
+      ? Math.max(0, Number(document.getElementById('split-delivery-poleras').value) || 0)
+      : 0;
+
+    const invoiceDtf = (document.getElementById('split-invoice-dtf')?.value || '').trim();
+    const dateDtf = document.getElementById('split-date-dtf')?.value || new Date().toISOString().split('T')[0];
+    const chkIvaDtf = document.getElementById('split-iva-dtf');
+    const aplicarIvaDtf = chkIvaDtf ? chkIvaDtf.checked : false;
+    const chkDelivDtf = document.getElementById('split-delivery-check-dtf');
+    const aplicarDelivDtf = chkDelivDtf ? chkDelivDtf.checked : false;
+    const montoDelivDtf = (aplicarDelivDtf && document.getElementById('split-delivery-dtf'))
+      ? Math.max(0, Number(document.getElementById('split-delivery-dtf').value) || 0)
+      : 0;
+
+    const itemsPolerasLimpios = currentSplitState.itemsPoleras.map(it => ({
+      inventoryItemId: it.inventoryItemId || it.inventoryId,
+      name: it.name,
+      quantity: Math.max(1, Number(it.quantity) || 1),
+      unitCost: Math.max(0, Number(it.unitCost) || 0),
+      subtotal: (Math.max(1, Number(it.quantity) || 1)) * (Math.max(0, Number(it.unitCost) || 0))
+    }));
+
+    const itemsDtfLimpios = currentSplitState.itemsDtf.map(it => ({
+      inventoryItemId: it.inventoryItemId || it.inventoryId,
+      name: it.name,
+      quantity: Math.max(1, Number(it.quantity) || 1),
+      unitCost: Math.max(0, Number(it.unitCost) || 0),
+      subtotal: (Math.max(1, Number(it.quantity) || 1)) * (Math.max(0, Number(it.unitCost) || 0))
+    }));
+
+    const totalesPoleras = prod.calcularTotalesCompra(itemsPolerasLimpios, {
+      aplicarIva: aplicarIvaPoleras,
+      montoDelivery: montoDelivPoleras
+    });
+
+    const totalesDtf = prod.calcularTotalesCompra(itemsDtfLimpios, {
+      aplicarIva: aplicarIvaDtf,
+      montoDelivery: montoDelivDtf
+    });
+
+    const datosPoleras = {
+      supplierId: supplierIdPoleras,
+      supplierName: supplierNamePoleras,
+      invoiceNumber: invoicePoleras,
+      date: datePoleras,
+      items: itemsPolerasLimpios,
+      subtotalNeto: totalesPoleras.subtotalNeto,
+      applyIva: totalesPoleras.applyIva,
+      ivaPercent: totalesPoleras.ivaPercent,
+      ivaAmount: totalesPoleras.ivaAmount,
+      applyDelivery: totalesPoleras.applyDelivery,
+      deliveryAmount: totalesPoleras.deliveryAmount,
+      totalAmount: totalesPoleras.totalAmount,
+      notes: currentSplitState.baseNotes ? `${currentSplitState.baseNotes} (Factura de Poleras)` : 'Factura separada de Poleras y Confección.'
+    };
+
+    const datosDtf = {
+      supplierId: supplierIdDtf,
+      supplierName: supplierNameDtf,
+      invoiceNumber: invoiceDtf,
+      date: dateDtf,
+      items: itemsDtfLimpios,
+      subtotalNeto: totalesDtf.subtotalNeto,
+      applyIva: totalesDtf.applyIva,
+      ivaPercent: totalesDtf.ivaPercent,
+      ivaAmount: totalesDtf.ivaAmount,
+      applyDelivery: totalesDtf.applyDelivery,
+      deliveryAmount: totalesDtf.deliveryAmount,
+      totalAmount: totalesDtf.totalAmount,
+      notes: currentSplitState.baseNotes ? `${currentSplitState.baseNotes} (Factura de Estampado DTF)` : 'Factura separada de Estampado DTF e Insumos.'
+    };
+
+    const resultado = storage.separarCompraEnDos(currentSplitState.originalPurchaseId, datosPoleras, datosDtf);
+
+    // Cerrar ambos modales
+    const dlgSplit = document.getElementById('dialog-split-purchase');
+    if (dlgSplit && typeof dlgSplit.close === 'function') dlgSplit.close();
+
+    const dlgPurchase = document.getElementById('dialog-purchase');
+    if (dlgPurchase && typeof dlgPurchase.close === 'function') dlgPurchase.close();
+
+    showToast(`¡Compra dividida con éxito! Factura Poleras: ${resultado.compraPoleras.id} | Factura DTF: ${resultado.compraDtf.id}`, 'success');
+
     if (global.NovaprintMain && typeof global.NovaprintMain.refrescarDatos === 'function') {
       global.NovaprintMain.refrescarDatos();
     }
@@ -3000,6 +3385,12 @@
     togglePurchaseDeliveryInput,
     recalcularTotalesCompraFormulario,
     guardarCompraDesdeFormulario,
+    // Spec 021: Separación de Compras (Poleras y Estampado DTF)
+    abrirModalSepararCompra,
+    toggleSplitDeliveryPoleras,
+    toggleSplitDeliveryDtf,
+    recalcularTotalesSeparacion,
+    confirmarSeparacionCompra,
     // Spec 004: Faltantes y Compras
     abrirModalCompraConFaltantes,
     comprarFaltantesDePedido,

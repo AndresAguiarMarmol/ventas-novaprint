@@ -641,6 +641,40 @@
     return true;
   }
 
+  /**
+   * Spec 021: Separa una compra existente o nueva en 2 facturas independientes:
+   * una para Poleras/Prendas (proveedor textil) y otra para Estampado DTF (proveedor DTF).
+   */
+  function separarCompraEnDos(compraOriginalId, datosPoleras, datosDtf) {
+    if (!datosPoleras || !datosDtf) {
+      throw new Error('Se requieren datos para ambas facturas (Poleras y DTF).');
+    }
+
+    let compraPolerasGuardada = null;
+    let compraDtfGuardada = null;
+
+    if (compraOriginalId && getPurchaseById(compraOriginalId)) {
+      // 1. Actualizar la compra existente con los datos de Poleras
+      compraPolerasGuardada = savePurchase({
+        ...datosPoleras,
+        id: compraOriginalId
+      });
+      // 2. Registrar la nueva compra independiente para DTF
+      const dtfSinId = { ...datosDtf };
+      delete dtfSinId.id;
+      compraDtfGuardada = savePurchase(dtfSinId);
+    } else {
+      // Caso creación directa de 2 compras
+      compraPolerasGuardada = savePurchase(datosPoleras);
+      compraDtfGuardada = savePurchase(datosDtf);
+    }
+
+    return {
+      compraPoleras: compraPolerasGuardada,
+      compraDtf: compraDtfGuardada
+    };
+  }
+
   // --- DESCUENTO DE STOCK POR PEDIDO (Spec 004) ---
   function descontarStockPorPedido(itemsPedido = []) {
     const prod = global.NovaprintProduction || (typeof require !== 'undefined' ? require('./production.js') : null);
@@ -1233,6 +1267,7 @@
     getPurchaseById,
     savePurchase,
     deletePurchase,
+    separarCompraEnDos,
     descontarStockPorPedido,
     getProjects,
     getProjectById,
