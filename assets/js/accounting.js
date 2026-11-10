@@ -527,18 +527,61 @@
    * Genera el Balance General clasificando Activos, Pasivos y Patrimonio.
    * Garantiza la ecuación contable: Activo = Pasivo + Patrimonio.
    */
-  function calcularBalanceGeneral(pedidos = [], compras = [], inventario = [], gastos = [], settings = {}) {
+  function calcularBalanceGeneral(pedidos = [], compras = [], inventario = [], gastos = [], settings = {}, transferencias = []) {
     const v = obtenerConsolidadoPedidos(pedidos);
     const c = obtenerConsolidadoCompras(compras);
     const inv = obtenerValorizacionInventario(inventario);
     const g = obtenerConsolidadoGastos(gastos);
     const pnl = calcularEstadoResultados(pedidos, compras, gastos);
 
-    // Caja y Bancos = Cobros en efectivo - Pagos de compras - Gastos pagados
+    // Ajustes de flujo neto por Transferencias entre Cuentas (Spec 023/024)
+    let transferenciasInCaja = 0;
+    let transferenciasOutCaja = 0;
+    let transferenciasInMaquinaria = 0;
+    let transferenciasOutMaquinaria = 0;
+    let transferenciasInCxP = 0;
+    let transferenciasOutCxP = 0;
+
+    (Array.isArray(transferencias) ? transferencias : []).forEach(t => {
+      if (!t) return;
+      const monto = Number(t.amount) || 0;
+      if (monto <= 0) return;
+
+      const srcCode = (t.sourceAccountCode || '').toString().trim();
+      const dstCode = (t.destinationAccountCode || '').toString().trim();
+      const srcName = (t.sourceAccountName || '').toLowerCase();
+      const dstName = (t.destinationAccountName || '').toLowerCase();
+
+      // Origen / Destino Caja y Bancos (1101)
+      if (dstCode === '1101' || dstName.includes('caja') || dstName.includes('banco')) {
+        transferenciasInCaja += monto;
+      }
+      if (srcCode === '1101' || srcName.includes('caja') || srcName.includes('banco')) {
+        transferenciasOutCaja += monto;
+      }
+
+      // Maquinaria (1201)
+      if (dstCode === '1201' || dstName.includes('maquinaria')) {
+        transferenciasInMaquinaria += monto;
+      }
+      if (srcCode === '1201' || srcName.includes('maquinaria')) {
+        transferenciasOutMaquinaria += monto;
+      }
+
+      // Cuentas por Pagar (2101)
+      if (dstCode === '2101' || dstName.includes('pagar')) {
+        transferenciasOutCxP += monto;
+      }
+      if (srcCode === '2101' || srcName.includes('pagar')) {
+        transferenciasInCxP += monto;
+      }
+    });
+
+    // Caja y Bancos = Cobros en efectivo - Pagos de compras - Gastos pagados + Transferencias netas
     const capitalInicial = Number(settings.initialCapital) || 0;
     const ingresosCaja = v.totalCobradoEfectivo;
     const egresosCaja = c.totalPagadoCompras + g.totalGastos;
-    const saldoCajaDisponible = capitalInicial + ingresosCaja - egresosCaja;
+    const saldoCajaDisponible = capitalInicial + ingresosCaja - egresosCaja + (transferenciasInCaja - transferenciasOutCaja);
 
     // 1. ACTIVOS
     const activoCaja = saldoCajaDisponible;
@@ -547,12 +590,12 @@
     const activoCreditoIva = c.totalIvaCredito;
 
     const totalActivoCirculante = activoCaja + activoCuentasPorCobrar + activoInventario + activoCreditoIva;
-    const totalActivoFijo = Number(settings.fixedAssetsValue) || 0;
+    const totalActivoFijo = (Number(settings.fixedAssetsValue) || 0) + (transferenciasInMaquinaria - transferenciasOutMaquinaria);
     const totalActivos = totalActivoCirculante + totalActivoFijo;
 
     // 2. PASIVOS
     const pasivoDebitoIva = v.totalIvaDebito;
-    const pasivoCuentasPorPagar = 0; // Contado por defecto en microempresa
+    const pasivoCuentasPorPagar = Math.max(0, transferenciasInCxP - transferenciasOutCxP);
     const totalPasivos = pasivoDebitoIva + pasivoCuentasPorPagar;
 
     // IVA Neto: Débito Fiscal - Crédito Fiscal
@@ -710,8 +753,8 @@
   /**
    * Calcula el resumen de KPIs para las tarjetas superiores de la vista.
    */
-  function calcularMetricasContables(pedidos = [], compras = [], inventario = [], gastos = [], settings = {}) {
-    const bal = calcularBalanceGeneral(pedidos, compras, inventario, gastos, settings);
+  function calcularMetricasContables(pedidos = [], compras = [], inventario = [], gastos = [], settings = {}, transferencias = []) {
+    const bal = calcularBalanceGeneral(pedidos, compras, inventario, gastos, settings, transferencias);
     const pnl = calcularEstadoResultados(pedidos, compras, gastos);
 
     return {
@@ -726,6 +769,107 @@
       valorInventario: bal.activos.circulante.inventarioBodega,
       ivaNetoPagar: bal.pasivos.ivaNetoPagar
     };
+  }
+
+  /**
+   * Consolida el Libro Mayor y calcula el saldo actual de cada cuenta del Plan de Cuentas.
+   * Spec 024
+   */
+  function calcularSaldosPlanCuentas(asientos = [], accounts = [], settings = {}) {
+    const listAccounts = Array.isArray(accounts) ? accounts : [];
+    const listAsientos = Array.isArray(asientos) ? asientos : [];
+    const capitalInicial = Number(settings && settings.initialCapital) || 0;
+
+    const saldosPorCuenta = {};
+
+    listAccounts.forEach(acc => {
+      const id = acc.id;
+      const codigo = (acc.codigo || '').toString().trim();
+      const nombreNorm = (acc.nombre || '').toLowerCase().trim();
+      const tipoNorm = normalizarTipoCuenta(acc.tipo);
+
+      let totalDebe = 0;
+      let totalHaber = 0;
+      let totalMovimientos = 0;
+
+      listAsientos.forEach(a => {
+        if (!a) return;
+        const debeMonto = Number(a.debe) || 0;
+        const haberMonto = Number(a.haber) || 0;
+
+        // Verificar si este asiento afecta a esta cuenta al Debe
+        let esDebe = false;
+        if (a.detalle && (a.detalle.destinoId === id || (a.detalle.destinoCodigo && a.detalle.destinoCodigo.toString().trim() === codigo))) {
+          esDebe = true;
+        } else if (a.cuentaDebe) {
+          const cDebeNorm = a.cuentaDebe.toLowerCase().trim();
+          if (cDebeNorm === nombreNorm || (codigo && cDebeNorm.includes(codigo))) {
+            esDebe = true;
+          } else if (codigo === '1101' && (cDebeNorm.includes('caja') || cDebeNorm.includes('banco'))) {
+            esDebe = true;
+          } else if (codigo === '1102' && (cDebeNorm.includes('cobrar') || cDebeNorm.includes('cxc'))) {
+            esDebe = true;
+          } else if (codigo === '1103' && cDebeNorm.includes('inventario')) {
+            esDebe = true;
+          } else if (codigo === '4101' && cDebeNorm.includes('venta')) {
+            esDebe = true;
+          } else if (codigo === '5101' && cDebeNorm.includes('insumo')) {
+            esDebe = true;
+          }
+        }
+
+        // Verificar si este asiento afecta a esta cuenta al Haber
+        let esHaber = false;
+        if (a.detalle && (a.detalle.origenId === id || (a.detalle.origenCodigo && a.detalle.origenCodigo.toString().trim() === codigo))) {
+          esHaber = true;
+        } else if (a.cuentaHaber) {
+          const cHaberNorm = a.cuentaHaber.toLowerCase().trim();
+          if (cHaberNorm === nombreNorm || (codigo && cHaberNorm.includes(codigo))) {
+            esHaber = true;
+          } else if (codigo === '1101' && (cHaberNorm.includes('caja') || cHaberNorm.includes('banco'))) {
+            esHaber = true;
+          } else if (codigo === '1102' && (cHaberNorm.includes('cobrar') || cHaberNorm.includes('cxc'))) {
+            esHaber = true;
+          } else if (codigo === '4101' && cHaberNorm.includes('venta')) {
+            esHaber = true;
+          }
+        }
+
+        if (esDebe) {
+          totalDebe += debeMonto;
+          totalMovimientos++;
+        }
+        if (esHaber) {
+          totalHaber += haberMonto;
+          if (!esDebe) totalMovimientos++;
+        }
+      });
+
+      let saldo = 0;
+      if (tipoNorm === 'Activo' || tipoNorm === 'Egreso') {
+        saldo = totalDebe - totalHaber;
+        if (codigo === '1101') saldo += capitalInicial;
+      } else {
+        saldo = totalHaber - totalDebe;
+        if (codigo === '3101') saldo += capitalInicial;
+      }
+
+      saldosPorCuenta[id] = {
+        id,
+        codigo,
+        nombre: acc.nombre,
+        tipo: tipoNorm,
+        totalDebe: Math.round(totalDebe),
+        totalHaber: Math.round(totalHaber),
+        saldo: Math.round(saldo),
+        totalMovimientos
+      };
+      if (codigo) {
+        saldosPorCuenta[codigo] = saldosPorCuenta[id];
+      }
+    });
+
+    return saldosPorCuenta;
   }
 
   const accountingModule = {
@@ -745,7 +889,8 @@
     calcularEstadoResultados,
     calcularBalanceGeneral,
     generarLibroDiario,
-    calcularMetricasContables
+    calcularMetricasContables,
+    calcularSaldosPlanCuentas
   };
 
   if (typeof module !== 'undefined' && module.exports) {

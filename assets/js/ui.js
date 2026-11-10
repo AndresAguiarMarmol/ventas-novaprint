@@ -3014,6 +3014,17 @@
     } else if (subview === 'journal') {
       if (btnJou) btnJou.className = 'px-4 py-2 rounded-lg text-xs font-bold bg-blue-600 text-white shadow-xs transition';
       if (viewJou) viewJou.classList.remove('hidden');
+      const storage = global.NovaprintStorage;
+      if (storage) {
+        renderAccountingModule(
+          storage.getOrders ? storage.getOrders() : [],
+          storage.getPurchases ? storage.getPurchases() : [],
+          storage.getInventory ? storage.getInventory() : [],
+          storage.getExpenses ? storage.getExpenses() : [],
+          storage.getSettings ? storage.getSettings() : {},
+          storage.getTransfers ? storage.getTransfers() : []
+        );
+      }
     } else if (subview === 'chart') {
       if (btnCha) btnCha.className = 'px-4 py-2 rounded-lg text-xs font-bold bg-blue-600 text-white shadow-xs transition';
       if (viewCha) viewCha.classList.remove('hidden');
@@ -3033,8 +3044,8 @@
       ? transferencias
       : (storage && typeof storage.getTransfers === 'function' ? storage.getTransfers() : []);
 
-    const metricas = acc.calcularMetricasContables(pedidos, compras, inventario, gastos, settings);
-    const balance = acc.calcularBalanceGeneral(pedidos, compras, inventario, gastos, settings);
+    const metricas = acc.calcularMetricasContables(pedidos, compras, inventario, gastos, settings, trans);
+    const balance = acc.calcularBalanceGeneral(pedidos, compras, inventario, gastos, settings, trans);
     const pnl = acc.calcularEstadoResultados(pedidos, compras, gastos);
     const asientos = acc.generarLibroDiario(pedidos, compras, gastos, trans);
 
@@ -3357,6 +3368,20 @@
 
     const allAccounts = storage.getAccounts();
 
+    // Calcular saldos dinámicos de cada cuenta a partir de todos los movimientos (Spec 024)
+    const accModule = global.NovaprintAccounting;
+    const sales = global.NovaprintSales;
+    let saldosPorCuenta = {};
+    if (accModule && typeof accModule.calcularSaldosPlanCuentas === 'function' && typeof accModule.generarLibroDiario === 'function') {
+      const pedidos = storage.getOrders ? storage.getOrders() : [];
+      const compras = storage.getPurchases ? storage.getPurchases() : [];
+      const gastos = storage.getExpenses ? storage.getExpenses() : [];
+      const trans = storage.getTransfers ? storage.getTransfers() : [];
+      const settings = storage.getSettings ? storage.getSettings() : {};
+      const asientos = accModule.generarLibroDiario(pedidos, compras, gastos, trans);
+      saldosPorCuenta = accModule.calcularSaldosPlanCuentas(asientos, allAccounts, settings);
+    }
+
     // Actualizar contadores
     const countTotal = allAccounts.length;
     const countActivos = allAccounts.filter(a => a.tipo === 'Activo').length;
@@ -3403,7 +3428,7 @@
     if (filtered.length === 0) {
       tbody.innerHTML = `
         <tr>
-          <td colspan="7" class="py-8 text-center text-gray-400 text-xs">
+          <td colspan="8" class="py-8 text-center text-gray-400 text-xs">
             No se encontraron cuentas contables que coincidan con la búsqueda o filtro.
           </td>
         </tr>
@@ -3438,6 +3463,21 @@
         ? '<button type="button" class="p-1 text-gray-300 cursor-not-allowed" title="Las cuentas base del sistema no se pueden eliminar" disabled>🔒</button>'
         : `<button type="button" class="p-1 text-red-500 hover:text-red-700 rounded cursor-pointer transition" title="Eliminar Cuenta" onclick="NovaprintUI.confirmarEliminarCuenta('${acc.id}')">🗑️</button>`;
 
+      const saldoInfo = saldosPorCuenta[acc.id] || saldosPorCuenta[acc.codigo] || { saldo: 0, totalMovimientos: 0 };
+      const saldo = saldoInfo.saldo || 0;
+      const saldoFmt = sales && typeof sales.formatearMoneda === 'function'
+        ? sales.formatearMoneda(saldo)
+        : `$${saldo.toLocaleString('es-CL')}`;
+
+      const saldoBadge = saldo > 0
+        ? `<span class="inline-block px-2.5 py-0.5 rounded-md font-mono font-bold text-xs bg-emerald-50 text-emerald-700 border border-emerald-200">${saldoFmt}</span>`
+        : saldo < 0
+          ? `<span class="inline-block px-2.5 py-0.5 rounded-md font-mono font-bold text-xs bg-rose-50 text-rose-700 border border-rose-200">${saldoFmt}</span>`
+          : `<span class="inline-block px-2.5 py-0.5 rounded-md font-mono font-bold text-xs bg-gray-50 text-gray-600 border border-gray-200">$0</span>`;
+
+      const nombreEscapado = (acc.nombre || '').replace(/'/g, "\\'");
+      const btnVerMovimientos = `<button type="button" class="p-1 text-indigo-600 hover:text-indigo-800 rounded cursor-pointer transition" title="Ver movimientos de esta cuenta en el Libro Diario" onclick="NovaprintUI.verMovimientosCuenta('${acc.codigo}', '${nombreEscapado}')">👁️</button>`;
+
       return `
         <tr class="hover:bg-slate-50 transition border-b border-gray-100">
           <td class="py-2.5 px-3 font-mono font-bold text-gray-900">${acc.codigo}</td>
@@ -3446,7 +3486,9 @@
           <td class="py-2.5 px-3 text-gray-600">${acc.subtipo || '-'}</td>
           <td class="py-2.5 px-3 text-gray-500 max-w-xs truncate" title="${acc.descripcion || ''}">${acc.descripcion || '-'}</td>
           <td class="py-2.5 px-3 text-center">${badgeSis}</td>
+          <td class="py-2.5 px-3 text-right whitespace-nowrap">${saldoBadge}</td>
           <td class="py-2.5 px-3 text-right space-x-1 whitespace-nowrap">
+            ${btnVerMovimientos}
             <button type="button" class="p-1 text-gray-500 hover:text-gray-800 rounded cursor-pointer transition" title="Editar Cuenta" onclick="NovaprintUI.editarCuenta('${acc.id}')">✏️</button>
             ${btnEliminar}
           </td>
@@ -3792,12 +3834,7 @@
       if (dlg && typeof dlg.close === 'function') dlg.close();
 
       showToast(`Transferencia de $${amount.toLocaleString('es-CL')} registrada con éxito.`, 'success');
-
-      if (typeof global.refrescarContabilidad === 'function') {
-        global.refrescarContabilidad();
-      } else if (typeof global.refrescarDatos === 'function') {
-        global.refrescarDatos();
-      }
+      refrescarContabilidadCompleta();
     } catch (err) {
       showToast(err.message || 'Error al registrar la transferencia.', 'error');
     }
@@ -3815,14 +3852,70 @@
       const res = storage.deleteTransfer(transferId);
       if (res && res.success) {
         showToast('Transferencia eliminada con éxito.', 'info');
-        if (typeof global.refrescarContabilidad === 'function') {
-          global.refrescarContabilidad();
-        } else if (typeof global.refrescarDatos === 'function') {
-          global.refrescarDatos();
-        }
+        refrescarContabilidadCompleta();
       } else {
         showToast(res.error || 'No se pudo eliminar la transferencia.', 'error');
       }
+    }
+  }
+
+  function refrescarContabilidadCompleta() {
+    const storage = global.NovaprintStorage;
+    if (global.NovaprintMain && typeof global.NovaprintMain.refrescarDatos === 'function') {
+      global.NovaprintMain.refrescarDatos();
+    } else if (global.NovaprintMain && typeof global.NovaprintMain.refrescarContabilidad === 'function') {
+      global.NovaprintMain.refrescarContabilidad();
+    } else if (typeof global.refrescarContabilidad === 'function') {
+      global.refrescarContabilidad();
+    } else if (typeof global.refrescarDatos === 'function') {
+      global.refrescarDatos();
+    }
+
+    if (storage) {
+      renderAccountingModule(
+        storage.getOrders ? storage.getOrders() : [],
+        storage.getPurchases ? storage.getPurchases() : [],
+        storage.getInventory ? storage.getInventory() : [],
+        storage.getExpenses ? storage.getExpenses() : [],
+        storage.getSettings ? storage.getSettings() : {},
+        storage.getTransfers ? storage.getTransfers() : []
+      );
+      renderAccountsChart();
+    }
+  }
+
+  function verMovimientosCuenta(codigo, nombre) {
+    cambiarSubVistaContable('journal');
+
+    const sel = document.getElementById('acc-journal-filter-type');
+    if (sel) sel.value = 'todos';
+    currentJournalFilter = 'todos';
+
+    const storage = global.NovaprintStorage;
+    const acc = global.NovaprintAccounting;
+    const sales = global.NovaprintSales;
+    if (storage && acc && sales) {
+      const pedidos = storage.getOrders ? storage.getOrders() : [];
+      const compras = storage.getPurchases ? storage.getPurchases() : [];
+      const gastos = storage.getExpenses ? storage.getExpenses() : [];
+      const trans = storage.getTransfers ? storage.getTransfers() : [];
+      const todosAsientos = acc.generarLibroDiario(pedidos, compras, gastos, trans);
+
+      const codStr = (codigo || '').toString().trim();
+      const nomNorm = (nombre || '').toLowerCase().trim();
+
+      const filtrados = todosAsientos.filter(a => {
+        const cDebe = (a.cuentaDebe || '').toLowerCase();
+        const cHaber = (a.cuentaHaber || '').toLowerCase();
+        const detDestCod = a.detalle && a.detalle.destinoCodigo ? a.detalle.destinoCodigo.toString().trim() : '';
+        const detOrigCod = a.detalle && a.detalle.origenCodigo ? a.detalle.origenCodigo.toString().trim() : '';
+
+        return cDebe.includes(nomNorm) || cHaber.includes(nomNorm) ||
+               (codStr && (cDebe.includes(codStr) || cHaber.includes(codStr) || detDestCod === codStr || detOrigCod === codStr));
+      });
+
+      renderAccountingJournal(filtrados, sales);
+      showToast(`Mostrando ${filtrados.length} movimiento(s) de cuenta ${codigo} — ${nombre}`, 'info');
     }
   }
 
@@ -3923,11 +4016,12 @@
     guardarCuentaDesdeFormulario,
     confirmarEliminarCuenta,
     confirmarRestablecerCuentas,
-    // Spec 023: Transferencia entre Cuentas Contables
+    // Spec 023/024: Transferencia entre Cuentas Contables y Movimientos
     abrirModalTransferencia,
     actualizarPreviewTransferencia,
     guardarTransferenciaDesdeFormulario,
-    confirmarEliminarTransferencia
+    confirmarEliminarTransferencia,
+    verMovimientosCuenta
   };
 
   if (typeof module !== 'undefined' && module.exports) {

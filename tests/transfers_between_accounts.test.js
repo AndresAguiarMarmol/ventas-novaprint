@@ -286,3 +286,4 @@ describe('Spec 023 — Transferencia entre Cuentas Contables', () => {
     });
   });
 });
+

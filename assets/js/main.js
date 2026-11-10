@@ -836,6 +836,8 @@
     refrescarInventario,
     refrescarProveedores,
     refrescarCompras,
+    refrescarFabricacion,
+    refrescarContabilidad,
     aplicarTema,
     resolverEsOscuro,
     BUILD_VERSION,
@@ -847,5 +849,7 @@
     module.exports = mainModule;
   }
   global.NovaprintMain = mainModule;
+  global.refrescarContabilidad = refrescarContabilidad;
+  global.refrescarDatos = refrescarDatos;
 
 })(typeof window !== 'undefined' ? window : globalThis);

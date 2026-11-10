@@ -76,6 +76,12 @@ Registro de todo lo que debe preservarse entre sesiones de trabajo: arquitectura
   - **Spec 021 (Implementada):** Separar Compra de Poleras y Estampado DTF en 2 Facturas para 2 Proveedores Distintos.
   - **Spec 022 (Implementada):** Plan de Cuentas Contable Dinámico y Operaciones CRUD (Activos, Pasivos, Capital, Ingresos y Egresos) con Protección de Cuentas de Sistema.
   - **Spec 023 (Implementada):** Transferencia entre Cuentas Contables (Botón en Cabecera, Asientos de Partida Doble en Libro Diario y Modal Interactivo).
+  - **Spec 024 (Implementada):** Reflejo Dinámico de Transferencias en Cuentas Contables (Origen y Destino) y Listado de Movimientos.
+- **Reflejo de Transferencias en Cuentas Contables y Movimientos (Spec 024):**
+  - **Cálculo de Saldos Dinámicos por Cuenta (Libro Mayor):** Implementación de `calcularSaldosPlanCuentas(asientos, accounts, settings)` en `assets/js/accounting.js` que consolida todos los débitos y créditos a partir de la totalidad de asientos contables del sistema (Ventas, Compras, Gastos y Transferencias). Determina el saldo según la naturaleza contable de cada cuenta: $\text{Debe} - \text{Haber}$ para cuentas deudoras (Activo y Egreso) y $\text{Haber} - \text{Debe}$ para cuentas acreedoras (Pasivo, Capital e Ingreso). Para `1101 Caja y Bancos` considera además el capital inicial de `settings.initialCapital`.
+  - **Columna de Saldo Actual y Botón de Movimientos en Plan de Cuentas:** En `#acc-table-accounts` se incorpora la columna visible "Saldo Actual ($)", resaltando saldos positivos en verde/esmeralda y saldos cero en tono neutro. Se añade el botón de acción rápida `[👁️]` ("Ver Movimientos") en cada fila que redirige inmediatamente a la pestaña de Libro Diario filtrando los asientos contables en los que participa esa cuenta específica (`NovaprintUI.verMovimientosCuenta`).
+  - **Impacto de Transferencias en Balance General y Métricas:** `calcularBalanceGeneral` y `calcularMetricasContables` reciben el array de transferencias de `storage.getTransfers()`, ajustando el disponible neto de Caja y Bancos (`1101`) sumando transferencias entrantes (destino) y restando transferencias salientes (origen), al igual que en cuentas de activo fijo (ej. `1201 Maquinaria`) o pasivos (`2101 Cuentas por Pagar`), preservando rigurosamente la ecuación contable: $\text{Activos} = \text{Pasivos} + \text{Patrimonio}$.
+  - **Reactividad Inmediata en Guardado y Navegación:** En `assets/js/main.js` se exportan explícitamente `refrescarContabilidad` y `refrescarDatos` en el objeto global `window` y en `NovaprintMain`. En `assets/js/ui.js` la función `refrescarContabilidadCompleta` asegura la re-renderización sincronizada de `renderAccountingModule` y `renderAccountsChart` al confirmar (`guardarTransferenciaDesdeFormulario`) o eliminar (`confirmarEliminarTransferencia`) un traspaso entre cuentas, y la navegación a la pestaña `journal` en `cambiarSubVistaContable` re-ejecuta la hidratación de asientos para reflejar las transferencias al instante.
 - **Transferencia entre Cuentas Contables (Spec 023):**
   - **Ubicación en Cabecera Contable:** Botón dedicado `#btn-new-transfer` (`⇄ Transferir entre Cuentas`) contiguo a `#btn-new-expense` (`+ Registrar Gasto`) en la vista `#view-accounting`.
   - **Diálogo Modal `<dialog id="dialog-transfer">`:** Formulario asistido con selectores dinámicos de cuenta de origen y destino poblados desde `NovaprintStorage.getAccounts()` (agrupados por tipos), fecha, monto numérico, glosa y comprobante.
@@ -159,6 +165,27 @@ Registro de todo lo que debe preservarse entre sesiones de trabajo: arquitectura
 ---
 
 ## 3. Historial de cambios
+
+### 2026-11-10 (Reflejo de Transferencias en Cuentas Contables y Listado de Movimientos — Spec 024)
+- **Motor Contable (`assets/js/accounting.js`):**
+  - Implementación de `calcularSaldosPlanCuentas(asientos, accounts, settings)` para consolidar débitos y créditos según la partida doble de cada asiento, determinando el saldo contable conforme a su naturaleza deudora o acreedora y sumando el capital inicial en Caja y Bancos (`1101`).
+  - Actualización de `calcularBalanceGeneral` y `calcularMetricasContables` para recibir el parámetro `transferencias = []`, sumando entradas y deduciendo salidas en `1101 Caja y Bancos` e impactando cuentas de pasivo o activo fijo, manteniendo estrictamente equilibrada la ecuación fundamental $\text{Activos} = \text{Pasivos} + \text{Patrimonio}$.
+  - Exportación de `calcularSaldosPlanCuentas` en el módulo público `NovaprintAccounting`.
+- **Estructura HTML (`index.html`):**
+  - Incorporada la cabecera `<th class="py-3 px-3 text-right font-bold">Saldo Actual</th>` en la tabla `#acc-table-accounts` del Plan de Cuentas.
+- **Interfaz de Usuario y Controladores (`assets/js/ui.js`):**
+  - `renderAccountsChart`: integración del cálculo dinámico de saldos por cuenta mediante `calcularSaldosPlanCuentas`, renderizado de badges de saldo en verde esmeralda y adición del botón `[👁️]` ("Ver Movimientos") en la columna de operaciones.
+  - Implementación de `verMovimientosCuenta(codigo, nombre)`: cambia a la sub-vista de Libro Diario y filtra los asientos que involucran a dicha cuenta.
+  - Creación de `refrescarContabilidadCompleta()` y enlace en `guardarTransferenciaDesdeFormulario` y `confirmarEliminarTransferencia` para rehidratar inmediatamente la UI tras cualquier transferencia.
+  - Actualización de `cambiarSubVistaContable('journal')` para sincronizar en vivo el listado de movimientos.
+- **Orquestador Principal (`assets/js/main.js`):**
+  - Exposición de `refrescarContabilidad` y `refrescarDatos` tanto en el objeto global `window` como en `NovaprintMain`.
+- **Pruebas Automatizadas (`tests/transfers_reflection_accounts_movements.test.js`):**
+  - 6 nuevas pruebas unitarias cubriendo cálculo dinámico de saldos (Libro Mayor), impacto en cuentas origen y destino tras transferencias, preservación de la ecuación patrimonial en Balance General, cabeceras en DOM y disponibilidad de funciones en UI y Main.
+  - Suite global completa: 200 pruebas unitarias en 17 suites ejecutándose y pasando al 100% en verde (0 fallos).
+- **Seguridad y Respaldo:**
+  - Respaldo de seguridad previo generado en `backups/backup_pre_fix_transferencias_reflejo_20261110.json` y tag git `backup-pre-fix-transferencias-reflejo-20261110`.
+- **Metodología SDD:** Especificación completa en `specs/024-reflejo-transferencias-cuentas-y-movimientos/` (`spec.md`, `plan.md`, `tasks.md`).
 
 ### 2026-11-10 (Transferencia entre Cuentas Contables — Spec 023)
 - **Motor Contable (`assets/js/accounting.js`):**

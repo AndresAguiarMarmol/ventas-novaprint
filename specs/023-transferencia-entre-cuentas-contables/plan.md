@@ -73,3 +73,4 @@ Crear `tests/transfers_between_accounts.test.js`:
 - Inclusión de transferencias en Libro Diario (`generarLibroDiario`) con cuadratura estricta Debe = Haber.
 - Respaldo y restauración (`exportBackup` / `importBackup`).
 - Ejecución completa del suite global (`node --test tests/*.test.js`) asegurando 0 regresiones.
+
