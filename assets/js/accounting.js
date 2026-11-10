@@ -8,6 +8,101 @@
   'use strict';
 
   // --- PLAN DE CUENTAS ESTÁNDAR ---
+  const TIPOS_CUENTA = Object.freeze([
+    'Activo',
+    'Pasivo',
+    'Capital',
+    'Ingreso',
+    'Egreso'
+  ]);
+
+  function normalizarTipoCuenta(tipo) {
+    if (!tipo) return 'Activo';
+    const t = tipo.toString().trim().toLowerCase();
+    if (t.includes('activ')) return 'Activo';
+    if (t.includes('pasiv')) return 'Pasivo';
+    if (t.includes('capit') || t.includes('patrimon')) return 'Capital';
+    if (t.includes('ingres')) return 'Ingreso';
+    if (t.includes('egres') || t.includes('cost') || t.includes('gast')) return 'Egreso';
+    return 'Activo';
+  }
+
+  const PLAN_CUENTAS_DEFECTO = Object.freeze([
+    // 1. ACTIVOS
+    { id: 'ACC-1101', codigo: '1101', nombre: 'Caja y Bancos (Disponible)', tipo: 'Activo', subtipo: 'Circulante', descripcion: 'Fondos en caja chica y cuentas bancarias del taller.', esSistema: true, activo: true },
+    { id: 'ACC-1102', codigo: '1102', nombre: 'Cuentas por Cobrar Clientes', tipo: 'Activo', subtipo: 'Circulante', descripcion: 'Saldos pendientes de cobro por pedidos de poleras y confección.', esSistema: true, activo: true },
+    { id: 'ACC-1103', codigo: '1103', nombre: 'Inventario de Existencias', tipo: 'Activo', subtipo: 'Circulante', descripcion: 'Prendas base lisas, insumos DTF, tintas y vinilos en bodega.', esSistema: true, activo: true },
+    { id: 'ACC-1104', codigo: '1104', nombre: 'Crédito Fiscal IVA (Compras)', tipo: 'Activo', subtipo: 'Circulante', descripcion: 'IVA 19% soportado en facturas de compras de insumos.', esSistema: true, activo: true },
+    { id: 'ACC-1201', codigo: '1201', nombre: 'Maquinaria y Equipos de Taller', tipo: 'Activo', subtipo: 'Fijo', descripcion: 'Estampadoras, hornos, plotters DTF y computadores.', esSistema: true, activo: true },
+
+    // 2. PASIVOS
+    { id: 'ACC-2101', codigo: '2101', nombre: 'Cuentas por Pagar Proveedores', tipo: 'Pasivo', subtipo: 'Circulante', descripcion: 'Obligaciones y compras a crédito con proveedores de textiles y DTF.', esSistema: true, activo: true },
+    { id: 'ACC-2102', codigo: '2102', nombre: 'Débito Fiscal IVA (Ventas)', tipo: 'Pasivo', subtipo: 'Circulante', descripcion: 'IVA 19% recargado en boletas y facturas de clientes.', esSistema: true, activo: true },
+    { id: 'ACC-2103', codigo: '2103', nombre: 'Otras Obligaciones por Pagar', tipo: 'Pasivo', subtipo: 'Circulante', descripcion: 'Retenciones previsionales, impuestos mensuales o préstamos cortos.', esSistema: true, activo: true },
+
+    // 3. CAPITAL / PATRIMONIO
+    { id: 'ACC-3101', codigo: '3101', nombre: 'Capital y Aportes de Taller', tipo: 'Capital', subtipo: 'Capital Social', descripcion: 'Capital inicial y aportes de los socios/dueños del taller.', esSistema: true, activo: true },
+    { id: 'ACC-3201', codigo: '3201', nombre: 'Resultado del Ejercicio (Utilidad/Pérdida)', tipo: 'Capital', subtipo: 'Resultados', descripcion: 'Ganancia neta o pérdida acumulada en el período operacional.', esSistema: true, activo: true },
+
+    // 4. INGRESOS
+    { id: 'ACC-4101', codigo: '4101', nombre: 'Ventas de Poleras y Confección', tipo: 'Ingreso', subtipo: 'Operacional', descripcion: 'Ingresos por venta y confección de poleras estampadas.', esSistema: true, activo: true },
+    { id: 'ACC-4102', codigo: '4102', nombre: 'Servicios de Estampado / Muestras', tipo: 'Ingreso', subtipo: 'Operacional', descripcion: 'Servicios de impresión DTF sobre prendas aportadas por clientes.', esSistema: true, activo: true },
+    { id: 'ACC-4103', codigo: '4103', nombre: 'Ingresos por Despacho y Flete', tipo: 'Ingreso', subtipo: 'Operacional', descripcion: 'Cobros realizados a clientes por delivery o envíos.', esSistema: true, activo: true },
+    { id: 'ACC-4104', codigo: '4104', nombre: 'Otros Ingresos del Negocio', tipo: 'Ingreso', subtipo: 'No Operacional', descripcion: 'Venta de retazos, mermas recicladas o ingresos extraordinarios.', esSistema: true, activo: true },
+
+    // 5. EGRESOS (COSTOS Y GASTOS)
+    { id: 'ACC-5101', codigo: '5101', nombre: 'Costo de Insumos y Prendas Base', tipo: 'Egreso', subtipo: 'Costo de Ventas', descripcion: 'Costo de adquisición de prendas lisas y transferencias DTF vendidas.', esSistema: true, activo: true },
+    { id: 'ACC-5201', codigo: '5201', nombre: 'Arriendo de Taller', tipo: 'Egreso', subtipo: 'Operacional', descripcion: 'Arriendo del local o galpón de producción textil.', esSistema: true, activo: true },
+    { id: 'ACC-5202', codigo: '5202', nombre: 'Electricidad y Servicios Básicos', tipo: 'Egreso', subtipo: 'Operacional', descripcion: 'Luz, agua, internet y consumos eléctricos de las prensas.', esSistema: true, activo: true },
+    { id: 'ACC-5203', codigo: '5203', nombre: 'Mantenimiento de Maquinaria Textil', tipo: 'Egreso', subtipo: 'Operacional', descripcion: 'Repuestos, teflón, servicio técnico y lubricación de equipos.', esSistema: true, activo: true },
+    { id: 'ACC-5204', codigo: '5204', nombre: 'Fletes y Despacho de Insumos', tipo: 'Egreso', subtipo: 'Operacional', descripcion: 'Gastos de despacho pagados a transportistas por compras.', esSistema: true, activo: true },
+    { id: 'ACC-5205', codigo: '5205', nombre: 'Mermas y Pruebas de Calidad', tipo: 'Egreso', subtipo: 'Operacional', descripcion: 'Prendas defectuosas o insumos gastados en calibración.', esSistema: true, activo: true },
+    { id: 'ACC-5206', codigo: '5206', nombre: 'Otros Gastos Operacionales', tipo: 'Egreso', subtipo: 'Operacional', descripcion: 'Insumos de oficina, embalaje y gastos menores de taller.', esSistema: true, activo: true }
+  ]);
+
+  function validarCuentaContable(cuenta, cuentasExistentes = []) {
+    const errores = [];
+    if (!cuenta) {
+      return { valido: false, errores: ['Los datos de la cuenta son requeridos.'] };
+    }
+
+    const codigo = (cuenta.codigo || '').toString().trim();
+    if (!codigo) {
+      errores.push('El código contable es obligatorio (ej. 1105).');
+    } else {
+      const duplicado = (Array.isArray(cuentasExistentes) ? cuentasExistentes : []).find(
+        c => c.codigo && c.codigo.toString().trim() === codigo && c.id !== cuenta.id
+      );
+      if (duplicado) {
+        errores.push(`El código contable "${codigo}" ya está registrado para la cuenta "${duplicado.nombre}".`);
+      }
+    }
+
+    const nombre = (cuenta.nombre || '').toString().trim();
+    if (!nombre) {
+      errores.push('El nombre de la cuenta es obligatorio.');
+    }
+
+    const tipoNorm = normalizarTipoCuenta(cuenta.tipo);
+    if (!TIPOS_CUENTA.includes(tipoNorm)) {
+      errores.push(`El tipo de cuenta debe ser uno de: ${TIPOS_CUENTA.join(', ')}.`);
+    }
+
+    return {
+      valido: errores.length === 0,
+      errores,
+      cuentaNormalizada: {
+        ...cuenta,
+        codigo,
+        nombre,
+        tipo: tipoNorm,
+        subtipo: (cuenta.subtipo || 'General').toString().trim(),
+        descripcion: (cuenta.descripcion || '').toString().trim(),
+        activo: cuenta.activo !== false
+      }
+    };
+  }
+
   const CUENTAS_CONTABLES = Object.freeze({
     // 1. ACTIVOS
     CAJA_BANCOS: { codigo: '1101', nombre: 'Caja y Bancos (Disponible)', tipo: 'Activo', subtipo: 'Circulante' },
@@ -539,6 +634,10 @@
   const accountingModule = {
     CUENTAS_CONTABLES,
     CATEGORIAS_GASTO,
+    TIPOS_CUENTA,
+    PLAN_CUENTAS_DEFECTO,
+    normalizarTipoCuenta,
+    validarCuentaContable,
     normalizarMontosPedido,
     generarAsientosPedido,
     obtenerConsolidadoPedidos,

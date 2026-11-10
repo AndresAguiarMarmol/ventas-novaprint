@@ -2977,8 +2977,10 @@
   // ==========================================
   // --- MÓDULO DE CONTABILIDAD (SPEC 018) ---
   // ==========================================
-  let currentAccountingSubView = 'balance'; // 'balance' | 'pnl' | 'journal'
+  let currentAccountingSubView = 'balance'; // 'balance' | 'pnl' | 'journal' | 'chart'
   let currentJournalFilter = 'todos';
+  let currentChartFilter = 'todos';
+  let currentChartSearch = '';
 
   function cambiarSubVistaContable(subview) {
     currentAccountingSubView = subview;
@@ -2986,18 +2988,20 @@
     const btnBal = document.getElementById('btn-acc-sub-balance');
     const btnPnl = document.getElementById('btn-acc-sub-pnl');
     const btnJou = document.getElementById('btn-acc-sub-journal');
+    const btnCha = document.getElementById('btn-acc-sub-chart');
 
     const viewBal = document.getElementById('acc-subview-balance');
     const viewPnl = document.getElementById('acc-subview-pnl');
     const viewJou = document.getElementById('acc-subview-journal');
+    const viewCha = document.getElementById('acc-subview-chart');
 
-    [btnBal, btnPnl, btnJou].forEach(btn => {
+    [btnBal, btnPnl, btnJou, btnCha].forEach(btn => {
       if (btn) {
         btn.className = 'px-4 py-2 rounded-lg text-xs font-bold bg-gray-100 text-gray-700 hover:bg-gray-200 transition';
       }
     });
 
-    [viewBal, viewPnl, viewJou].forEach(v => {
+    [viewBal, viewPnl, viewJou, viewCha].forEach(v => {
       if (v) v.classList.add('hidden');
     });
 
@@ -3010,6 +3014,10 @@
     } else if (subview === 'journal') {
       if (btnJou) btnJou.className = 'px-4 py-2 rounded-lg text-xs font-bold bg-blue-600 text-white shadow-xs transition';
       if (viewJou) viewJou.classList.remove('hidden');
+    } else if (subview === 'chart') {
+      if (btnCha) btnCha.className = 'px-4 py-2 rounded-lg text-xs font-bold bg-blue-600 text-white shadow-xs transition';
+      if (viewCha) viewCha.classList.remove('hidden');
+      renderAccountsChart();
     }
   }
 
@@ -3029,6 +3037,7 @@
     renderAccountingBalance(balance, sales);
     renderAccountingIncomeStatement(pnl, sales);
     renderAccountingJournal(asientos, sales);
+    renderAccountsChart();
   }
 
   function renderAccountingMetrics(m, sales) {
@@ -3325,6 +3334,274 @@
     }
   }
 
+  // ==========================================
+  // PLAN DE CUENTAS CONTABLE Y CRUD (SPEC 022)
+  // ==========================================
+
+  function renderAccountsChart() {
+    if (typeof document === 'undefined') return;
+    const storage = global.NovaprintStorage;
+    if (!storage) return;
+
+    const allAccounts = storage.getAccounts();
+
+    // Actualizar contadores
+    const countTotal = allAccounts.length;
+    const countActivos = allAccounts.filter(a => a.tipo === 'Activo').length;
+    const countPasivos = allAccounts.filter(a => a.tipo === 'Pasivo').length;
+    const countCapital = allAccounts.filter(a => a.tipo === 'Capital').length;
+    const countIngresos = allAccounts.filter(a => a.tipo === 'Ingreso').length;
+    const countEgresos = allAccounts.filter(a => a.tipo === 'Egreso').length;
+
+    const elTotal = document.getElementById('chart-count-total');
+    if (elTotal) elTotal.textContent = countTotal;
+    const elActivos = document.getElementById('chart-count-activos');
+    if (elActivos) elActivos.textContent = countActivos;
+    const elPasivos = document.getElementById('chart-count-pasivos');
+    if (elPasivos) elPasivos.textContent = countPasivos;
+    const elCapital = document.getElementById('chart-count-capital');
+    if (elCapital) elCapital.textContent = countCapital;
+    const elIngresos = document.getElementById('chart-count-ingresos');
+    if (elIngresos) elIngresos.textContent = countIngresos;
+    const elEgresos = document.getElementById('chart-count-egresos');
+    if (elEgresos) elEgresos.textContent = countEgresos;
+
+    const selectFilter = document.getElementById('acc-chart-filter-type');
+    const filterType = selectFilter ? selectFilter.value : currentChartFilter;
+
+    const searchInput = document.getElementById('acc-chart-search');
+    const query = searchInput ? searchInput.value.trim().toLowerCase() : currentChartSearch;
+
+    let filtered = allAccounts;
+    if (filterType && filterType !== 'todos') {
+      filtered = filtered.filter(a => a.tipo === filterType);
+    }
+    if (query) {
+      filtered = filtered.filter(a =>
+        (a.codigo || '').toLowerCase().includes(query) ||
+        (a.nombre || '').toLowerCase().includes(query) ||
+        (a.subtipo || '').toLowerCase().includes(query) ||
+        (a.descripcion || '').toLowerCase().includes(query)
+      );
+    }
+
+    const tbody = document.getElementById('acc-chart-tbody');
+    if (!tbody) return;
+
+    if (filtered.length === 0) {
+      tbody.innerHTML = `
+        <tr>
+          <td colspan="7" class="py-8 text-center text-gray-400 text-xs">
+            No se encontraron cuentas contables que coincidan con la búsqueda o filtro.
+          </td>
+        </tr>
+      `;
+      return;
+    }
+
+    const badgeTipo = (tipo) => {
+      switch (tipo) {
+        case 'Activo':
+          return '<span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-100 text-blue-800">1. Activo</span>';
+        case 'Pasivo':
+          return '<span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800">2. Pasivo</span>';
+        case 'Capital':
+          return '<span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-purple-100 text-purple-800">3. Capital</span>';
+        case 'Ingreso':
+          return '<span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800">4. Ingreso</span>';
+        case 'Egreso':
+          return '<span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-100 text-rose-800">5. Egreso</span>';
+        default:
+          return `<span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-gray-100 text-gray-800">${tipo}</span>`;
+      }
+    };
+
+    tbody.innerHTML = filtered.map(acc => {
+      const esSis = Boolean(acc.esSistema);
+      const badgeSis = esSis
+        ? '<span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 text-slate-700 border border-slate-300" title="Cuenta base del sistema protegida">Base Sistema</span>'
+        : '<span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-indigo-50 text-indigo-700 border border-indigo-200" title="Cuenta personalizada añadida por el usuario">Personalizada</span>';
+
+      const btnEliminar = esSis
+        ? '<button type="button" class="p-1 text-gray-300 cursor-not-allowed" title="Las cuentas base del sistema no se pueden eliminar" disabled>🔒</button>'
+        : `<button type="button" class="p-1 text-red-500 hover:text-red-700 rounded cursor-pointer transition" title="Eliminar Cuenta" onclick="NovaprintUI.confirmarEliminarCuenta('${acc.id}')">🗑️</button>`;
+
+      return `
+        <tr class="hover:bg-slate-50 transition border-b border-gray-100">
+          <td class="py-2.5 px-3 font-mono font-bold text-gray-900">${acc.codigo}</td>
+          <td class="py-2.5 px-3 font-bold text-gray-800">${acc.nombre}</td>
+          <td class="py-2.5 px-3">${badgeTipo(acc.tipo)}</td>
+          <td class="py-2.5 px-3 text-gray-600">${acc.subtipo || '-'}</td>
+          <td class="py-2.5 px-3 text-gray-500 max-w-xs truncate" title="${acc.descripcion || ''}">${acc.descripcion || '-'}</td>
+          <td class="py-2.5 px-3 text-center">${badgeSis}</td>
+          <td class="py-2.5 px-3 text-right space-x-1 whitespace-nowrap">
+            <button type="button" class="p-1 text-gray-500 hover:text-gray-800 rounded cursor-pointer transition" title="Editar Cuenta" onclick="NovaprintUI.editarCuenta('${acc.id}')">✏️</button>
+            ${btnEliminar}
+          </td>
+        </tr>
+      `;
+    }).join('');
+  }
+
+  function filtrarPlanCuentas() {
+    renderAccountsChart();
+  }
+
+  function abrirModalNuevaCuenta() {
+    const form = document.getElementById('form-account');
+    if (form) form.reset();
+
+    const hiddenId = document.getElementById('account-id-hidden');
+    if (hiddenId) hiddenId.value = '';
+
+    const title = document.getElementById('account-modal-title');
+    if (title) title.textContent = 'Registrar Cuenta Contable';
+    const sub = document.getElementById('account-modal-subtitle');
+    if (sub) sub.textContent = 'Define una nueva cuenta para el Plan de Cuentas del taller';
+
+    const codeInput = document.getElementById('account-code-input');
+    if (codeInput) {
+      codeInput.readOnly = false;
+      codeInput.classList.remove('bg-gray-100');
+    }
+
+    const dlg = document.getElementById('dialog-account');
+    if (dlg && typeof dlg.showModal === 'function') {
+      dlg.showModal();
+    }
+  }
+
+  function editarCuenta(accountId) {
+    const storage = global.NovaprintStorage;
+    if (!storage) return;
+
+    const acc = storage.getAccountById(accountId);
+    if (!acc) {
+      showToast('No se encontró la cuenta seleccionada.', 'error');
+      return;
+    }
+
+    const hiddenId = document.getElementById('account-id-hidden');
+    if (hiddenId) hiddenId.value = acc.id;
+
+    const title = document.getElementById('account-modal-title');
+    if (title) title.textContent = `Editar Cuenta Contable (${acc.codigo})`;
+    const sub = document.getElementById('account-modal-subtitle');
+    if (sub) sub.textContent = 'Modifica los datos y clasificación de la cuenta contable';
+
+    const codeInput = document.getElementById('account-code-input');
+    if (codeInput) {
+      codeInput.value = acc.codigo || '';
+      if (acc.esSistema) {
+        codeInput.readOnly = true;
+        codeInput.classList.add('bg-gray-100');
+      } else {
+        codeInput.readOnly = false;
+        codeInput.classList.remove('bg-gray-100');
+      }
+    }
+
+    const typeSelect = document.getElementById('account-type-select');
+    if (typeSelect) typeSelect.value = acc.tipo || 'Activo';
+
+    const nameInput = document.getElementById('account-name-input');
+    if (nameInput) nameInput.value = acc.nombre || '';
+
+    const subtypeInput = document.getElementById('account-subtype-input');
+    if (subtypeInput) subtypeInput.value = acc.subtipo || '';
+
+    const statusSelect = document.getElementById('account-status-select');
+    if (statusSelect) statusSelect.value = acc.activo !== false ? 'true' : 'false';
+
+    const descInput = document.getElementById('account-desc-input');
+    if (descInput) descInput.value = acc.descripcion || '';
+
+    const dlg = document.getElementById('dialog-account');
+    if (dlg && typeof dlg.showModal === 'function') {
+      dlg.showModal();
+    }
+  }
+
+  function guardarCuentaDesdeFormulario() {
+    const storage = global.NovaprintStorage;
+    if (!storage) return;
+
+    const hiddenId = document.getElementById('account-id-hidden');
+    const existingId = hiddenId ? hiddenId.value.trim() : '';
+
+    const codigo = (document.getElementById('account-code-input')?.value || '').trim();
+    const nombre = (document.getElementById('account-name-input')?.value || '').trim();
+    const tipo = document.getElementById('account-type-select')?.value || 'Activo';
+    const subtipo = (document.getElementById('account-subtype-input')?.value || '').trim();
+    const activo = document.getElementById('account-status-select')?.value !== 'false';
+    const descripcion = (document.getElementById('account-desc-input')?.value || '').trim();
+
+    if (!codigo) {
+      showToast('Por favor ingresa un código contable (ej. 1105).', 'warning');
+      return;
+    }
+    if (!nombre) {
+      showToast('Por favor ingresa un nombre para la cuenta.', 'warning');
+      return;
+    }
+
+    try {
+      const cuentaData = {
+        ...(existingId ? { id: existingId } : {}),
+        codigo,
+        nombre,
+        tipo,
+        subtipo,
+        activo,
+        descripcion
+      };
+
+      const guardada = storage.saveAccount(cuentaData);
+
+      const dlg = document.getElementById('dialog-account');
+      if (dlg && typeof dlg.close === 'function') dlg.close();
+
+      showToast(`Cuenta "${guardada.codigo} — ${guardada.nombre}" guardada con éxito.`, 'success');
+      renderAccountsChart();
+    } catch (err) {
+      showToast(err.message || 'Error al guardar la cuenta.', 'error');
+    }
+  }
+
+  function confirmarEliminarCuenta(accountId) {
+    const storage = global.NovaprintStorage;
+    if (!storage) return;
+
+    const acc = storage.getAccountById(accountId);
+    if (!acc) return;
+
+    if (acc.esSistema) {
+      showToast('Las cuentas base del sistema no pueden eliminarse.', 'warning');
+      return;
+    }
+
+    if (confirm(`¿Eliminar la cuenta contable "${acc.codigo} — ${acc.nombre}"?`)) {
+      const res = storage.deleteAccount(accountId);
+      if (res && res.success) {
+        showToast(`Cuenta "${acc.codigo} — ${acc.nombre}" eliminada.`, 'info');
+        renderAccountsChart();
+      } else {
+        showToast(res.error || 'No se pudo eliminar la cuenta.', 'error');
+      }
+    }
+  }
+
+  function confirmarRestablecerCuentas() {
+    const storage = global.NovaprintStorage;
+    if (!storage) return;
+
+    if (confirm('¿Restablecer el Plan de Cuentas oficial por defecto?\nEsto restaurará las 20 cuentas estándar del taller.')) {
+      storage.resetDefaultAccounts();
+      showToast('Plan de Cuentas restablecido al catálogo oficial.', 'success');
+      renderAccountsChart();
+    }
+  }
+
   const uiModule = {
     showToast,
     renderMetrics,
@@ -3413,7 +3690,15 @@
     filtrarLibroDiario,
     abrirModalNuevoGasto,
     guardarGastoDesdeFormulario,
-    confirmarEliminarGasto
+    confirmarEliminarGasto,
+    // Spec 022: Plan de Cuentas Contable (CRUD)
+    renderAccountsChart,
+    filtrarPlanCuentas,
+    abrirModalNuevaCuenta,
+    editarCuenta,
+    guardarCuentaDesdeFormulario,
+    confirmarEliminarCuenta,
+    confirmarRestablecerCuentas
   };
 
   if (typeof module !== 'undefined' && module.exports) {

@@ -71,3 +71,4 @@
   Contabilidad actualizada (2 facturas de compras registradas)
   Toast de éxito + Refrescar UI
 ```
+

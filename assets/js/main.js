@@ -468,6 +468,22 @@
       });
     }
 
+    // Plan de Cuentas Contable (Spec 022)
+    const btnNewAccount = document.getElementById('btn-new-account');
+    if (btnNewAccount) {
+      btnNewAccount.addEventListener('click', () => {
+        global.NovaprintUI.abrirModalNuevaCuenta();
+      });
+    }
+
+    const formAccount = document.getElementById('form-account');
+    if (formAccount) {
+      formAccount.addEventListener('submit', (e) => {
+        e.preventDefault();
+        global.NovaprintUI.guardarCuentaDesdeFormulario();
+      });
+    }
+
     // Botón Imprimir Ticket en modal (Spec 011)
     const btnPrintTicket = document.getElementById('btn-ticket-print');
     if (btnPrintTicket) {

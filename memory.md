@@ -16,6 +16,7 @@ Registro de todo lo que debe preservarse entre sesiones de trabajo: arquitectura
 - **`novaprint_purchases`:** Historial de compras de insumos/prendas a proveedores (`id, supplierId, supplierName, invoiceNumber, date, items, subtotalNeto, applyIva, ivaPercent, ivaAmount, applyDelivery, deliveryAmount, totalAmount, notes, createdAt`).
 - **`novaprint_projects`:** Órdenes de fabricación / proyectos de taller vinculadas a pedidos o stock (`id, code, orderId, name, garmentType, quantity, printTechnique, stage, startDate, targetDate, assignedTo, notes`).
 - **`novaprint_expenses`:** Registro de gastos operacionales de taller (`id, date, category, description, amount, paymentMethod, reference, notes, createdAt`).
+- **`novaprint_accounts`:** Catálogo oficial del Plan de Cuentas Contable del taller (`id, codigo, nombre, tipo, subtipo, descripcion, esSistema, activo, createdAt, updatedAt`).
 
 ---
 
@@ -72,6 +73,15 @@ Registro de todo lo que debe preservarse entre sesiones de trabajo: arquitectura
   - **Spec 019 (Implementada):** Asientos Contables al Registrar Pedidos: Abono a Banco y Saldo a Cuentas por Cobrar.
   - **Spec 020 (Implementada):** Inclusión de Compra de Estampados en Material Faltante (Adelante, Atrás, Ambos con Precios Diferenciados).
   - **Spec 021 (Implementada):** Separar Compra de Poleras y Estampado DTF en 2 Facturas para 2 Proveedores Distintos.
+  - **Spec 022 (Implementada):** Plan de Cuentas Contable Dinámico y Operaciones CRUD (Activos, Pasivos, Capital, Ingresos y Egresos) con Protección de Cuentas de Sistema.
+- **Plan de Cuentas Contable y Operaciones CRUD (Spec 022):**
+  - **Estructura Canónica en 5 Grupos:** El catálogo contable categoriza formalmente todas las cuentas en `Activo` (1xxx), `Pasivo` (2xxx), `Capital` (3xxx - Patrimonio / Capital Social), `Ingreso` (4xxx) y `Egreso` (5xxx - Costos y Gastos), con normalización de alias mediante `normalizarTipoCuenta`.
+  - **Catálogo Predeterminado y Auto-Seed (`PLAN_CUENTAS_DEFECTO`):** 21 cuentas oficiales del taller pre-cargadas (`esSistema: true`), incluyendo cuentas operativas (Caja y Bancos 1101, Cuentas por Cobrar 1102, Inventario 1103, IVA Crédito 1104, Maquinaria 1201, Cuentas por Pagar 2101, IVA Débito 2102, Capital Social 3101, Resultado del Ejercicio 3201, Ventas de Poleras 4101, Servicios DTF 4102, Costo de Insumos 5101, Arriendo 5201, Electricidad 5202, etc.).
+  - **Protección de Cuentas de Sistema:** Las cuentas con `esSistema: true` tienen su código contable protegido contra edición y no pueden ser eliminadas vía `deleteAccount`, garantizando que ningún usuario rompa los asientos contables automáticos de ventas, compras e inventario.
+  - **Operaciones CRUD Completas (`storage.js`):** `getAccounts(filtroTipo)`, `getAccountById(id)`, `getAccountByCode(codigo)`, `saveAccount(accountData)` (creación y edición con validación de código único y campos obligatorios), `deleteAccount(id)` (exclusivo para cuentas de usuario) y `resetDefaultAccounts()`.
+  - **Sub-vista Visual `#acc-subview-chart` (`ui.js` e `index.html`):** Incorporación del botón de acceso `[📑 Plan de Cuentas]` en la barra contable, tarjetas de conteo KPI en tiempo real por cada uno de los 5 grupos, buscador en vivo, botones de filtrado rápido y tabla responsiva con acciones `[✏️]` (Editar) y `[🗑️]` (Eliminar).
+  - **Modal de Creación y Edición `<dialog id="dialog-account">`:** Formulario accesible con validación reactiva, selectores de grupo, subtipo y descripción.
+  - **Persistencia y Respaldo:** La clave `novaprint_accounts` se sincroniza con `localStorage`, se incluye en `exportBackup` e `importBackup`, y se restablece a los valores canónicos en `clearAllData`.
 - **Separar Compra de Poleras y Estampado DTF (Spec 021):**
   - **Clasificación y Detección de Ítems (`production.js`):** `clasificarItemCompra(item, inventario)` determina si un ítem corresponde a `'textil'` (Prendas Lisas, Gorras, Poleras, Polerones) o a `'dtf'` (Insumos DTF, Insumos de Estampado, transfers, películas). `esCompraMixta` evalúa si una compra combina ambos tipos de materiales.
   - **Resolución Automática de Proveedores:** `resolverProveedorParaCategoria` sugiere automáticamente el proveedor textil (`Textiles Mayoristas Chile` o categoría 'Prendas Lisas') para la factura de poleras, y el proveedor gráfico/DTF (`Insumos Gráficos DTF Sur` o categoría 'Insumos DTF') para la factura de estampado.
@@ -140,6 +150,27 @@ Registro de todo lo que debe preservarse entre sesiones de trabajo: arquitectura
 ---
 
 ## 3. Historial de cambios
+
+### 2026-11-10 (Plan de Cuentas Contable y Operaciones CRUD — Spec 022)
+- **Motor Contable (`assets/js/accounting.js`):**
+  - Implementación de `TIPOS_CUENTA` (`Activo`, `Pasivo`, `Capital`, `Ingreso`, `Egreso`), `normalizarTipoCuenta(tipo)` y `validarCuentaContable(cuenta, cuentasExistentes)`.
+  - Definición oficial del catálogo predeterminado de 21 cuentas del taller en `PLAN_CUENTAS_DEFECTO` con marcas de sistema `esSistema: true`.
+- **Capa de Persistencia y Métodos CRUD (`assets/js/storage.js`):**
+  - Añadida clave `STORAGE_KEYS.ACCOUNTS = 'novaprint_accounts'`.
+  - Implementados métodos `getAccounts(filtroTipo)` con auto-seed de las 21 cuentas base, `getAccountById(id)`, `getAccountByCode(codigo)`, `saveAccount(accountData)` (creación/edición con validación de código único), `deleteAccount(id)` (con protección estricta para cuentas de sistema) y `resetDefaultAccounts()`.
+  - Integración en `exportBackup` e `importBackup` para respaldar y restaurar el plan de cuentas.
+  - Sincronización en `clearAllData` para restablecer el catálogo de fábrica.
+- **Interfaz de Usuario y Modales (`index.html`, `assets/js/ui.js` y `assets/js/main.js`):**
+  - Botón de navegación `[📑 Plan de Cuentas]` (`#btn-acc-sub-chart`) en la barra de subvistas de Contabilidad.
+  - Sub-vista `#acc-subview-chart` con tarjetas resumen KPI por cada grupo (Total, Activos, Pasivos, Capital, Ingresos, Egresos), buscador en tiempo real, selector de filtro por grupo, tabla responsiva con botones de acción rápida `[✏️]` y `[🗑️]`.
+  - Modal accesible `<dialog id="dialog-account">` con `#form-account` para creación y edición asistida de cuentas.
+  - Controladores en `NovaprintUI`: `renderAccountsChart`, `filtrarPlanCuentas`, `abrirModalNuevaCuenta`, `editarCuenta`, `guardarCuentaDesdeFormulario`, `confirmarEliminarCuenta` y `confirmarRestablecerCuentas`.
+- **Pruebas Automatizadas (`tests/chart_of_accounts_crud.test.js`):**
+  - 14 nuevas pruebas unitarias cubriendo definición de grupos, normalización semántica de alias, validación de cuentas, auto-seed en storage, filtrado por tipo, operaciones CRUD, rechazo de códigos duplicados, protección de cuentas del sistema y respaldo/restauración.
+  - Test suite global: 180 pruebas unitarias en 15 suites ejecutándose y pasando al 100% (0 errores).
+- **Seguridad y Respaldo:**
+  - Respaldo de seguridad previo generado en `backups/backup_pre_crud_plan_cuentas_20261110.json` y tag git `backup-pre-crud-plan-cuentas-20261110`.
+- **Metodología SDD:** Especificación completa en `specs/022-plan-de-cuentas-contable-crud/` (`spec.md`, `plan.md`, `tasks.md`).
 
 ### 2026-11-09 (Separar Compra de Poleras y Estampado DTF en 2 Facturas para 2 Proveedores — Spec 021)
 - **Motor de Producción y Proveedores (`assets/js/production.js`):**

@@ -14,7 +14,8 @@
     INVENTORY: 'novaprint_inventory',
     PURCHASES: 'novaprint_purchases',
     PROJECTS: 'novaprint_projects',
-    EXPENSES: 'novaprint_expenses'
+    EXPENSES: 'novaprint_expenses',
+    ACCOUNTS: 'novaprint_accounts'
   };
 
   const DEFAULT_SETTINGS = {
@@ -91,6 +92,7 @@
     setItem(STORAGE_KEYS.PURCHASES, []);
     setItem(STORAGE_KEYS.PROJECTS, []);
     setItem(STORAGE_KEYS.EXPENSES, []);
+    resetDefaultAccounts();
     return true;
   }
 
@@ -771,6 +773,133 @@
     return false;
   }
 
+  // --- PLAN DE CUENTAS CONTABLE (SPEC 022) ---
+  function obtenerPlanCuentasDefecto() {
+    if (global.NovaprintAccounting && Array.isArray(global.NovaprintAccounting.PLAN_CUENTAS_DEFECTO)) {
+      return JSON.parse(JSON.stringify(global.NovaprintAccounting.PLAN_CUENTAS_DEFECTO));
+    }
+    return [
+      { id: 'ACC-1101', codigo: '1101', nombre: 'Caja y Bancos (Disponible)', tipo: 'Activo', subtipo: 'Circulante', descripcion: 'Fondos en caja chica y cuentas bancarias del taller.', esSistema: true, activo: true },
+      { id: 'ACC-1102', codigo: '1102', nombre: 'Cuentas por Cobrar Clientes', tipo: 'Activo', subtipo: 'Circulante', descripcion: 'Saldos pendientes de cobro por pedidos de poleras y confección.', esSistema: true, activo: true },
+      { id: 'ACC-1103', codigo: '1103', nombre: 'Inventario de Existencias', tipo: 'Activo', subtipo: 'Circulante', descripcion: 'Prendas base lisas, insumos DTF, tintas y vinilos en bodega.', esSistema: true, activo: true },
+      { id: 'ACC-1104', codigo: '1104', nombre: 'Crédito Fiscal IVA (Compras)', tipo: 'Activo', subtipo: 'Circulante', descripcion: 'IVA 19% soportado en facturas de compras de insumos.', esSistema: true, activo: true },
+      { id: 'ACC-1201', codigo: '1201', nombre: 'Maquinaria y Equipos de Taller', tipo: 'Activo', subtipo: 'Fijo', descripcion: 'Estampadoras, hornos, plotters DTF y computadores.', esSistema: true, activo: true },
+      { id: 'ACC-2101', codigo: '2101', nombre: 'Cuentas por Pagar Proveedores', tipo: 'Pasivo', subtipo: 'Circulante', descripcion: 'Obligaciones y compras a crédito con proveedores de textiles y DTF.', esSistema: true, activo: true },
+      { id: 'ACC-2102', codigo: '2102', nombre: 'Débito Fiscal IVA (Ventas)', tipo: 'Pasivo', subtipo: 'Circulante', descripcion: 'IVA 19% recargado en boletas y facturas de clientes.', esSistema: true, activo: true },
+      { id: 'ACC-2103', codigo: '2103', nombre: 'Otras Obligaciones por Pagar', tipo: 'Pasivo', subtipo: 'Circulante', descripcion: 'Retenciones previsionales, impuestos mensuales o préstamos cortos.', esSistema: true, activo: true },
+      { id: 'ACC-3101', codigo: '3101', nombre: 'Capital y Aportes de Taller', tipo: 'Capital', subtipo: 'Capital Social', descripcion: 'Capital inicial y aportes de los socios/dueños del taller.', esSistema: true, activo: true },
+      { id: 'ACC-3201', codigo: '3201', nombre: 'Resultado del Ejercicio (Utilidad/Pérdida)', tipo: 'Capital', subtipo: 'Resultados', descripcion: 'Ganancia neta o pérdida acumulada en el período operacional.', esSistema: true, activo: true },
+      { id: 'ACC-4101', codigo: '4101', nombre: 'Ventas de Poleras y Confección', tipo: 'Ingreso', subtipo: 'Operacional', descripcion: 'Ingresos por venta y confección de poleras estampadas.', esSistema: true, activo: true },
+      { id: 'ACC-4102', codigo: '4102', nombre: 'Servicios de Estampado / Muestras', tipo: 'Ingreso', subtipo: 'Operacional', descripcion: 'Servicios de impresión DTF sobre prendas aportadas por clientes.', esSistema: true, activo: true },
+      { id: 'ACC-4103', codigo: '4103', nombre: 'Ingresos por Despacho y Flete', tipo: 'Ingreso', subtipo: 'Operacional', descripcion: 'Cobros realizados a clientes por delivery o envíos.', esSistema: true, activo: true },
+      { id: 'ACC-4104', codigo: '4104', nombre: 'Otros Ingresos del Negocio', tipo: 'Ingreso', subtipo: 'No Operacional', descripcion: 'Venta de retazos, mermas recicladas o ingresos extraordinarios.', esSistema: true, activo: true },
+      { id: 'ACC-5101', codigo: '5101', nombre: 'Costo de Insumos y Prendas Base', tipo: 'Egreso', subtipo: 'Costo de Ventas', descripcion: 'Costo de adquisición de prendas lisas y transferencias DTF vendidas.', esSistema: true, activo: true },
+      { id: 'ACC-5201', codigo: '5201', nombre: 'Arriendo de Taller', tipo: 'Egreso', subtipo: 'Operacional', descripcion: 'Arriendo del local o galpón de producción textil.', esSistema: true, activo: true },
+      { id: 'ACC-5202', codigo: '5202', nombre: 'Electricidad y Servicios Básicos', tipo: 'Egreso', subtipo: 'Operacional', descripcion: 'Luz, agua, internet y consumos eléctricos de las prensas.', esSistema: true, activo: true },
+      { id: 'ACC-5203', codigo: '5203', nombre: 'Mantenimiento de Maquinaria Textil', tipo: 'Egreso', subtipo: 'Operacional', descripcion: 'Repuestos, teflón, servicio técnico y lubricación de equipos.', esSistema: true, activo: true },
+      { id: 'ACC-5204', codigo: '5204', nombre: 'Fletes y Despacho de Insumos', tipo: 'Egreso', subtipo: 'Operacional', descripcion: 'Gastos de despacho pagados a transportistas por compras.', esSistema: true, activo: true },
+      { id: 'ACC-5205', codigo: '5205', nombre: 'Mermas y Pruebas de Calidad', tipo: 'Egreso', subtipo: 'Operacional', descripcion: 'Prendas defectuosas o insumos gastados en calibración.', esSistema: true, activo: true },
+      { id: 'ACC-5206', codigo: '5206', nombre: 'Otros Gastos Operacionales', tipo: 'Egreso', subtipo: 'Operacional', descripcion: 'Insumos de oficina, embalaje y gastos menores de taller.', esSistema: true, activo: true }
+    ];
+  }
+
+  function getAccounts(filtroTipo = null) {
+    let items = getItem(STORAGE_KEYS.ACCOUNTS);
+    if (!Array.isArray(items) || items.length === 0) {
+      items = obtenerPlanCuentasDefecto();
+      setItem(STORAGE_KEYS.ACCOUNTS, items);
+    }
+    if (filtroTipo) {
+      const tipoNorm = (filtroTipo || '').toString().toLowerCase().trim();
+      return items.filter(a => (a.tipo || '').toLowerCase().includes(tipoNorm));
+    }
+    return items;
+  }
+
+  function getAccountById(id) {
+    return getAccounts().find(a => a.id === id) || null;
+  }
+
+  function getAccountByCode(codigo) {
+    if (!codigo) return null;
+    const codStr = codigo.toString().trim();
+    return getAccounts().find(a => a.codigo && a.codigo.toString().trim() === codStr) || null;
+  }
+
+  function saveAccount(accountData) {
+    if (!accountData) throw new Error('Datos de cuenta requeridos');
+
+    const accounts = getAccounts();
+    const codigo = (accountData.codigo || '').toString().trim();
+    if (!codigo) throw new Error('El código contable es obligatorio');
+
+    // Validar duplicado de código si es nueva o si cambió código
+    const existingByCode = accounts.find(a => a.codigo && a.codigo.toString().trim() === codigo);
+    if (existingByCode && existingByCode.id !== accountData.id) {
+      throw new Error(`El código contable "${codigo}" ya está asignado a "${existingByCode.nombre}".`);
+    }
+
+    const id = accountData.id || `ACC-${codigo}`;
+    const idx = accounts.findIndex(a => a.id === id);
+
+    let esSistema = false;
+    let createdAt = new Date().toISOString();
+    if (idx !== -1) {
+      esSistema = Boolean(accounts[idx].esSistema);
+      createdAt = accounts[idx].createdAt || createdAt;
+    }
+
+    let tipo = accountData.tipo || 'Activo';
+    if (global.NovaprintAccounting && typeof global.NovaprintAccounting.normalizarTipoCuenta === 'function') {
+      tipo = global.NovaprintAccounting.normalizarTipoCuenta(tipo);
+    }
+
+    const toSave = {
+      ...accountData,
+      id,
+      codigo,
+      nombre: (accountData.nombre || '').toString().trim(),
+      tipo,
+      subtipo: (accountData.subtipo || 'General').toString().trim(),
+      descripcion: (accountData.descripcion || '').toString().trim(),
+      esSistema: accountData.esSistema != null ? Boolean(accountData.esSistema) : esSistema,
+      activo: accountData.activo !== false,
+      createdAt,
+      updatedAt: idx !== -1 ? new Date().toISOString() : undefined
+    };
+
+    if (idx !== -1) {
+      accounts[idx] = toSave;
+    } else {
+      accounts.push(toSave);
+    }
+
+    accounts.sort((a, b) => a.codigo.localeCompare(b.codigo, undefined, { numeric: true }));
+    setItem(STORAGE_KEYS.ACCOUNTS, accounts);
+    return toSave;
+  }
+
+  function deleteAccount(id) {
+    const accounts = getAccounts();
+    const account = accounts.find(a => a.id === id);
+    if (!account) {
+      return { success: false, error: 'Cuenta contable no encontrada.' };
+    }
+    if (account.esSistema) {
+      return { success: false, error: 'No es posible eliminar una cuenta base del sistema requerida para balances automáticos.' };
+    }
+
+    const filtered = accounts.filter(a => a.id !== id);
+    setItem(STORAGE_KEYS.ACCOUNTS, filtered);
+    return { success: true };
+  }
+
+  function resetDefaultAccounts() {
+    const defecto = obtenerPlanCuentasDefecto();
+    setItem(STORAGE_KEYS.ACCOUNTS, defecto);
+    return defecto;
+  }
+
   // --- RESPALDO Y RESTAURACIÓN JSON ---
   function exportBackup() {
     const payload = {
@@ -785,7 +914,8 @@
         inventory: getInventory(),
         purchases: getPurchases(),
         projects: getProjects(),
-        expenses: getExpenses()
+        expenses: getExpenses(),
+        accounts: getAccounts()
       }
     };
     return JSON.stringify(payload, null, 2);
@@ -806,6 +936,7 @@
       if (Array.isArray(data.purchases)) setItem(STORAGE_KEYS.PURCHASES, data.purchases);
       if (Array.isArray(data.projects)) setItem(STORAGE_KEYS.PROJECTS, data.projects);
       if (Array.isArray(data.expenses)) setItem(STORAGE_KEYS.EXPENSES, data.expenses);
+      if (Array.isArray(data.accounts)) setItem(STORAGE_KEYS.ACCOUNTS, data.accounts);
       return { success: true };
     } catch (e) {
       return { success: false, error: e.message };
@@ -1279,6 +1410,13 @@
     getExpenseById,
     saveExpense,
     deleteExpense,
+    // Spec 022: Plan de Cuentas Contable (CRUD)
+    getAccounts,
+    getAccountById,
+    getAccountByCode,
+    saveAccount,
+    deleteAccount,
+    resetDefaultAccounts,
     exportBackup,
     importBackup,
     initDemoData

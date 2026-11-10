@@ -1,0 +1,23 @@
+# Tareas — Spec 022: Plan de Cuentas Contable y Operaciones CRUD
+
+- [x] T0: Respaldo previo de datos y código (archivo `backups/backup_pre_crud_plan_cuentas_20261110.json` y tag `backup-pre-crud-plan-cuentas-20261110`).
+- [x] T1: Definir `TIPOS_CUENTA`, `PLAN_CUENTAS_DEFECTO` y funciones de validación en `assets/js/accounting.js`.
+- [x] T2: Implementar persistencia y métodos CRUD de cuentas contables en `assets/js/storage.js`:
+  - `getAccounts` (con auto-seed predeterminado)
+  - `getAccountById`
+  - `getAccountByCode`
+  - `saveAccount`
+  - `deleteAccount` (protección de cuentas de sistema)
+  - `resetDefaultAccounts`
+  - Soporte en `exportBackup` e `importBackup`.
+- [x] T3: Añadir elementos visuales en `index.html`:
+  - Botón `#btn-acc-sub-chart` en sub-navegación contable.
+  - Sub-vista `#acc-subview-chart` con tarjetas resumen por tipo, filtros, buscador y tabla de cuentas.
+  - Diálogo modal `<dialog id="dialog-account">` con `#form-account`.
+- [x] T4: Implementar controladores y renderizado en `assets/js/ui.js` y escuchadores en `assets/js/main.js`:
+  - Soporte de subvista `'chart'` en `cambiarSubVistaContable`.
+  - `renderAccountsChart`.
+  - `abrirModalNuevaCuenta`, `editarCuenta`, `guardarCuentaDesdeFormulario` y `confirmarEliminarCuenta`.
+  - Escuchadores de eventos para formulario, búsqueda y filtros.
+- [x] T5: Crear suite de pruebas en `tests/chart_of_accounts_crud.test.js` y verificar que el 100% de tests del sistema continúen pasando.
+- [x] T6: Actualizar `memory.md`, marcar especificación como implementada, comitear y pushear a GitHub (`main`).

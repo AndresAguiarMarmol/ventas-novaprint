@@ -652,6 +652,9 @@
         <button id="btn-acc-sub-journal" type="button" class="px-4 py-2 rounded-lg text-xs font-bold bg-gray-100 text-gray-700 hover:bg-gray-200 transition" onclick="NovaprintUI.cambiarSubVistaContable('journal')">
           📖 Libro Diario de Movimientos
         </button>
+        <button id="btn-acc-sub-chart" type="button" class="px-4 py-2 rounded-lg text-xs font-bold bg-gray-100 text-gray-700 hover:bg-gray-200 transition" onclick="NovaprintUI.cambiarSubVistaContable('chart')">
+          📑 Plan de Cuentas
+        </button>
       </div>
 
       <!-- SUB-VISTA 1: BALANCE GENERAL -->
@@ -919,6 +922,104 @@
                 </tr>
               </thead>
               <tbody id="acc-journal-tbody" class="divide-y divide-gray-100"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- SUB-VISTA 4: PLAN DE CUENTAS (SPEC 022) -->
+      <div id="acc-subview-chart" class="hidden space-y-5">
+        <!-- Tarjetas Resumen por Tipo de Cuenta -->
+        <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+          <div class="bg-white p-3 rounded-xl border border-gray-200 shadow-2xs flex flex-col justify-between">
+            <span class="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Total Cuentas</span>
+            <div class="flex items-baseline justify-between mt-1">
+              <span id="chart-count-total" class="text-xl font-black text-gray-900">0</span>
+              <span class="text-sm">📑</span>
+            </div>
+          </div>
+          <div class="bg-blue-50/60 p-3 rounded-xl border border-blue-200 shadow-2xs flex flex-col justify-between">
+            <span class="text-[10px] font-bold text-blue-800 uppercase tracking-wider">1. Activos</span>
+            <div class="flex items-baseline justify-between mt-1">
+              <span id="chart-count-activos" class="text-xl font-black text-blue-900">0</span>
+              <span class="text-sm">🏛️</span>
+            </div>
+          </div>
+          <div class="bg-amber-50/60 p-3 rounded-xl border border-amber-200 shadow-2xs flex flex-col justify-between">
+            <span class="text-[10px] font-bold text-amber-800 uppercase tracking-wider">2. Pasivos</span>
+            <div class="flex items-baseline justify-between mt-1">
+              <span id="chart-count-pasivos" class="text-xl font-black text-amber-900">0</span>
+              <span class="text-sm">📑</span>
+            </div>
+          </div>
+          <div class="bg-purple-50/60 p-3 rounded-xl border border-purple-200 shadow-2xs flex flex-col justify-between">
+            <span class="text-[10px] font-bold text-purple-800 uppercase tracking-wider">3. Capital</span>
+            <div class="flex items-baseline justify-between mt-1">
+              <span id="chart-count-capital" class="text-xl font-black text-purple-900">0</span>
+              <span class="text-sm">⚖️</span>
+            </div>
+          </div>
+          <div class="bg-emerald-50/60 p-3 rounded-xl border border-emerald-200 shadow-2xs flex flex-col justify-between">
+            <span class="text-[10px] font-bold text-emerald-800 uppercase tracking-wider">4. Ingresos</span>
+            <div class="flex items-baseline justify-between mt-1">
+              <span id="chart-count-ingresos" class="text-xl font-black text-emerald-900">0</span>
+              <span class="text-sm">💰</span>
+            </div>
+          </div>
+          <div class="bg-rose-50/60 p-3 rounded-xl border border-rose-200 shadow-2xs flex flex-col justify-between">
+            <span class="text-[10px] font-bold text-rose-800 uppercase tracking-wider">5. Egresos</span>
+            <div class="flex items-baseline justify-between mt-1">
+              <span id="chart-count-egresos" class="text-xl font-black text-rose-900">0</span>
+              <span class="text-sm">📉</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Barra de Control: Búsqueda, Filtro y Botón Nueva Cuenta -->
+        <div class="bg-white p-4 rounded-xl border border-gray-200 shadow-xs flex flex-col sm:flex-row gap-3 items-stretch sm:items-center justify-between">
+          <div class="flex flex-wrap items-center gap-2.5 flex-1">
+            <div class="relative flex-1 min-w-[200px]">
+              <input id="acc-chart-search" type="text" placeholder="Buscar por código o nombre..." class="w-full pl-8 pr-3 py-2 bg-gray-50 border border-gray-300 rounded-lg text-xs font-medium focus:outline-none focus:bg-white focus:border-blue-500" oninput="NovaprintUI.filtrarPlanCuentas()">
+              <span class="absolute left-2.5 top-2.5 text-gray-400 text-xs">🔍</span>
+            </div>
+            <select id="acc-chart-filter-type" class="text-xs py-2 px-3 bg-gray-50 border border-gray-300 rounded-lg font-bold text-gray-700 focus:outline-none focus:bg-white" onchange="NovaprintUI.filtrarPlanCuentas()">
+              <option value="todos">Todos los Grupos</option>
+              <option value="Activo">1. Activos</option>
+              <option value="Pasivo">2. Pasivos</option>
+              <option value="Capital">3. Capital / Patrimonio</option>
+              <option value="Ingreso">4. Ingresos</option>
+              <option value="Egreso">5. Egresos (Costos y Gastos)</option>
+            </select>
+          </div>
+
+          <div class="flex items-center gap-2">
+            <button id="btn-reset-accounts" type="button" class="px-3 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-bold rounded-lg border border-gray-300 transition flex items-center gap-1 cursor-pointer" onclick="NovaprintUI.confirmarRestablecerCuentas()" title="Restablecer el Plan de Cuentas estándar">
+              <span>🔄</span>
+              <span class="hidden md:inline">Predeterminadas</span>
+            </button>
+            <button id="btn-new-account" type="button" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-lg shadow-xs flex items-center gap-1.5 transition cursor-pointer" onclick="NovaprintUI.abrirModalNuevaCuenta()">
+              <span>+</span>
+              <span>Nueva Cuenta</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Tabla del Plan de Cuentas -->
+        <div class="bg-white rounded-xl border border-gray-200 shadow-xs overflow-hidden">
+          <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse text-xs">
+              <thead>
+                <tr class="bg-gray-50 border-b border-gray-200 text-gray-500 uppercase text-[11px] font-bold tracking-wider">
+                  <th class="py-3 px-3">Código</th>
+                  <th class="py-3 px-3">Nombre de la Cuenta</th>
+                  <th class="py-3 px-3">Grupo / Tipo</th>
+                  <th class="py-3 px-3">Subtipo</th>
+                  <th class="py-3 px-3">Descripción</th>
+                  <th class="py-3 px-3 text-center">Clasificación</th>
+                  <th class="py-3 px-3 text-right">Acciones</th>
+                </tr>
+              </thead>
+              <tbody id="acc-chart-tbody" class="divide-y divide-gray-100"></tbody>
             </table>
           </div>
         </div>
@@ -1768,6 +1869,79 @@
           </button>
           <button type="submit" class="px-5 py-2 bg-red-600 hover:bg-red-700 text-white font-bold rounded-lg shadow-sm text-xs flex items-center gap-1.5">
             💾 Guardar Gasto
+          </button>
+        </div>
+      </form>
+    </div>
+  </dialog>
+
+  <!-- 7b. MODAL DE PLAN DE CUENTAS (CREAR / EDITAR CUENTA) (SPEC 022) -->
+  <dialog id="dialog-account" class="w-full max-w-lg p-0 bg-transparent">
+    <div class="bg-white rounded-2xl shadow-2xl border border-gray-200 overflow-hidden">
+      <div class="px-6 py-4 bg-linear-to-r from-blue-50 to-indigo-50 border-b border-blue-200 flex justify-between items-center">
+        <div class="flex items-center gap-2.5">
+          <span class="p-2 bg-blue-100 text-blue-800 rounded-xl text-lg font-bold">📑</span>
+          <div>
+            <h3 id="account-modal-title" class="text-base font-black text-gray-900">Registrar Cuenta Contable</h3>
+            <p id="account-modal-subtitle" class="text-xs text-blue-800 font-medium">Define una nueva cuenta para el Plan de Cuentas del taller</p>
+          </div>
+        </div>
+        <button type="button" class="text-gray-400 hover:text-gray-700 text-lg font-bold p-1 cursor-pointer" onclick="document.getElementById('dialog-account').close()">✕</button>
+      </div>
+
+      <form id="form-account" class="p-6 space-y-4">
+        <input type="hidden" id="account-id-hidden">
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <label for="account-code-input" class="block text-xs font-bold text-gray-700 uppercase mb-1">Código Contable *</label>
+            <input id="account-code-input" type="text" required placeholder="Ej. 1105 o 5207" class="w-full p-2.5 bg-gray-50 border border-gray-300 rounded-lg text-xs font-bold text-gray-800 focus:outline-none focus:bg-white focus:border-blue-500 font-mono">
+            <span class="text-[10px] text-gray-400">1: Activo, 2: Pasivo, 3: Capital, 4: Ingreso, 5: Egreso</span>
+          </div>
+
+          <div>
+            <label for="account-type-select" class="block text-xs font-bold text-gray-700 uppercase mb-1">Grupo / Tipo *</label>
+            <select id="account-type-select" required class="w-full p-2.5 bg-gray-50 border border-gray-300 rounded-lg text-xs font-bold focus:outline-none focus:bg-white focus:border-blue-500">
+              <option value="Activo">1. Activo (Bienes y Derechos)</option>
+              <option value="Pasivo">2. Pasivo (Obligaciones y Deudas)</option>
+              <option value="Capital">3. Capital (Patrimonio Neto)</option>
+              <option value="Ingreso">4. Ingreso (Ventas y Entradas)</option>
+              <option value="Egreso">5. Egreso (Costos y Gastos)</option>
+            </select>
+          </div>
+        </div>
+
+        <div>
+          <label for="account-name-input" class="block text-xs font-bold text-gray-700 uppercase mb-1">Nombre de la Cuenta *</label>
+          <input id="account-name-input" type="text" required placeholder="Ej. Banco Santander Taller o Publicidad Meta Ads" class="w-full p-2.5 bg-gray-50 border border-gray-300 rounded-lg text-xs font-medium focus:outline-none focus:bg-white focus:border-blue-500">
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <label for="account-subtype-input" class="block text-xs font-bold text-gray-700 uppercase mb-1">Subtipo / Clasificación</label>
+            <input id="account-subtype-input" type="text" placeholder="Ej. Circulante, Fijo, Operacional..." class="w-full p-2.5 bg-gray-50 border border-gray-300 rounded-lg text-xs font-medium focus:outline-none focus:bg-white focus:border-blue-500">
+          </div>
+
+          <div>
+            <label for="account-status-select" class="block text-xs font-bold text-gray-700 uppercase mb-1">Estado</label>
+            <select id="account-status-select" class="w-full p-2.5 bg-gray-50 border border-gray-300 rounded-lg text-xs font-medium focus:outline-none focus:bg-white focus:border-blue-500">
+              <option value="true">Activa (Vigente)</option>
+              <option value="false">Inactiva</option>
+            </select>
+          </div>
+        </div>
+
+        <div>
+          <label for="account-desc-input" class="block text-xs font-bold text-gray-700 uppercase mb-1">Descripción / Propósito</label>
+          <textarea id="account-desc-input" rows="2" placeholder="Uso previsto para esta cuenta en la contabilidad..." class="w-full p-2.5 bg-gray-50 border border-gray-300 rounded-lg text-xs font-medium focus:outline-none focus:bg-white focus:border-blue-500 resize-none"></textarea>
+        </div>
+
+        <div class="pt-3 border-t border-gray-200 flex justify-end gap-3">
+          <button type="button" class="px-4 py-2 border border-gray-300 text-gray-700 font-bold rounded-lg hover:bg-gray-100 text-xs cursor-pointer" onclick="document.getElementById('dialog-account').close()">
+            Cancelar
+          </button>
+          <button id="btn-submit-account" type="submit" class="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-lg shadow-sm text-xs flex items-center gap-1.5 cursor-pointer transition">
+            💾 Guardar Cuenta
           </button>
         </div>
       </form>
