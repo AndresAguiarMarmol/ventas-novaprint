@@ -17,6 +17,7 @@ Registro de todo lo que debe preservarse entre sesiones de trabajo: arquitectura
 - **`novaprint_projects`:** Órdenes de fabricación / proyectos de taller vinculadas a pedidos o stock (`id, code, orderId, name, garmentType, quantity, printTechnique, stage, startDate, targetDate, assignedTo, notes`).
 - **`novaprint_expenses`:** Registro de gastos operacionales de taller (`id, date, category, description, amount, paymentMethod, reference, notes, createdAt`).
 - **`novaprint_accounts`:** Catálogo oficial del Plan de Cuentas Contable del taller (`id, codigo, nombre, tipo, subtipo, descripcion, esSistema, activo, createdAt, updatedAt`).
+- **`novaprint_transfers`:** Registro de transferencias y traspasos entre cuentas contables (`id, date, sourceAccountId, sourceAccountCode, sourceAccountName, destinationAccountId, destinationAccountCode, destinationAccountName, amount, description, reference, createdAt, updatedAt`).
 
 ---
 
@@ -74,6 +75,14 @@ Registro de todo lo que debe preservarse entre sesiones de trabajo: arquitectura
   - **Spec 020 (Implementada):** Inclusión de Compra de Estampados en Material Faltante (Adelante, Atrás, Ambos con Precios Diferenciados).
   - **Spec 021 (Implementada):** Separar Compra de Poleras y Estampado DTF en 2 Facturas para 2 Proveedores Distintos.
   - **Spec 022 (Implementada):** Plan de Cuentas Contable Dinámico y Operaciones CRUD (Activos, Pasivos, Capital, Ingresos y Egresos) con Protección de Cuentas de Sistema.
+  - **Spec 023 (Implementada):** Transferencia entre Cuentas Contables (Botón en Cabecera, Asientos de Partida Doble en Libro Diario y Modal Interactivo).
+- **Transferencia entre Cuentas Contables (Spec 023):**
+  - **Ubicación en Cabecera Contable:** Botón dedicado `#btn-new-transfer` (`⇄ Transferir entre Cuentas`) contiguo a `#btn-new-expense` (`+ Registrar Gasto`) en la vista `#view-accounting`.
+  - **Diálogo Modal `<dialog id="dialog-transfer">`:** Formulario asistido con selectores dinámicos de cuenta de origen y destino poblados desde `NovaprintStorage.getAccounts()` (agrupados por tipos), fecha, monto numérico, glosa y comprobante.
+  - **Previsualización de Partida Doble en Vivo:** Panel interactivo que desglosa en tiempo real el Debe (cargo a cuenta de destino) y Haber (abono a cuenta de origen), validando que origen y destino no sean la misma cuenta y que el monto sea $> 0$.
+  - **Capa de Persistencia (`storage.js`):** Clave `novaprint_transfers` gestionada con `getTransfers()`, `getTransferById(id)`, `saveTransfer(datos)` y `deleteTransfer(id)`, integrada en `exportBackup`, `importBackup` y `clearAllData`.
+  - **Integración con Libro Diario (`accounting.js` y `ui.js`):** `generarLibroDiario` incorpora las transferencias como asientos balanceados con tipo `'Transferencia'`, insignia índigo distintiva, detalle de cuentas y botón de reversión/eliminación `[🗑️]` para transferencias manuales.
+  - **Filtro Rápido en Libro Diario:** Selector `#acc-journal-filter-type` enriquecido con la opción "Transferencias entre Cuentas".
 - **Plan de Cuentas Contable y Operaciones CRUD (Spec 022):**
   - **Estructura Canónica en 5 Grupos:** El catálogo contable categoriza formalmente todas las cuentas en `Activo` (1xxx), `Pasivo` (2xxx), `Capital` (3xxx - Patrimonio / Capital Social), `Ingreso` (4xxx) y `Egreso` (5xxx - Costos y Gastos), con normalización de alias mediante `normalizarTipoCuenta`.
   - **Catálogo Predeterminado y Auto-Seed (`PLAN_CUENTAS_DEFECTO`):** 21 cuentas oficiales del taller pre-cargadas (`esSistema: true`), incluyendo cuentas operativas (Caja y Bancos 1101, Cuentas por Cobrar 1102, Inventario 1103, IVA Crédito 1104, Maquinaria 1201, Cuentas por Pagar 2101, IVA Débito 2102, Capital Social 3101, Resultado del Ejercicio 3201, Ventas de Poleras 4101, Servicios DTF 4102, Costo de Insumos 5101, Arriendo 5201, Electricidad 5202, etc.).
@@ -150,6 +159,27 @@ Registro de todo lo que debe preservarse entre sesiones de trabajo: arquitectura
 ---
 
 ## 3. Historial de cambios
+
+### 2026-11-10 (Transferencia entre Cuentas Contables — Spec 023)
+- **Motor Contable (`assets/js/accounting.js`):**
+  - Implementación de `validarTransferenciaContable(transfer, cuentasExistentes)`: validación de cuenta de origen y destino requeridas y distintas, monto numérico $> 0$ y fecha válida.
+  - Actualización de `generarLibroDiario(pedidos, compras, gastos, transferencias)`: generación de asientos de partida doble con tipo `'Transferencia'`, cargo al Debe en cuenta de destino y abono al Haber en cuenta de origen ($\sum \text{Debe} = \sum \text{Haber}$).
+- **Capa de Persistencia y Métodos CRUD (`assets/js/storage.js`):**
+  - Añadida clave `STORAGE_KEYS.TRANSFERS = 'novaprint_transfers'`.
+  - Implementados métodos `getTransfers()`, `getTransferById(id)`, `saveTransfer(datos)` con validación previa y `deleteTransfer(id)`.
+  - Integración en `exportBackup` e `importBackup` para respaldar y restaurar transferencias entre cuentas, y en `clearAllData`.
+- **Interfaz de Usuario y Diálogos (`index.html`, `assets/js/ui.js` y `assets/js/main.js`):**
+  - Botón `#btn-new-transfer` (`⇄ Transferir entre Cuentas`) contiguo a `#btn-new-expense` en la cabecera del módulo contable.
+  - Diálogo modal nativo `<dialog id="dialog-transfer">` con formulario `#form-transfer`, selectores agrupados por tipo de cuenta, panel en vivo de previsualización de partida doble e indicador de cuadratura.
+  - Funciones en `NovaprintUI`: `abrirModalTransferencia`, `actualizarPreviewTransferencia`, `guardarTransferenciaDesdeFormulario` y `confirmarEliminarTransferencia`.
+  - Actualización de `renderAccountingJournal`: insignia índigo `Transferencia`, filtrado rápido por tipo y botón de eliminación `[🗑️]` para transferencias manuales.
+  - Escuchadores de eventos integrados en `assets/js/main.js`.
+- **Pruebas Automatizadas (`tests/transfers_between_accounts.test.js`):**
+  - 14 nuevas pruebas unitarias cubriendo validación de datos, generación balanceada de asientos de partida doble, persistencia CRUD, rechazo de cuentas idénticas o montos inválidos, soporte en respaldos JSON y elementos visuales en DOM.
+  - Test suite global: 194 pruebas en 16 suites ejecutándose y pasando al 100% (0 fallos).
+- **Seguridad y Respaldo:**
+  - Respaldo de base de datos en `backups/backup_pre_transferencia_cuentas_20261110.json` y tag git `backup-pre-transferencia-cuentas-20261110`.
+- **Metodología SDD:** Especificación completa en `specs/023-transferencia-entre-cuentas-contables/` (`spec.md`, `plan.md`, `tasks.md`).
 
 ### 2026-11-10 (Plan de Cuentas Contable y Operaciones CRUD — Spec 022)
 - **Motor Contable (`assets/js/accounting.js`):**

@@ -596,6 +596,9 @@
         </div>
 
         <div class="flex items-center gap-2 w-full sm:w-auto justify-end">
+          <button id="btn-new-transfer" type="button" class="px-3.5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-lg shadow-xs flex items-center gap-1.5 transition cursor-pointer">
+            <span>⇄ Transferir entre Cuentas</span>
+          </button>
           <button id="btn-new-expense" type="button" class="px-3.5 py-2 bg-red-600 hover:bg-red-700 text-white text-xs font-bold rounded-lg shadow-xs flex items-center gap-1.5 transition">
             <span>+ Registrar Gasto</span>
           </button>
@@ -898,6 +901,7 @@
               <option value="Ingreso">Ventas de Poleras (Ingresos)</option>
               <option value="Costo">Compras de Insumos (Costos)</option>
               <option value="Gasto">Gastos Operacionales</option>
+              <option value="Transferencia">Transferencias entre Cuentas</option>
             </select>
           </div>
 
@@ -1942,6 +1946,95 @@
           </button>
           <button id="btn-submit-account" type="submit" class="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-lg shadow-sm text-xs flex items-center gap-1.5 cursor-pointer transition">
             💾 Guardar Cuenta
+          </button>
+        </div>
+      </form>
+    </div>
+  </dialog>
+
+  <!-- MODAL DE TRANSFERENCIA ENTRE CUENTAS CONTABLES (SPEC 023) -->
+  <dialog id="dialog-transfer" class="w-full max-w-lg p-0 bg-transparent">
+    <div class="bg-white rounded-2xl shadow-2xl border border-gray-200 overflow-hidden">
+      <div class="px-6 py-4 bg-linear-to-r from-indigo-50 to-purple-50 border-b border-indigo-200 flex justify-between items-center">
+        <div class="flex items-center gap-2.5">
+          <span class="p-2 bg-indigo-100 text-indigo-800 rounded-xl text-lg font-bold">⇄</span>
+          <div>
+            <h3 id="transfer-modal-title" class="text-base font-black text-gray-900">Transferencia entre Cuentas</h3>
+            <p class="text-xs text-gray-500">Traspaso de fondos o movimientos de partida doble entre cuentas del taller</p>
+          </div>
+        </div>
+        <button type="button" class="text-gray-400 hover:text-gray-700 text-lg font-bold p-1 cursor-pointer" onclick="document.getElementById('dialog-transfer').close()">✕</button>
+      </div>
+
+      <form id="form-transfer" class="p-6 space-y-4">
+        <input type="hidden" id="transfer-id-hidden">
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <label for="transfer-date" class="block text-xs font-bold text-gray-700 uppercase mb-1">Fecha *</label>
+            <input id="transfer-date" type="date" required class="w-full p-2.5 bg-gray-50 border border-gray-300 rounded-lg text-xs font-medium focus:outline-none focus:bg-white">
+          </div>
+
+          <div>
+            <label for="transfer-amount" class="block text-xs font-bold text-gray-700 uppercase mb-1">Monto a Transferir ($ CLP) *</label>
+            <input id="transfer-amount" type="number" min="1" step="any" placeholder="Ej: 50000" required class="w-full p-2.5 bg-gray-50 border border-gray-300 rounded-lg text-xs font-black text-gray-900 focus:outline-none focus:bg-white" oninput="NovaprintUI.actualizarPreviewTransferencia()">
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <label for="transfer-source-account" class="block text-xs font-bold text-gray-700 uppercase mb-1">Cuenta de Origen (Sale dinero) *</label>
+            <select id="transfer-source-account" required class="w-full p-2.5 bg-gray-50 border border-gray-300 rounded-lg text-xs font-medium focus:outline-none focus:bg-white" onchange="NovaprintUI.actualizarPreviewTransferencia()">
+              <!-- Opciones dinámicas -->
+            </select>
+            <p class="text-[10px] text-gray-400 mt-0.5">Se abona (Haber): disminuye el saldo</p>
+          </div>
+
+          <div>
+            <label for="transfer-destination-account" class="block text-xs font-bold text-gray-700 uppercase mb-1">Cuenta de Destino (Entra dinero) *</label>
+            <select id="transfer-destination-account" required class="w-full p-2.5 bg-gray-50 border border-gray-300 rounded-lg text-xs font-medium focus:outline-none focus:bg-white" onchange="NovaprintUI.actualizarPreviewTransferencia()">
+              <!-- Opciones dinámicas -->
+            </select>
+            <p class="text-[10px] text-gray-400 mt-0.5">Se carga (Debe): aumenta el saldo</p>
+          </div>
+        </div>
+
+        <div>
+          <label for="transfer-description" class="block text-xs font-bold text-gray-700 uppercase mb-1">Glosa / Concepto del Traspaso *</label>
+          <input id="transfer-description" type="text" placeholder="Ej: Traspaso a Caja Chica para compras menores en taller..." required class="w-full p-2.5 bg-gray-50 border border-gray-300 rounded-lg text-xs font-medium focus:outline-none focus:bg-white" oninput="NovaprintUI.actualizarPreviewTransferencia()">
+        </div>
+
+        <div>
+          <label for="transfer-reference" class="block text-xs font-bold text-gray-700 uppercase mb-1">N° Comprobante / Referencia (Opcional)</label>
+          <input id="transfer-reference" type="text" placeholder="Ej: Transf. Banco Estado #128391 o Cheque N°45" class="w-full p-2.5 bg-gray-50 border border-gray-300 rounded-lg text-xs font-medium focus:outline-none focus:bg-white">
+        </div>
+
+        <!-- Panel de Previsualización de Partida Doble -->
+        <div id="transfer-double-entry-preview" class="p-3 bg-slate-50 border border-slate-200 rounded-xl space-y-1.5 text-xs">
+          <div class="flex items-center justify-between text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+            <span>Previsualización Asiento Contable</span>
+            <span id="transfer-preview-balance-tag" class="px-2 py-0.5 rounded text-[10px] bg-emerald-100 text-emerald-800 font-bold">Partida Doble Cuadrada</span>
+          </div>
+          <div class="grid grid-cols-2 gap-2 text-xs pt-1 border-t border-slate-200">
+            <div class="p-2 bg-white rounded border border-emerald-100">
+              <div class="text-[10px] font-bold text-emerald-700 uppercase">DEBE (Cargo a Destino)</div>
+              <div id="transfer-preview-debe-acc" class="font-bold text-gray-800 truncate">Seleccione destino</div>
+              <div id="transfer-preview-debe-amount" class="text-xs font-mono font-black text-emerald-600 mt-0.5">$0</div>
+            </div>
+            <div class="p-2 bg-white rounded border border-indigo-100">
+              <div class="text-[10px] font-bold text-indigo-700 uppercase">HABER (Abono a Origen)</div>
+              <div id="transfer-preview-haber-acc" class="font-bold text-gray-800 truncate">Seleccione origen</div>
+              <div id="transfer-preview-haber-amount" class="text-xs font-mono font-black text-indigo-600 mt-0.5">$0</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="pt-3 border-t border-gray-100 flex justify-end gap-2">
+          <button type="button" class="px-4 py-2 border border-gray-300 text-gray-700 font-bold rounded-lg hover:bg-gray-100 text-xs cursor-pointer" onclick="document.getElementById('dialog-transfer').close()">
+            Cancelar
+          </button>
+          <button id="btn-submit-transfer" type="submit" class="px-5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-lg shadow-sm text-xs flex items-center gap-1.5 cursor-pointer transition">
+            ⇄ Confirmar Transferencia
           </button>
         </div>
       </form>

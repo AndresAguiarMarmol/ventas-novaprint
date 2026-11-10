@@ -484,6 +484,22 @@
       });
     }
 
+    // Transferencia entre Cuentas (Spec 023)
+    const btnNewTransfer = document.getElementById('btn-new-transfer');
+    if (btnNewTransfer) {
+      btnNewTransfer.addEventListener('click', () => {
+        global.NovaprintUI.abrirModalTransferencia();
+      });
+    }
+
+    const formTransfer = document.getElementById('form-transfer');
+    if (formTransfer) {
+      formTransfer.addEventListener('submit', (e) => {
+        e.preventDefault();
+        global.NovaprintUI.guardarTransferenciaDesdeFormulario(e);
+      });
+    }
+
     // Botón Imprimir Ticket en modal (Spec 011)
     const btnPrintTicket = document.getElementById('btn-ticket-print');
     if (btnPrintTicket) {
@@ -762,8 +778,9 @@
     const inventario = storage.getInventory ? storage.getInventory() : [];
     const gastos = storage.getExpenses ? storage.getExpenses() : [];
     const settings = storage.getSettings ? storage.getSettings() : {};
+    const transferencias = storage.getTransfers ? storage.getTransfers() : [];
 
-    ui.renderAccountingModule(pedidos, compras, inventario, gastos, settings);
+    ui.renderAccountingModule(pedidos, compras, inventario, gastos, settings, transferencias);
   }
 
   function refrescarDatos() {

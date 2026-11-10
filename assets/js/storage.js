@@ -15,7 +15,8 @@
     PURCHASES: 'novaprint_purchases',
     PROJECTS: 'novaprint_projects',
     EXPENSES: 'novaprint_expenses',
-    ACCOUNTS: 'novaprint_accounts'
+    ACCOUNTS: 'novaprint_accounts',
+    TRANSFERS: 'novaprint_transfers'
   };
 
   const DEFAULT_SETTINGS = {
@@ -92,6 +93,7 @@
     setItem(STORAGE_KEYS.PURCHASES, []);
     setItem(STORAGE_KEYS.PROJECTS, []);
     setItem(STORAGE_KEYS.EXPENSES, []);
+    setItem(STORAGE_KEYS.TRANSFERS, []);
     resetDefaultAccounts();
     return true;
   }
@@ -900,6 +902,62 @@
     return defecto;
   }
 
+  // --- TRANSFERENCIAS ENTRE CUENTAS CONTABLES (SPEC 023) ---
+  function getTransfers() {
+    const items = getItem(STORAGE_KEYS.TRANSFERS);
+    return Array.isArray(items) ? items : [];
+  }
+
+  function getTransferById(id) {
+    return getTransfers().find(t => t.id === id) || null;
+  }
+
+  function saveTransfer(transferData) {
+    if (!transferData) throw new Error('Datos de transferencia requeridos');
+
+    let validacion = { valido: true, datosNormalizados: transferData };
+    if (global.NovaprintAccounting && typeof global.NovaprintAccounting.validarTransferenciaContable === 'function') {
+      validacion = global.NovaprintAccounting.validarTransferenciaContable(transferData, getAccounts());
+      if (!validacion.valido) {
+        throw new Error(validacion.errores.join(' '));
+      }
+    }
+
+    const normalized = validacion.datosNormalizados;
+    const transfers = getTransfers();
+    const id = normalized.id || `TRF-${Date.now().toString(36).toUpperCase()}-${Math.random().toString(36).substr(2, 4).toUpperCase()}`;
+
+    const idx = transfers.findIndex(t => t.id === id);
+    const toSave = {
+      ...normalized,
+      id,
+      createdAt: idx !== -1 ? (transfers[idx].createdAt || new Date().toISOString()) : new Date().toISOString(),
+      updatedAt: idx !== -1 ? new Date().toISOString() : undefined
+    };
+
+    if (idx !== -1) {
+      transfers[idx] = toSave;
+    } else {
+      transfers.push(toSave);
+    }
+
+    // Ordenar cronológicamente descendente
+    transfers.sort((a, b) => new Date(b.date || b.createdAt) - new Date(a.date || a.createdAt));
+    setItem(STORAGE_KEYS.TRANSFERS, transfers);
+    return toSave;
+  }
+
+  function deleteTransfer(id) {
+    const transfers = getTransfers();
+    const transfer = transfers.find(t => t.id === id);
+    if (!transfer) {
+      return { success: false, error: 'Transferencia no encontrada.' };
+    }
+    const filtered = transfers.filter(t => t.id !== id);
+    setItem(STORAGE_KEYS.TRANSFERS, filtered);
+    return { success: true };
+  }
+
   // --- RESPALDO Y RESTAURACIÓN JSON ---
   function exportBackup() {
     const payload = {
@@ -915,7 +973,8 @@
         purchases: getPurchases(),
         projects: getProjects(),
         expenses: getExpenses(),
-        accounts: getAccounts()
+        accounts: getAccounts(),
+        transfers: getTransfers()
       }
     };
     return JSON.stringify(payload, null, 2);
@@ -937,6 +996,7 @@
       if (Array.isArray(data.projects)) setItem(STORAGE_KEYS.PROJECTS, data.projects);
       if (Array.isArray(data.expenses)) setItem(STORAGE_KEYS.EXPENSES, data.expenses);
       if (Array.isArray(data.accounts)) setItem(STORAGE_KEYS.ACCOUNTS, data.accounts);
+      if (Array.isArray(data.transfers)) setItem(STORAGE_KEYS.TRANSFERS, data.transfers);
       return { success: true };
     } catch (e) {
       return { success: false, error: e.message };
@@ -1417,6 +1477,11 @@
     saveAccount,
     deleteAccount,
     resetDefaultAccounts,
+    // Spec 023: Transferencia entre Cuentas Contables
+    getTransfers,
+    getTransferById,
+    saveTransfer,
+    deleteTransfer,
     exportBackup,
     importBackup,
     initDemoData

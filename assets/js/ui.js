@@ -3021,17 +3021,22 @@
     }
   }
 
-  function renderAccountingModule(pedidos = [], compras = [], inventario = [], gastos = [], settings = {}) {
+  function renderAccountingModule(pedidos = [], compras = [], inventario = [], gastos = [], settings = {}, transferencias = null) {
     if (typeof document === 'undefined') return;
 
     const acc = global.NovaprintAccounting;
     const sales = global.NovaprintSales;
     if (!acc || !sales) return;
 
+    const storage = global.NovaprintStorage;
+    const trans = Array.isArray(transferencias)
+      ? transferencias
+      : (storage && typeof storage.getTransfers === 'function' ? storage.getTransfers() : []);
+
     const metricas = acc.calcularMetricasContables(pedidos, compras, inventario, gastos, settings);
     const balance = acc.calcularBalanceGeneral(pedidos, compras, inventario, gastos, settings);
     const pnl = acc.calcularEstadoResultados(pedidos, compras, gastos);
-    const asientos = acc.generarLibroDiario(pedidos, compras, gastos);
+    const asientos = acc.generarLibroDiario(pedidos, compras, gastos, trans);
 
     renderAccountingMetrics(metricas, sales);
     renderAccountingBalance(balance, sales);
@@ -3187,6 +3192,7 @@
     tbody.innerHTML = filtrados.map(a => {
       const fechaFmt = a.fecha ? a.fecha.split('T')[0] : '-';
       const esGastoManual = a.id && a.id.startsWith('AS-EXP-');
+      const esTransferenciaManual = a.id && a.id.startsWith('AS-TRF-');
 
       let tipoBadge = '';
       if (a.tipo === 'Ingreso') {
@@ -3199,6 +3205,8 @@
         }
       } else if (a.tipo === 'Costo') {
         tipoBadge = '<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-800 border border-amber-200">Compra Insumo</span>';
+      } else if (a.tipo === 'Transferencia') {
+        tipoBadge = '<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-indigo-100 text-indigo-800 border border-indigo-200">Transferencia</span>';
       } else {
         tipoBadge = '<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-red-100 text-red-800 border border-red-200">Gasto Taller</span>';
       }
@@ -3220,6 +3228,10 @@
           <td class="py-2.5 px-3 text-right whitespace-nowrap">
             ${esGastoManual ? `
               <button type="button" class="p-1 text-red-500 hover:text-red-700 rounded transition cursor-pointer" title="Eliminar este gasto" onclick="NovaprintUI.confirmarEliminarGasto('${a.referenciaId}')">
+                🗑️
+              </button>
+            ` : esTransferenciaManual ? `
+              <button type="button" class="p-1 text-red-500 hover:text-red-700 rounded transition cursor-pointer" title="Eliminar esta transferencia" onclick="NovaprintUI.confirmarEliminarTransferencia('${a.referenciaId}')">
                 🗑️
               </button>
             ` : `
@@ -3602,6 +3614,218 @@
     }
   }
 
+  // --- SPEC 023: TRANSFERENCIA ENTRE CUENTAS CONTABLES ---
+  function abrirModalTransferencia() {
+    const storage = global.NovaprintStorage;
+    if (!storage) return;
+
+    const hiddenId = document.getElementById('transfer-id-hidden');
+    if (hiddenId) hiddenId.value = '';
+
+    const dateInput = document.getElementById('transfer-date');
+    if (dateInput) dateInput.value = new Date().toISOString().split('T')[0];
+
+    const amountInput = document.getElementById('transfer-amount');
+    if (amountInput) amountInput.value = '';
+
+    const descInput = document.getElementById('transfer-description');
+    if (descInput) descInput.value = '';
+
+    const refInput = document.getElementById('transfer-reference');
+    if (refInput) refInput.value = '';
+
+    // Cargar cuentas del Plan de Cuentas
+    const accounts = storage.getAccounts ? storage.getAccounts() : [];
+    const activeAccounts = accounts.filter(a => a.activo !== false);
+
+    const selectSource = document.getElementById('transfer-source-account');
+    const selectDest = document.getElementById('transfer-destination-account');
+
+    if (selectSource && selectDest) {
+      // Agrupar por tipo
+      const tipos = ['Activo', 'Pasivo', 'Capital', 'Ingreso', 'Egreso'];
+      let optionsHtml = '';
+
+      tipos.forEach(tipo => {
+        const cuentasTipo = activeAccounts.filter(a => a.tipo === tipo);
+        if (cuentasTipo.length > 0) {
+          optionsHtml += `<optgroup label="${tipo}s">`;
+          cuentasTipo.forEach(a => {
+            optionsHtml += `<option value="${a.id}" data-code="${a.codigo}" data-name="${a.nombre}">${a.codigo} — ${a.nombre}</option>`;
+          });
+          optionsHtml += `</optgroup>`;
+        }
+      });
+
+      selectSource.innerHTML = optionsHtml;
+      selectDest.innerHTML = optionsHtml;
+
+      // Por defecto origen: 1101 (Caja y Bancos) si existe
+      const defaultSource = activeAccounts.find(a => a.codigo === '1101');
+      if (defaultSource) {
+        selectSource.value = defaultSource.id;
+      }
+
+      // Por defecto destino: otra cuenta distinta (ej. 1105 o la segunda)
+      const defaultDest = activeAccounts.find(a => a.id !== selectSource.value && (a.codigo === '1105' || a.tipo === 'Activo')) || activeAccounts.find(a => a.id !== selectSource.value);
+      if (defaultDest) {
+        selectDest.value = defaultDest.id;
+      }
+    }
+
+    actualizarPreviewTransferencia();
+
+    const dlg = document.getElementById('dialog-transfer');
+    if (dlg && typeof dlg.showModal === 'function') {
+      dlg.showModal();
+    }
+  }
+
+  function actualizarPreviewTransferencia() {
+    const sales = global.NovaprintSales;
+
+    const selectSource = document.getElementById('transfer-source-account');
+    const selectDest = document.getElementById('transfer-destination-account');
+    const amountInput = document.getElementById('transfer-amount');
+
+    const sourceId = selectSource ? selectSource.value : '';
+    const destId = selectDest ? selectDest.value : '';
+    const amount = Number(amountInput ? amountInput.value : 0) || 0;
+
+    const sourceOpt = selectSource && selectSource.selectedOptions ? selectSource.selectedOptions[0] : null;
+    const destOpt = selectDest && selectDest.selectedOptions ? selectDest.selectedOptions[0] : null;
+
+    const sourceText = sourceOpt ? sourceOpt.textContent : 'Cuenta Origen';
+    const destText = destOpt ? destOpt.textContent : 'Cuenta Destino';
+
+    const debeAccEl = document.getElementById('transfer-preview-debe-acc');
+    const debeAmountEl = document.getElementById('transfer-preview-debe-amount');
+    const haberAccEl = document.getElementById('transfer-preview-haber-acc');
+    const haberAmountEl = document.getElementById('transfer-preview-haber-amount');
+    const balanceTag = document.getElementById('transfer-preview-balance-tag');
+
+    const montoFmt = sales && typeof sales.formatearMoneda === 'function' ? sales.formatearMoneda(amount) : `$${amount}`;
+
+    if (debeAccEl) debeAccEl.textContent = destText;
+    if (debeAmountEl) debeAmountEl.textContent = montoFmt;
+
+    if (haberAccEl) haberAccEl.textContent = sourceText;
+    if (haberAmountEl) haberAmountEl.textContent = montoFmt;
+
+    if (balanceTag) {
+      if (!sourceId || !destId) {
+        balanceTag.textContent = 'Seleccione Cuentas';
+        balanceTag.className = 'px-2 py-0.5 rounded text-[10px] bg-gray-100 text-gray-700 font-bold';
+      } else if (sourceId === destId) {
+        balanceTag.textContent = 'Error: Misma Cuenta';
+        balanceTag.className = 'px-2 py-0.5 rounded text-[10px] bg-red-100 text-red-800 font-bold';
+      } else if (amount <= 0) {
+        balanceTag.textContent = 'Ingrese Monto > $0';
+        balanceTag.className = 'px-2 py-0.5 rounded text-[10px] bg-amber-100 text-amber-800 font-bold';
+      } else {
+        balanceTag.textContent = 'Partida Doble Cuadrada';
+        balanceTag.className = 'px-2 py-0.5 rounded text-[10px] bg-emerald-100 text-emerald-800 font-bold';
+      }
+    }
+  }
+
+  function guardarTransferenciaDesdeFormulario(e) {
+    if (e && typeof e.preventDefault === 'function') e.preventDefault();
+
+    const storage = global.NovaprintStorage;
+    if (!storage) return;
+
+    const selectSource = document.getElementById('transfer-source-account');
+    const selectDest = document.getElementById('transfer-destination-account');
+    const amountInput = document.getElementById('transfer-amount');
+    const dateInput = document.getElementById('transfer-date');
+    const descInput = document.getElementById('transfer-description');
+    const refInput = document.getElementById('transfer-reference');
+    const hiddenId = document.getElementById('transfer-id-hidden');
+
+    const sourceAccountId = selectSource ? selectSource.value : '';
+    const destinationAccountId = selectDest ? selectDest.value : '';
+    const amount = Number(amountInput ? amountInput.value : 0);
+    const date = dateInput ? dateInput.value : '';
+    const description = descInput ? descInput.value.trim() : '';
+    const reference = refInput ? refInput.value.trim() : '';
+    const existingId = hiddenId ? hiddenId.value.trim() : '';
+
+    if (!sourceAccountId) {
+      showToast('Seleccione la cuenta de origen.', 'warning');
+      return;
+    }
+    if (!destinationAccountId) {
+      showToast('Seleccione la cuenta de destino.', 'warning');
+      return;
+    }
+    if (sourceAccountId === destinationAccountId) {
+      showToast('La cuenta de origen y de destino no pueden ser la misma.', 'warning');
+      return;
+    }
+    if (!amount || amount <= 0) {
+      showToast('El monto debe ser un número mayor a cero ($ > 0).', 'warning');
+      return;
+    }
+    if (!date) {
+      showToast('Seleccione la fecha de la transferencia.', 'warning');
+      return;
+    }
+    if (!description) {
+      showToast('Ingrese una glosa o concepto descriptivo para la transferencia.', 'warning');
+      return;
+    }
+
+    try {
+      const datos = {
+        ...(existingId ? { id: existingId } : {}),
+        sourceAccountId,
+        destinationAccountId,
+        amount,
+        date,
+        description,
+        reference
+      };
+
+      const guardada = storage.saveTransfer(datos);
+      const dlg = document.getElementById('dialog-transfer');
+      if (dlg && typeof dlg.close === 'function') dlg.close();
+
+      showToast(`Transferencia de $${amount.toLocaleString('es-CL')} registrada con éxito.`, 'success');
+
+      if (typeof global.refrescarContabilidad === 'function') {
+        global.refrescarContabilidad();
+      } else if (typeof global.refrescarDatos === 'function') {
+        global.refrescarDatos();
+      }
+    } catch (err) {
+      showToast(err.message || 'Error al registrar la transferencia.', 'error');
+    }
+  }
+
+  function confirmarEliminarTransferencia(transferId) {
+    const storage = global.NovaprintStorage;
+    if (!storage) return;
+
+    const trf = storage.getTransferById(transferId);
+    if (!trf) return;
+
+    const montoStr = Number(trf.amount || 0).toLocaleString('es-CL');
+    if (confirm(`¿Eliminar la transferencia de $${montoStr} entre "${trf.sourceAccountName || trf.sourceAccountCode}" y "${trf.destinationAccountName || trf.destinationAccountCode}"?\nEsta acción revertirá el asiento en el Libro Diario.`)) {
+      const res = storage.deleteTransfer(transferId);
+      if (res && res.success) {
+        showToast('Transferencia eliminada con éxito.', 'info');
+        if (typeof global.refrescarContabilidad === 'function') {
+          global.refrescarContabilidad();
+        } else if (typeof global.refrescarDatos === 'function') {
+          global.refrescarDatos();
+        }
+      } else {
+        showToast(res.error || 'No se pudo eliminar la transferencia.', 'error');
+      }
+    }
+  }
+
   const uiModule = {
     showToast,
     renderMetrics,
@@ -3698,7 +3922,12 @@
     editarCuenta,
     guardarCuentaDesdeFormulario,
     confirmarEliminarCuenta,
-    confirmarRestablecerCuentas
+    confirmarRestablecerCuentas,
+    // Spec 023: Transferencia entre Cuentas Contables
+    abrirModalTransferencia,
+    actualizarPreviewTransferencia,
+    guardarTransferenciaDesdeFormulario,
+    confirmarEliminarTransferencia
   };
 
   if (typeof module !== 'undefined' && module.exports) {

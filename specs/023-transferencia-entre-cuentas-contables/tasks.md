@@ -1,0 +1,24 @@
+# Tareas — Spec 023: Transferencia entre Cuentas Contables
+
+- [x] T0: Respaldo previo de datos y código (archivo `backups/backup_pre_transferencia_cuentas_20261110.json` y tag git `backup-pre-transferencia-cuentas-20261110`).
+- [x] T1: Implementar función de validación `validarTransferenciaContable` y actualizar `generarLibroDiario` en `assets/js/accounting.js` para admitir `transferencias`.
+- [x] T2: Implementar persistencia y métodos CRUD de transferencias en `assets/js/storage.js`:
+  - `STORAGE_KEYS.TRANSFERS`
+  - `getTransfers()`
+  - `getTransferById(id)`
+  - `saveTransfer(transferData)`
+  - `deleteTransfer(id)`
+  - Soporte en `exportBackup`, `importBackup` y `clearAllData`.
+- [x] T3: Añadir elementos visuales en `index.html`:
+  - Botón `#btn-new-transfer` junto a `#btn-new-expense` en la cabecera contable.
+  - Diálogo modal nativo `<dialog id="dialog-transfer">` con formulario `#form-transfer`.
+  - Opción `<option value="Transferencia">` en el selector de filtros de Libro Diario `#acc-journal-filter-type`.
+- [x] T4: Implementar controladores y renderizado en `assets/js/ui.js` y escuchadores en `assets/js/main.js`:
+  - `abrirModalTransferencia`
+  - `actualizarPreviewTransferencia`
+  - `guardarTransferenciaDesdeFormulario`
+  - `confirmarEliminarTransferencia`
+  - Actualización de `renderAccountingModule` y `renderAccountingJournal` para mostrar badges y botón eliminar de transferencias.
+  - Wiring de escuchadores en `assets/js/main.js`.
+- [x] T5: Crear suite de pruebas en `tests/transfers_between_accounts.test.js` y verificar que el 100% de tests del sistema continúen pasando.
+- [x] T6: Actualizar `memory.md`, marcar especificación como implementada, comitear y pushear a GitHub (`main`).

@@ -103,6 +103,67 @@
     };
   }
 
+  /**
+   * Valida una transferencia de fondos entre dos cuentas contables.
+   * Spec 023
+   */
+  function validarTransferenciaContable(transfer, cuentasExistentes = []) {
+    const errores = [];
+    if (!transfer) {
+      return { valido: false, errores: ['Los datos de la transferencia son requeridos.'] };
+    }
+
+    const sourceAccountId = (transfer.sourceAccountId || '').toString().trim();
+    const destinationAccountId = (transfer.destinationAccountId || '').toString().trim();
+    const sourceAccountCode = (transfer.sourceAccountCode || '').toString().trim();
+    const destinationAccountCode = (transfer.destinationAccountCode || '').toString().trim();
+
+    const idOrigen = sourceAccountId || sourceAccountCode;
+    const idDestino = destinationAccountId || destinationAccountCode;
+
+    if (!idOrigen) {
+      errores.push('Debe seleccionar la cuenta de origen.');
+    }
+    if (!idDestino) {
+      errores.push('Debe seleccionar la cuenta de destino.');
+    }
+    if (idOrigen && idDestino && idOrigen === idDestino) {
+      errores.push('La cuenta de origen y la de destino no pueden ser la misma.');
+    }
+
+    const amount = Number(transfer.amount);
+    if (!amount || isNaN(amount) || amount <= 0) {
+      errores.push('El monto a transferir debe ser un número mayor a cero ($ > 0).');
+    }
+
+    const date = (transfer.date || '').toString().trim();
+    if (!date) {
+      errores.push('La fecha de la transferencia es requerida.');
+    }
+
+    const cuentas = Array.isArray(cuentasExistentes) ? cuentasExistentes : [];
+    const sourceAcc = cuentas.find(c => c.id === sourceAccountId || (c.codigo && c.codigo === sourceAccountCode));
+    const destAcc = cuentas.find(c => c.id === destinationAccountId || (c.codigo && c.codigo === destinationAccountCode));
+
+    return {
+      valido: errores.length === 0,
+      errores,
+      datosNormalizados: {
+        ...transfer,
+        sourceAccountId: sourceAcc ? sourceAcc.id : sourceAccountId,
+        sourceAccountCode: sourceAcc ? sourceAcc.codigo : sourceAccountCode,
+        sourceAccountName: sourceAcc ? sourceAcc.nombre : (transfer.sourceAccountName || 'Cuenta Origen'),
+        destinationAccountId: destAcc ? destAcc.id : destinationAccountId,
+        destinationAccountCode: destAcc ? destAcc.codigo : destinationAccountCode,
+        destinationAccountName: destAcc ? destAcc.nombre : (transfer.destinationAccountName || 'Cuenta Destino'),
+        amount: Math.round(amount),
+        date: date || new Date().toISOString().split('T')[0],
+        description: (transfer.description || '').toString().trim(),
+        reference: (transfer.reference || '').toString().trim()
+      }
+    };
+  }
+
   const CUENTAS_CONTABLES = Object.freeze({
     // 1. ACTIVOS
     CAJA_BANCOS: { codigo: '1101', nombre: 'Caja y Bancos (Disponible)', tipo: 'Activo', subtipo: 'Circulante' },
@@ -541,9 +602,10 @@
 
   /**
    * Genera el Libro Diario de movimientos contables unificando
-   * Ventas (pedidos), Compras de insumos y Gastos operacionales.
+   * Ventas (pedidos), Compras de insumos, Gastos operacionales
+   * y Transferencias entre cuentas (Spec 023).
    */
-  function generarLibroDiario(pedidos = [], compras = [], gastos = []) {
+  function generarLibroDiario(pedidos = [], compras = [], gastos = [], transferencias = []) {
     const asientos = [];
 
     // 1. Asientos de Pedidos (Ventas de Poleras) — Spec 019: Abono a Banco y Saldo a Cuentas por Cobrar
@@ -605,6 +667,41 @@
       });
     });
 
+    // 4. Asientos de Transferencias entre Cuentas (Spec 023)
+    (Array.isArray(transferencias) ? transferencias : []).forEach(t => {
+      if (!t) return;
+      const monto = Number(t.amount) || 0;
+      if (monto <= 0) return;
+
+      const conceptoGlosa = t.description ? ` — ${t.description}` : '';
+      const refTexto = t.reference ? ` (${t.reference})` : '';
+      const origenLabel = t.sourceAccountCode ? `${t.sourceAccountCode} ${t.sourceAccountName || ''}`.trim() : (t.sourceAccountName || 'Origen');
+      const destinoLabel = t.destinationAccountCode ? `${t.destinationAccountCode} ${t.destinationAccountName || ''}`.trim() : (t.destinationAccountName || 'Destino');
+
+      asientos.push({
+        id: `AS-TRF-${t.id}`,
+        fecha: t.date || t.createdAt || new Date().toISOString(),
+        tipo: 'Transferencia',
+        origen: 'Transferencia entre Cuentas',
+        referenciaId: t.id,
+        concepto: `Traspaso: ${origenLabel} ➔ ${destinoLabel}${conceptoGlosa}${refTexto}`,
+        cuentaDebe: t.destinationAccountName || `Cuenta ${t.destinationAccountCode || ''}`,
+        debe: monto,
+        cuentaHaber: t.sourceAccountName || `Cuenta ${t.sourceAccountCode || ''}`,
+        haber: monto,
+        detalle: {
+          origenId: t.sourceAccountId,
+          origenCodigo: t.sourceAccountCode,
+          origenNombre: t.sourceAccountName,
+          destinoId: t.destinationAccountId,
+          destinoCodigo: t.destinationAccountCode,
+          destinoNombre: t.destinationAccountName,
+          referencia: t.reference,
+          descripcion: t.description
+        }
+      });
+    });
+
     // Ordenar cronológicamente descendente
     asientos.sort((a, b) => new Date(b.fecha) - new Date(a.fecha));
     return asientos;
@@ -638,6 +735,7 @@
     PLAN_CUENTAS_DEFECTO,
     normalizarTipoCuenta,
     validarCuentaContable,
+    validarTransferenciaContable,
     normalizarMontosPedido,
     generarAsientosPedido,
     obtenerConsolidadoPedidos,
