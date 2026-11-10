@@ -64,3 +64,4 @@ Crear `tests/transfers_reflection_accounts_movements.test.js`:
 - Verificar que el DOM de `index.html` contiene la columna "Saldo Actual".
 - Verificar que `verMovimientosCuenta` está exportada en `NovaprintUI`.
 - Ejecutar suite global completa.
+

@@ -158,3 +158,4 @@ describe('Spec 024 — Reflejo de Transferencias en Cuentas Contables y Listado 
     });
   });
 });
+

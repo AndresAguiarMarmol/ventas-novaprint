@@ -77,6 +77,12 @@ Registro de todo lo que debe preservarse entre sesiones de trabajo: arquitectura
   - **Spec 022 (Implementada):** Plan de Cuentas Contable Dinámico y Operaciones CRUD (Activos, Pasivos, Capital, Ingresos y Egresos) con Protección de Cuentas de Sistema.
   - **Spec 023 (Implementada):** Transferencia entre Cuentas Contables (Botón en Cabecera, Asientos de Partida Doble en Libro Diario y Modal Interactivo).
   - **Spec 024 (Implementada):** Reflejo Dinámico de Transferencias en Cuentas Contables (Origen y Destino) y Listado de Movimientos.
+  - **Spec 025 (Implementada):** Filtros por Mes de Transacción y por Cuenta Contable en Libro Diario de Movimientos.
+- **Filtros por Mes y Cuenta en Libro Diario (Spec 025):**
+  - **Filtro por Mes de la Transacción (`YYYY-MM`):** En `#acc-subview-journal`, se incluye `<input type="month" id="acc-journal-filter-month">` junto al botón interactivo `[Todos]` (`#btn-journal-clear-month`). Permite acotar los asientos contables a cualquier mes y año específico (`a.fecha.startsWith(mes)`) o ver el historial completo.
+  - **Filtro por Cuenta Contable:** Selector desplegable `#acc-journal-filter-account` poblado dinámicamente con las cuentas activas del Plan de Cuentas (`poblarSelectorCuentasLibroDiario`), organizadas y agrupadas por categorías contables (1. Activos, 2. Pasivos, 3. Capital, 4. Ingresos, 5. Egresos), permitiendo filtrar únicamente los asientos donde la cuenta participe al Debe o al Haber (incluyendo orígenes y destinos de transferencias).
+  - **Combinación Lógica AND y Restablecimiento Rápido:** `NovaprintAccounting.filtrarAsientosContables` evalúa simultáneamente $\text{Tipo} \land \text{Mes} \land \text{Cuenta}$. Si no hay coincidencias se despliega un mensaje amigable con botón de reseteo. El botón `[✕ Limpiar]` (`#btn-journal-reset-filters` / `resetFiltrosLibroDiario`) restablece los 3 filtros a sus valores predeterminados.
+  - **Enlace Unificado con Plan de Cuentas:** La acción rápida `[👁️]` en el Plan de Cuentas (`NovaprintUI.verMovimientosCuenta`) pre-selecciona automáticamente la cuenta en `#acc-journal-filter-account` y activa el Libro Diario mostrando sus movimientos en vivo.
 - **Reflejo de Transferencias en Cuentas Contables y Movimientos (Spec 024):**
   - **Cálculo de Saldos Dinámicos por Cuenta (Libro Mayor):** Implementación de `calcularSaldosPlanCuentas(asientos, accounts, settings)` en `assets/js/accounting.js` que consolida todos los débitos y créditos a partir de la totalidad de asientos contables del sistema (Ventas, Compras, Gastos y Transferencias). Determina el saldo según la naturaleza contable de cada cuenta: $\text{Debe} - \text{Haber}$ para cuentas deudoras (Activo y Egreso) y $\text{Haber} - \text{Debe}$ para cuentas acreedoras (Pasivo, Capital e Ingreso). Para `1101 Caja y Bancos` considera además el capital inicial de `settings.initialCapital`.
   - **Columna de Saldo Actual y Botón de Movimientos en Plan de Cuentas:** En `#acc-table-accounts` se incorpora la columna visible "Saldo Actual ($)", resaltando saldos positivos en verde/esmeralda y saldos cero en tono neutro. Se añade el botón de acción rápida `[👁️]` ("Ver Movimientos") en cada fila que redirige inmediatamente a la pestaña de Libro Diario filtrando los asientos contables en los que participa esa cuenta específica (`NovaprintUI.verMovimientosCuenta`).
@@ -165,6 +171,28 @@ Registro de todo lo que debe preservarse entre sesiones de trabajo: arquitectura
 ---
 
 ## 3. Historial de cambios
+
+### 2026-11-10 (Filtros por Mes y Cuenta Contable en Libro Diario — Spec 025)
+- **Motor Contable (`assets/js/accounting.js`):**
+  - Implementación de `asientoAfectaCuenta(asiento, cuentaIdentificador, catalogoCuentas)`: evalúa coincidencia de cuenta contable por código, ID o nombre en cuentas Debe, Haber y detalles de transferencias (origen y destino).
+  - Implementación de `filtrarAsientosContables(asientos, { tipo, mes, cuenta, catalogoCuentas })`: combina con operador lógico AND el filtro por Tipo (`todos` o específico), Mes (`YYYY-MM`) y Cuenta Contable (`todas` o código/nombre).
+  - Exportación de `asientoAfectaCuenta` y `filtrarAsientosContables` en el namespace público `NovaprintAccounting`.
+- **Estructura HTML (`index.html`):**
+  - En `#acc-subview-journal`, se incorporó la barra de filtros responsiva con: selector de Tipo (`#acc-journal-filter-type`), selector de Mes de tipo `<input type="month">` (`#acc-journal-filter-month`), botón rápido para ver todos los meses (`#btn-journal-clear-month`), selector desplegable de Cuenta Contable (`#acc-journal-filter-account`) y botón de restablecimiento general (`#btn-journal-reset-filters`).
+- **Interfaz de Usuario y Controladores (`assets/js/ui.js`):**
+  - Gestión reactiva del estado con `currentJournalFilter`, `currentJournalMonthFilter` y `currentJournalAccountFilter`.
+  - Implementación de `poblarSelectorCuentasLibroDiario(cuentas)`: puebla dinámicamente el selector agrupando por categorías (Activos, Pasivos, Capital, Ingresos, Egresos) y preserva la selección activa.
+  - Actualización de `renderAccountingJournal`: ejecuta `filtrarAsientosContables`, actualiza `#acc-journal-count` y muestra mensaje con botón de restablecimiento cuando ningún asiento coincide.
+  - Implementación de `limpiarFiltroMesLibroDiario()` y `resetFiltrosLibroDiario()`.
+  - Conexión de `verMovimientosCuenta`: ahora pre-selecciona automáticamente la cuenta en `#acc-journal-filter-account` y re-renderiza el Libro Diario.
+- **Orquestador Principal (`assets/js/main.js`):**
+  - Añadidos escuchadores de eventos para `change` en los 3 filtros y `click` en los botones de reseteo.
+- **Pruebas Automatizadas (`tests/journal_filters_month_account.test.js`):**
+  - 13 nuevas pruebas unitarias cubriendo función pura de detección de cuenta, filtrado por tipo, por mes, por cuenta, combinación AND, verificación de elementos en DOM y métodos en UI.
+  - Suite global completa: 213 pruebas unitarias en 18 suites ejecutándose y pasando al 100% en verde (0 fallos).
+- **Seguridad y Respaldo:**
+  - Respaldo de seguridad previo generado en `backups/backup_pre_filtros_mes_cuenta_libro_diario_20261110.json` y tag git `backup-pre-filtros-mes-cuenta-libro-diario-20261110`.
+- **Metodología SDD:** Especificación completa en `specs/025-filtros-mes-cuenta-libro-diario/` (`spec.md`, `plan.md`, `tasks.md`).
 
 ### 2026-11-10 (Reflejo de Transferencias en Cuentas Contables y Listado de Movimientos — Spec 024)
 - **Motor Contable (`assets/js/accounting.js`):**

@@ -2979,6 +2979,8 @@
   // ==========================================
   let currentAccountingSubView = 'balance'; // 'balance' | 'pnl' | 'journal' | 'chart'
   let currentJournalFilter = 'todos';
+  let currentJournalMonthFilter = '';
+  let currentJournalAccountFilter = 'todas';
   let currentChartFilter = 'todos';
   let currentChartSearch = '';
 
@@ -3177,23 +3179,131 @@
     }
   }
 
+  function poblarSelectorCuentasLibroDiario(cuentas = null) {
+    if (typeof document === 'undefined') return;
+    const selAccount = document.getElementById('acc-journal-filter-account');
+    if (!selAccount) return;
+
+    const storage = global.NovaprintStorage;
+    const listaCuentas = Array.isArray(cuentas) ? cuentas : (storage && typeof storage.getAccounts === 'function' ? storage.getAccounts() : []);
+
+    const valorDeseado = currentJournalAccountFilter || 'todas';
+
+    // Agrupar cuentas por su tipo canónico
+    const grupos = {
+      'Activo': [],
+      'Pasivo': [],
+      'Capital': [],
+      'Ingreso': [],
+      'Egreso': []
+    };
+
+    listaCuentas.forEach(c => {
+      if (!c) return;
+      const tipo = c.tipo || 'Activo';
+      if (!grupos[tipo]) grupos[tipo] = [];
+      grupos[tipo].push(c);
+    });
+
+    let html = '<option value="todas">Todas las Cuentas</option>';
+    const ordenTipos = ['Activo', 'Pasivo', 'Capital', 'Ingreso', 'Egreso'];
+    const etiquetas = {
+      'Activo': '1. Activos',
+      'Pasivo': '2. Pasivos',
+      'Capital': '3. Capital / Patrimonio',
+      'Ingreso': '4. Ingresos',
+      'Egreso': '5. Egresos / Costos y Gastos'
+    };
+
+    ordenTipos.forEach(t => {
+      const items = grupos[t] || [];
+      if (items.length > 0) {
+        // Ordenar por código
+        items.sort((a, b) => (a.codigo || '').localeCompare(b.codigo || ''));
+        html += `<optgroup label="${etiquetas[t] || t}">`;
+        items.forEach(c => {
+          const cod = c.codigo || '';
+          const nom = c.nombre || '';
+          html += `<option value="${cod}">${cod} — ${nom}</option>`;
+        });
+        html += '</optgroup>';
+      }
+    });
+
+    selAccount.innerHTML = html;
+
+    // Restaurar valor previo si existe en las opciones
+    let existe = false;
+    for (let i = 0; i < selAccount.options.length; i++) {
+      if (selAccount.options[i].value === valorDeseado) {
+        selAccount.selectedIndex = i;
+        existe = true;
+        break;
+      }
+    }
+    if (!existe) {
+      selAccount.value = 'todas';
+      currentJournalAccountFilter = 'todas';
+    } else {
+      currentJournalAccountFilter = valorDeseado;
+    }
+  }
+
   function renderAccountingJournal(asientos = [], sales) {
     const countEl = document.getElementById('acc-journal-count');
     const tbody = document.getElementById('acc-journal-tbody');
     if (!tbody) return;
 
-    const filtrados = asientos.filter(a => {
-      if (currentJournalFilter === 'todos') return true;
-      return a.tipo === currentJournalFilter;
-    });
+    poblarSelectorCuentasLibroDiario();
+
+    // Sincronizar controles si difieren del estado
+    const selType = document.getElementById('acc-journal-filter-type');
+    if (selType && currentJournalFilter && selType.value !== currentJournalFilter) {
+      selType.value = currentJournalFilter;
+    }
+    const inputMonth = document.getElementById('acc-journal-filter-month');
+    if (inputMonth && inputMonth.value !== currentJournalMonthFilter) {
+      inputMonth.value = currentJournalMonthFilter;
+    }
+    const selAccount = document.getElementById('acc-journal-filter-account');
+    if (selAccount && currentJournalAccountFilter && selAccount.value !== currentJournalAccountFilter) {
+      selAccount.value = currentJournalAccountFilter;
+    }
+
+    const storage = global.NovaprintStorage;
+    const acc = global.NovaprintAccounting;
+    const catalogoCuentas = storage && typeof storage.getAccounts === 'function' ? storage.getAccounts() : [];
+
+    let filtrados = [];
+    if (acc && typeof acc.filtrarAsientosContables === 'function') {
+      filtrados = acc.filtrarAsientosContables(asientos, {
+        tipo: currentJournalFilter,
+        mes: currentJournalMonthFilter,
+        cuenta: currentJournalAccountFilter,
+        catalogoCuentas
+      });
+    } else {
+      filtrados = (Array.isArray(asientos) ? asientos : []).filter(a => {
+        if (!a) return false;
+        if (currentJournalFilter !== 'todos' && a.tipo !== currentJournalFilter) return false;
+        if (currentJournalMonthFilter && (!a.fecha || !a.fecha.startsWith(currentJournalMonthFilter))) return false;
+        return true;
+      });
+    }
 
     if (countEl) countEl.textContent = filtrados.length;
 
     if (filtrados.length === 0) {
+      const hayFiltrosActivos = currentJournalFilter !== 'todos' || currentJournalMonthFilter !== '' || currentJournalAccountFilter !== 'todas';
       tbody.innerHTML = `
         <tr>
           <td colspan="7" class="py-8 text-center text-gray-400 text-xs">
-            No hay movimientos contables registrados para el filtro seleccionado.
+            ${hayFiltrosActivos ? `
+              <div class="font-medium text-gray-500">No hay movimientos contables que coincidan con los filtros seleccionados.</div>
+              <button type="button" onclick="NovaprintUI.resetFiltrosLibroDiario()" class="mt-2.5 inline-flex items-center gap-1.5 px-3 py-1 bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-bold rounded-lg border border-gray-300 transition cursor-pointer">
+                <span>✕</span> Limpiar Filtros
+              </button>
+            ` : 'No hay movimientos contables registrados en el taller.'}
           </td>
         </tr>
       `;
@@ -3259,6 +3369,41 @@
     if (sel) {
       currentJournalFilter = sel.value;
     }
+    const inputMonth = document.getElementById('acc-journal-filter-month');
+    if (inputMonth) {
+      currentJournalMonthFilter = inputMonth.value.trim();
+    }
+    const selAccount = document.getElementById('acc-journal-filter-account');
+    if (selAccount) {
+      currentJournalAccountFilter = selAccount.value.trim();
+    }
+    if (global.NovaprintMain && typeof global.NovaprintMain.refrescarDatos === 'function') {
+      global.NovaprintMain.refrescarDatos();
+    }
+  }
+
+  function limpiarFiltroMesLibroDiario() {
+    const inputMonth = document.getElementById('acc-journal-filter-month');
+    if (inputMonth) {
+      inputMonth.value = '';
+    }
+    currentJournalMonthFilter = '';
+    filtrarLibroDiario();
+  }
+
+  function resetFiltrosLibroDiario() {
+    const selType = document.getElementById('acc-journal-filter-type');
+    if (selType) selType.value = 'todos';
+    currentJournalFilter = 'todos';
+
+    const inputMonth = document.getElementById('acc-journal-filter-month');
+    if (inputMonth) inputMonth.value = '';
+    currentJournalMonthFilter = '';
+
+    const selAccount = document.getElementById('acc-journal-filter-account');
+    if (selAccount) selAccount.value = 'todas';
+    currentJournalAccountFilter = 'todas';
+
     if (global.NovaprintMain && typeof global.NovaprintMain.refrescarDatos === 'function') {
       global.NovaprintMain.refrescarDatos();
     }
@@ -3887,36 +4032,40 @@
   function verMovimientosCuenta(codigo, nombre) {
     cambiarSubVistaContable('journal');
 
-    const sel = document.getElementById('acc-journal-filter-type');
-    if (sel) sel.value = 'todos';
+    const codStr = (codigo || '').toString().trim();
+    currentJournalAccountFilter = codStr || 'todas';
     currentJournalFilter = 'todos';
+    currentJournalMonthFilter = '';
 
-    const storage = global.NovaprintStorage;
-    const acc = global.NovaprintAccounting;
-    const sales = global.NovaprintSales;
-    if (storage && acc && sales) {
-      const pedidos = storage.getOrders ? storage.getOrders() : [];
-      const compras = storage.getPurchases ? storage.getPurchases() : [];
-      const gastos = storage.getExpenses ? storage.getExpenses() : [];
-      const trans = storage.getTransfers ? storage.getTransfers() : [];
-      const todosAsientos = acc.generarLibroDiario(pedidos, compras, gastos, trans);
+    const selType = document.getElementById('acc-journal-filter-type');
+    if (selType) selType.value = 'todos';
 
-      const codStr = (codigo || '').toString().trim();
-      const nomNorm = (nombre || '').toLowerCase().trim();
+    const inputMonth = document.getElementById('acc-journal-filter-month');
+    if (inputMonth) inputMonth.value = '';
 
-      const filtrados = todosAsientos.filter(a => {
-        const cDebe = (a.cuentaDebe || '').toLowerCase();
-        const cHaber = (a.cuentaHaber || '').toLowerCase();
-        const detDestCod = a.detalle && a.detalle.destinoCodigo ? a.detalle.destinoCodigo.toString().trim() : '';
-        const detOrigCod = a.detalle && a.detalle.origenCodigo ? a.detalle.origenCodigo.toString().trim() : '';
-
-        return cDebe.includes(nomNorm) || cHaber.includes(nomNorm) ||
-               (codStr && (cDebe.includes(codStr) || cHaber.includes(codStr) || detDestCod === codStr || detOrigCod === codStr));
-      });
-
-      renderAccountingJournal(filtrados, sales);
-      showToast(`Mostrando ${filtrados.length} movimiento(s) de cuenta ${codigo} — ${nombre}`, 'info');
+    poblarSelectorCuentasLibroDiario();
+    const selAccount = document.getElementById('acc-journal-filter-account');
+    if (selAccount) {
+      selAccount.value = codStr || 'todas';
     }
+
+    if (global.NovaprintMain && typeof global.NovaprintMain.refrescarDatos === 'function') {
+      global.NovaprintMain.refrescarDatos();
+    } else {
+      const storage = global.NovaprintStorage;
+      const acc = global.NovaprintAccounting;
+      const sales = global.NovaprintSales;
+      if (storage && acc && sales) {
+        const pedidos = storage.getOrders ? storage.getOrders() : [];
+        const compras = storage.getPurchases ? storage.getPurchases() : [];
+        const gastos = storage.getExpenses ? storage.getExpenses() : [];
+        const trans = storage.getTransfers ? storage.getTransfers() : [];
+        const todosAsientos = acc.generarLibroDiario(pedidos, compras, gastos, trans);
+        renderAccountingJournal(todosAsientos, sales);
+      }
+    }
+
+    showToast(`Mostrando movimientos de cuenta ${codigo} — ${nombre || ''}`, 'info');
   }
 
   const uiModule = {
@@ -4021,7 +4170,11 @@
     actualizarPreviewTransferencia,
     guardarTransferenciaDesdeFormulario,
     confirmarEliminarTransferencia,
-    verMovimientosCuenta
+    verMovimientosCuenta,
+    // Spec 025: Filtros por Mes y Cuenta en Libro Diario
+    poblarSelectorCuentasLibroDiario,
+    limpiarFiltroMesLibroDiario,
+    resetFiltrosLibroDiario
   };
 
   if (typeof module !== 'undefined' && module.exports) {

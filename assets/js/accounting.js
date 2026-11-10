@@ -872,6 +872,94 @@
     return saldosPorCuenta;
   }
 
+  // --- FILTROS DE ASIENTOS CONTABLES EN LIBRO DIARIO (SPEC 025) ---
+  function asientoAfectaCuenta(asiento, cuentaIdentificador, catalogoCuentas = []) {
+    if (!asiento || !cuentaIdentificador || cuentaIdentificador === 'todas') return true;
+
+    const term = cuentaIdentificador.toString().trim().toLowerCase();
+    if (!term) return true;
+
+    // Buscar si corresponde a una cuenta registrada para obtener su código y nombre exacto
+    let cuentaObj = null;
+    if (Array.isArray(catalogoCuentas)) {
+      cuentaObj = catalogoCuentas.find(acc =>
+        (acc.id && acc.id.toString().toLowerCase() === term) ||
+        (acc.codigo && acc.codigo.toString().trim().toLowerCase() === term) ||
+        (acc.nombre && acc.nombre.toString().trim().toLowerCase() === term)
+      );
+    }
+
+    const codigo = cuentaObj ? (cuentaObj.codigo || '').toString().trim() : term;
+    const nombre = cuentaObj ? (cuentaObj.nombre || '').toString().trim().toLowerCase() : term;
+
+    // 1. Coincidencia en cuentas directas (Debe / Haber)
+    const cDebe = (asiento.cuentaDebe || '').toString().toLowerCase();
+    const cHaber = (asiento.cuentaHaber || '').toString().toLowerCase();
+
+    if (cDebe.includes(term) || cHaber.includes(term)) return true;
+    if (nombre && (cDebe.includes(nombre) || cHaber.includes(nombre))) return true;
+    if (codigo && (cDebe.includes(codigo) || cHaber.includes(codigo))) return true;
+
+    // 2. Coincidencia en detalle de Transferencias (origen/destino)
+    const det = asiento.detalle;
+    if (det) {
+      const origCod = (det.origenCodigo || '').toString().toLowerCase();
+      const origId = (det.origenId || '').toString().toLowerCase();
+      const origNom = (det.origenNombre || '').toString().toLowerCase();
+      const destCod = (det.destinoCodigo || '').toString().toLowerCase();
+      const destId = (det.destinoId || '').toString().toLowerCase();
+      const destNom = (det.destinoNombre || '').toString().toLowerCase();
+
+      if (origCod === term || origId === term || origNom.includes(term) ||
+          destCod === term || destId === term || destNom.includes(term)) {
+        return true;
+      }
+      if (codigo && (origCod === codigo || destCod === codigo)) return true;
+      if (nombre && (origNom.includes(nombre) || destNom.includes(nombre))) return true;
+    }
+
+    // 3. Casos canónicos por código especial
+    if (codigo === '1101' && (cDebe.includes('caja') || cDebe.includes('banco') || cHaber.includes('caja') || cHaber.includes('banco'))) return true;
+    if (codigo === '1102' && (cDebe.includes('cobrar') || cDebe.includes('cxc') || cHaber.includes('cobrar') || cHaber.includes('cxc'))) return true;
+    if (codigo === '1103' && (cDebe.includes('inventario') || cHaber.includes('inventario'))) return true;
+    if (codigo === '4101' && (cDebe.includes('venta') || cHaber.includes('venta'))) return true;
+    if (codigo === '5101' && (cDebe.includes('insumo') || cHaber.includes('insumo'))) return true;
+    if (codigo === '2101' && (cDebe.includes('pagar') || cHaber.includes('pagar'))) return true;
+
+    return false;
+  }
+
+  function filtrarAsientosContables(asientos = [], { tipo = 'todos', mes = '', cuenta = 'todas', catalogoCuentas = [] } = {}) {
+    const list = Array.isArray(asientos) ? asientos : [];
+    const tipoFiltro = (tipo || 'todos').toString().trim();
+    const mesFiltro = (mes || '').toString().trim();
+    const cuentaFiltro = (cuenta || 'todas').toString().trim();
+
+    return list.filter(a => {
+      if (!a) return false;
+
+      // 1. Filtro por Tipo de movimiento
+      if (tipoFiltro !== 'todos' && a.tipo !== tipoFiltro) {
+        return false;
+      }
+
+      // 2. Filtro por Mes de la transacción (formato 'YYYY-MM')
+      if (mesFiltro) {
+        const fechaStr = (a.fecha || '').toString().trim();
+        if (!fechaStr.startsWith(mesFiltro)) {
+          return false;
+        }
+      }
+
+      // 3. Filtro por Cuenta Contable
+      if (cuentaFiltro !== 'todas' && !asientoAfectaCuenta(a, cuentaFiltro, catalogoCuentas)) {
+        return false;
+      }
+
+      return true;
+    });
+  }
+
   const accountingModule = {
     CUENTAS_CONTABLES,
     CATEGORIAS_GASTO,
@@ -890,7 +978,9 @@
     calcularBalanceGeneral,
     generarLibroDiario,
     calcularMetricasContables,
-    calcularSaldosPlanCuentas
+    calcularSaldosPlanCuentas,
+    asientoAfectaCuenta,
+    filtrarAsientosContables
   };
 
   if (typeof module !== 'undefined' && module.exports) {

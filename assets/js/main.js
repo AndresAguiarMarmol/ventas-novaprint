@@ -500,6 +500,52 @@
       });
     }
 
+    // Filtros del Libro Diario (Spec 025: Tipo, Mes y Cuenta Contable)
+    const journalFilterType = document.getElementById('acc-journal-filter-type');
+    if (journalFilterType) {
+      journalFilterType.addEventListener('change', () => {
+        if (global.NovaprintUI && typeof global.NovaprintUI.filtrarLibroDiario === 'function') {
+          global.NovaprintUI.filtrarLibroDiario();
+        }
+      });
+    }
+
+    const journalFilterMonth = document.getElementById('acc-journal-filter-month');
+    if (journalFilterMonth) {
+      journalFilterMonth.addEventListener('change', () => {
+        if (global.NovaprintUI && typeof global.NovaprintUI.filtrarLibroDiario === 'function') {
+          global.NovaprintUI.filtrarLibroDiario();
+        }
+      });
+    }
+
+    const journalFilterAccount = document.getElementById('acc-journal-filter-account');
+    if (journalFilterAccount) {
+      journalFilterAccount.addEventListener('change', () => {
+        if (global.NovaprintUI && typeof global.NovaprintUI.filtrarLibroDiario === 'function') {
+          global.NovaprintUI.filtrarLibroDiario();
+        }
+      });
+    }
+
+    const btnClearMonth = document.getElementById('btn-journal-clear-month');
+    if (btnClearMonth) {
+      btnClearMonth.addEventListener('click', () => {
+        if (global.NovaprintUI && typeof global.NovaprintUI.limpiarFiltroMesLibroDiario === 'function') {
+          global.NovaprintUI.limpiarFiltroMesLibroDiario();
+        }
+      });
+    }
+
+    const btnResetFilters = document.getElementById('btn-journal-reset-filters');
+    if (btnResetFilters) {
+      btnResetFilters.addEventListener('click', () => {
+        if (global.NovaprintUI && typeof global.NovaprintUI.resetFiltrosLibroDiario === 'function') {
+          global.NovaprintUI.resetFiltrosLibroDiario();
+        }
+      });
+    }
+
     // Botón Imprimir Ticket en modal (Spec 011)
     const btnPrintTicket = document.getElementById('btn-ticket-print');
     if (btnPrintTicket) {

@@ -892,20 +892,45 @@
 
       <!-- SUB-VISTA 3: LIBRO DIARIO DE MOVIMIENTOS -->
       <div id="acc-subview-journal" class="hidden space-y-4">
-        <!-- Filtros del Libro Diario -->
-        <div class="bg-white p-4 rounded-xl border border-gray-200 shadow-xs flex flex-col sm:flex-row gap-3 items-center justify-between">
-          <div class="flex items-center gap-2 w-full sm:w-auto">
-            <label class="text-xs font-bold text-gray-600">Filtrar por Tipo:</label>
-            <select id="acc-journal-filter-type" class="text-xs py-1.5 px-3 bg-gray-50 border border-gray-300 rounded-lg font-medium" onchange="NovaprintUI.filtrarLibroDiario()">
-              <option value="todos">Todos los Movimientos</option>
-              <option value="Ingreso">Ventas de Poleras (Ingresos)</option>
-              <option value="Costo">Compras de Insumos (Costos)</option>
-              <option value="Gasto">Gastos Operacionales</option>
-              <option value="Transferencia">Transferencias entre Cuentas</option>
-            </select>
+        <!-- Filtros del Libro Diario (Spec 025: Tipo, Mes y Cuenta Contable) -->
+        <div class="bg-white p-4 rounded-xl border border-gray-200 shadow-xs flex flex-col lg:flex-row gap-3 items-start lg:items-center justify-between">
+          <div class="flex flex-wrap items-center gap-3 w-full lg:w-auto">
+            <!-- Filtro 1: Tipo de Movimiento -->
+            <div class="flex items-center gap-1.5">
+              <label for="acc-journal-filter-type" class="text-xs font-bold text-gray-600 whitespace-nowrap">Tipo:</label>
+              <select id="acc-journal-filter-type" class="text-xs py-1.5 px-2.5 bg-gray-50 border border-gray-300 rounded-lg font-medium text-gray-800 focus:ring-1 focus:ring-emerald-500" onchange="NovaprintUI.filtrarLibroDiario()">
+                <option value="todos">Todos los Movimientos</option>
+                <option value="Ingreso">Ventas de Poleras (Ingresos)</option>
+                <option value="Costo">Compras de Insumos (Costos)</option>
+                <option value="Gasto">Gastos Operacionales</option>
+                <option value="Transferencia">Transferencias entre Cuentas</option>
+              </select>
+            </div>
+
+            <!-- Filtro 2: Mes de la Transacción -->
+            <div class="flex items-center gap-1.5">
+              <label for="acc-journal-filter-month" class="text-xs font-bold text-gray-600 whitespace-nowrap">Mes:</label>
+              <input type="month" id="acc-journal-filter-month" class="text-xs py-1.5 px-2.5 bg-gray-50 border border-gray-300 rounded-lg font-medium text-gray-800 focus:ring-1 focus:ring-emerald-500" onchange="NovaprintUI.filtrarLibroDiario()" title="Seleccionar mes de la transacción">
+              <button type="button" id="btn-journal-clear-month" onclick="NovaprintUI.limpiarFiltroMesLibroDiario()" class="px-2 py-1 text-[11px] bg-gray-100 hover:bg-gray-200 text-gray-600 hover:text-gray-800 rounded-md border border-gray-300 font-semibold cursor-pointer transition whitespace-nowrap" title="Ver todos los meses">
+                Todos
+              </button>
+            </div>
+
+            <!-- Filtro 3: Cuenta Contable -->
+            <div class="flex items-center gap-1.5">
+              <label for="acc-journal-filter-account" class="text-xs font-bold text-gray-600 whitespace-nowrap">Cuenta:</label>
+              <select id="acc-journal-filter-account" class="text-xs py-1.5 px-2.5 bg-gray-50 border border-gray-300 rounded-lg font-medium text-gray-800 max-w-[210px] sm:max-w-[260px] truncate focus:ring-1 focus:ring-emerald-500" onchange="NovaprintUI.filtrarLibroDiario()">
+                <option value="todas">Todas las Cuentas</option>
+              </select>
+            </div>
+
+            <!-- Botón Limpiar Filtros -->
+            <button type="button" id="btn-journal-reset-filters" onclick="NovaprintUI.resetFiltrosLibroDiario()" class="px-2.5 py-1.5 text-xs bg-gray-100 hover:bg-gray-200 text-gray-700 hover:text-gray-900 rounded-lg border border-gray-300 font-bold cursor-pointer transition flex items-center gap-1 shadow-2xs whitespace-nowrap" title="Restablecer todos los filtros a sus valores predeterminados">
+              <span>✕</span> Limpiar
+            </button>
           </div>
 
-          <div class="text-xs text-gray-500 font-medium">
+          <div class="text-xs text-gray-500 font-medium whitespace-nowrap self-end lg:self-center">
             Mostrando <span id="acc-journal-count" class="font-bold text-gray-800">0</span> asientos contables
           </div>
         </div>
