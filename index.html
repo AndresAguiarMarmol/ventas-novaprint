@@ -363,11 +363,15 @@
           </select>
         </div>
 
-        <div class="flex items-center gap-3 w-full sm:w-auto justify-end">
+        <div class="flex items-center gap-2 w-full sm:w-auto justify-end">
           <label class="flex items-center gap-1.5 text-xs font-semibold text-red-700 cursor-pointer select-none">
             <input type="checkbox" id="inventory-critical-only" class="rounded text-red-600 focus:ring-red-500">
             <span>🚨 Solo Stock Crítico</span>
           </label>
+          <!-- Spec 031: Botón Colocar Saldo 0 en Stock Actual -->
+          <button id="btn-reset-inventory-stock" type="button" onclick="NovaprintUI.confirmarPonerStockCero()" class="px-3 py-2 bg-amber-50 hover:bg-amber-100 text-amber-800 hover:text-amber-900 border border-amber-300 text-xs font-bold rounded-lg shadow-2xs whitespace-nowrap flex items-center gap-1.5 transition cursor-pointer" title="Colocar el saldo actual en 0 para todos los elementos del inventario">
+            <span>📦</span> <span>Poner Stock en 0</span>
+          </button>
           <button id="btn-new-inventory-item" type="button" class="px-3.5 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-lg shadow-xs whitespace-nowrap">
             + Nuevo Artículo
           </button>

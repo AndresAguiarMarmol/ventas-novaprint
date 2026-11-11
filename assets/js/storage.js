@@ -389,6 +389,42 @@
     return updatedItem;
   }
 
+  /**
+   * Spec 031 — Coloca el Stock Actual (currentStock) en 0 para todos los artículos de inventario.
+   * Preserva intactos todos los metadatos de los artículos y registra la auditoría del ajuste.
+   */
+  function ponerStockCeroATodosLosItems(opciones = {}) {
+    const items = getInventory();
+    const fechaAjuste = new Date().toISOString();
+    const motivo = opciones.reason || 'Ajuste general a saldo cero (Spec 031)';
+
+    const itemsActualizados = items.map(item => {
+      const prevStock = Number(item.currentStock) || 0;
+      const adjustment = {
+        previousStock: prevStock,
+        newStock: 0,
+        delta: -prevStock,
+        date: fechaAjuste,
+        reason: motivo,
+        notes: opciones.notes || 'Reinicio de existencias físicas a saldo 0'
+      };
+
+      return {
+        ...item,
+        currentStock: 0,
+        updatedAt: fechaAjuste,
+        lastStockAdjustment: adjustment
+      };
+    });
+
+    setItem(STORAGE_KEYS.INVENTORY, itemsActualizados);
+    return {
+      success: true,
+      totalItemsAjustados: itemsActualizados.length,
+      items: itemsActualizados
+    };
+  }
+
   function generarCodigoPrenda(garmentType, color, size) {
     const clean = (str, len) => String(str || '')
       .normalize('NFD')
@@ -1769,6 +1805,8 @@
     purgarMovimientosPrueba,
     // Spec 030: Recuperar y preservar pedido de Kinder B
     asegurarPedidoKinderB,
+    // Spec 031: Poner stock a cero en todo el inventario
+    ponerStockCeroATodosLosItems,
     exportBackup,
     importBackup,
     initDemoData

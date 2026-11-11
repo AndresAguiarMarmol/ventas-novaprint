@@ -23,6 +23,12 @@ Registro de todo lo que debe preservarse entre sesiones de trabajo: arquitectura
 
 ## 2. Decisiones vigentes
 
+- **Reinicio General de Existencias a Saldo 0 en Inventarios (Spec 031):**
+  - **Saldo Cero Generalizado (`currentStock = 0`):** La totalidad de artículos registrados en `novaprint_inventory` se colocan con existencia 0 para reflejar el reinicio de stock físico de bodega solicitado por el usuario.
+  - **Preservación Total del Catálogo y Atributos:** Códigos, nombres, categorías (Prendas Lisas, Gorras, Insumos DTF, etc.), tipos de prenda, colores, tallas, unidades, costos unitarios, stocks mínimos y proveedores asociados se mantienen intactos.
+  - **Trazabilidad y Auditoría en `lastStockAdjustment`:** Cada artículo registra la auditoría del cambio con el stock previo, nuevo stock 0, delta de variación y motivo `"Reinicio general de inventario a saldo 0 (Spec 031)"`.
+  - **Control Visual y Ejecución Automática:** Se incorporó el botón de acción rápida `[📦 Poner Stock en 0]` (`#btn-reset-inventory-stock`) en la barra de herramientas de `#view-inventory` (`NovaprintUI.confirmarPonerStockCero()`), y se asegura la sincronización reactiva en el arranque (`main.js:init()`) mediante la bandera de control `inventoryZeroStockApplied_v1`.
+
 - **Recuperación y Preservación Incondicional del Pedido Real de "Kinder B" (Spec 030):**
   - **Dato Real Protegido:** El cliente `BRS Kinder B` (`CLI-MVYJ0DKL`) y su pedido real de poleras `NP-20261102-003` (23 poleras en tallas 8, 10, 12 y 14 con técnica DTF Pecho A4, total $207.000, abono $100.000, saldo $107.000, estado 'En producción') son datos comerciales legítimos del taller recuperados fidedignamente desde el almacenamiento histórico.
   - **Blindaje Absoluto Contra Borrado (NO BORRAR):** `storage.purgarMovimientosPrueba` nunca más elimina pedidos de clientes (`novaprint_orders`) ni compras a proveedores (`novaprint_purchases`). La depuración de pruebas se restringe única y exclusivamente a gastos ficticios y transferencias de ensayo del sistema.
@@ -200,6 +206,22 @@ Registro de todo lo que debe preservarse entre sesiones de trabajo: arquitectura
 ---
 
 ## 3. Historial de cambios
+
+### 2026-11-11 (Reinicio de Existencias Físicas a Saldo Cero en Todo el Inventario — Spec 031)
+- **Capa de Persistencia (`assets/js/storage.js`):**
+  - Implementación de `ponerStockCeroATodosLosItems(opciones)`: asigna `currentStock = 0` a todos los artículos en `novaprint_inventory` preservando íntegros códigos, nombres, categorías, especificaciones textiles, costos y proveedores.
+  - Registro de auditoría en `lastStockAdjustment` con delta, stock anterior y motivo de ajuste.
+- **Interfaz de Usuario y Controladores (`assets/js/ui.js` & `index.html`):**
+  - Botón interactivo `#btn-reset-inventory-stock` (`[📦 Poner Stock en 0]`) en la barra de herramientas de inventario (`#view-inventory`).
+  - Controlador `NovaprintUI.confirmarPonerStockCero()` con diálogo confirmatorio informativo y actualización reactiva de métricas y tabla.
+- **Orquestador Principal (`assets/js/main.js`):**
+  - Incorporada sincronización en `init()` controlada por `inventoryZeroStockApplied_v1` en configuración para garantizar que el navegador del usuario inicialice en saldo 0.
+- **Pruebas Automatizadas (`tests/inventory_zero_stock.test.js`):**
+  - 6 pruebas unitarias verificando puesta a cero de existencias, preservación de catálogo, registro de auditoría, seguridad ante inventario vacío y controles en UI.
+  - Suite global completa: 267 pruebas unitarias en 24 suites ejecutándose y pasando al 100% (0 fallos).
+- **Seguridad y Respaldo:**
+  - Respaldo previo exportado a `backups/backup_pre_stock_cero_inventario_20261111.json` y tag git `backup-pre-stock-cero-inventario-20261111`.
+- **Metodología SDD:** Especificación formal en `specs/031-stock-cero-inventario/` (`spec.md`, `plan.md`, `tasks.md`).
 
 ### 2026-11-10 (Recuperación y Preservación Incondicional del Pedido Real de "Kinder B" — Spec 030)
 - **Recuperación Fidedigna de Datos Históricos:**

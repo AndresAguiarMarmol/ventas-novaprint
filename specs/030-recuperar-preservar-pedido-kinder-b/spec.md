@@ -25,3 +25,4 @@ El usuario instruye explícitamente:
 - El cliente BRS Kinder B está disponible en el directorio de clientes.
 - La ejecución de `purgarMovimientosPrueba` o el reinicio de la aplicación NO borra el pedido de Kinder B.
 - Todas las pruebas unitarias pasan al 100%.
+

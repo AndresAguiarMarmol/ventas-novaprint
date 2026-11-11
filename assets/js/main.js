@@ -39,6 +39,25 @@
       }
     }
 
+    // Spec 031: Colocar saldo 0 en el Stock Actual de todos los inventarios
+    if (global.NovaprintStorage && typeof global.NovaprintStorage.ponerStockCeroATodosLosItems === 'function') {
+      try {
+        const config = global.NovaprintStorage.getSettings() || {};
+        if (!config.inventoryZeroStockApplied_v1) {
+          global.NovaprintStorage.ponerStockCeroATodosLosItems({
+            reason: 'Reinicio general de inventario a saldo 0 (Spec 031)',
+            notes: 'Aplicado por directriz inicial del coordinador'
+          });
+          config.inventoryZeroStockApplied_v1 = true;
+          if (typeof global.NovaprintStorage.saveSettings === 'function') {
+            global.NovaprintStorage.saveSettings(config);
+          }
+        }
+      } catch (err) {
+        console.warn('Error al reiniciar stock de inventario a 0:', err);
+      }
+    }
+
     // Spec 029: Limpieza segura de movimientos de prueba residuales de desarrollo preservando operaciones reales
     if (global.NovaprintStorage && typeof global.NovaprintStorage.purgarMovimientosPrueba === 'function') {
       try {

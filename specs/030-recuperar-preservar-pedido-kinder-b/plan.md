@@ -18,3 +18,4 @@
 5. **Fase 5:** Invocación de `asegurarPedidoKinderB()` en `assets/js/main.js` y remoción de purgas destructivas sobre pedidos.
 6. **Fase 6:** Suite de pruebas unitarias `tests/kinder_b_preservation.test.js`.
 7. **Fase 7:** Actualización de `memory.md`, commit y push a `main`.
+

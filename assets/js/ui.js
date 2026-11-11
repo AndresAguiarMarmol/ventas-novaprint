@@ -1747,6 +1747,50 @@
     }
   }
 
+  // Spec 031: Colocar Saldo 0 en el Stock Actual de Todos los Elementos del Inventario
+  function confirmarPonerStockCero() {
+    if (typeof document === 'undefined') return;
+    const storage = global.NovaprintStorage;
+    if (!storage || typeof storage.ponerStockCeroATodosLosItems !== 'function') {
+      if (typeof showToast === 'function') showToast('Error: Servicio de almacenamiento no disponible', 'error');
+      return;
+    }
+
+    const items = typeof storage.getInventory === 'function' ? storage.getInventory() : [];
+    if (items.length === 0) {
+      if (typeof showToast === 'function') showToast('No hay artículos registrados en el inventario', 'info');
+      return;
+    }
+
+    const totalConStock = items.filter(i => (Number(i.currentStock) || 0) > 0).length;
+    const mensaje = `¿Estás seguro de colocar el Stock Actual en 0 para TODOS los ${items.length} artículos del inventario?\n\n` +
+      `• Se preservarán íntegros todos los códigos, nombres, categorías, proveedores y costos.\n` +
+      `• Actualmente hay ${totalConStock} artículos con existencias > 0 que pasarán a saldo 0.\n\n` +
+      `Esta acción reinicia el saldo físico de bodega a cero.`;
+
+    const confirmado = typeof window !== 'undefined' && typeof window.confirm === 'function'
+      ? window.confirm(mensaje)
+      : true;
+
+    if (!confirmado) return;
+
+    const res = storage.ponerStockCeroATodosLosItems({
+      reason: 'Reinicio general de inventario a saldo 0 (Spec 031)',
+      notes: 'Ejecutado por el usuario desde la vista de inventarios'
+    });
+
+    if (res && res.success) {
+      if (typeof showToast === 'function') {
+        showToast(`Se colocó el stock en 0 para los ${res.totalItemsAjustados} artículos del inventario`, 'success');
+      }
+      if (global.NovaprintMain && typeof global.NovaprintMain.refrescarDatos === 'function') {
+        global.NovaprintMain.refrescarDatos();
+      }
+    } else {
+      if (typeof showToast === 'function') showToast('Ocurrió un error al reiniciar el stock', 'error');
+    }
+  }
+
   // --- GESTIÓN DE COMPRAS DE INSUMOS (SPEC 002) ---
   let currentPurchaseItems = [];
 
@@ -4291,7 +4335,9 @@
     refrescarVistaLibroDiario,
     // Spec 029: Limpieza de Movimientos de Prueba
     abrirModalLimpiarPruebas,
-    confirmarLimpiarPruebas
+    confirmarLimpiarPruebas,
+    // Spec 031: Poner stock a cero en todo el inventario
+    confirmarPonerStockCero
   };
 
   if (typeof module !== 'undefined' && module.exports) {
