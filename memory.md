@@ -23,6 +23,16 @@ Registro de todo lo que debe preservarse entre sesiones de trabajo: arquitectura
 
 ## 2. Decisiones vigentes
 
+- **CRUD Completo y Acción Duplicar en el Libro Diario de Movimientos (Spec 035):**
+  - **Acciones Habilitadas para el 100% de Asientos Contables:** Se reemplazó el texto estático `Auto` y `-` en la columna "Acciones" de `#acc-journal-tbody` por un grupo unificado de botones de acción: Editar `[✏️]`, Duplicar `[📋]` y Eliminar `[🗑️]`.
+  - **Mapeo Inteligente por Asiento:** Detecta automáticamente el tipo de movimiento subyacente según su prefijo o tipo contable:
+    - *Ventas / Pedidos (`NP-...`):* Editar (`editarPedido`), Duplicar (`duplicarPedido`), Eliminar (`confirmarEliminarPedido`).
+    - *Compras a Proveedores (`CMP-...`):* Editar (`editarCompra`), Duplicar (`duplicarCompra`), Eliminar (`confirmarEliminarCompra`).
+    - *Gastos Operacionales (`EXP-...`):* Editar (`editarGasto`), Duplicar (`duplicarGasto`), Eliminar (`confirmarEliminarGasto`).
+    - *Transferencias Contables (`TRF-...`):* Editar (`editarTransferencia`), Duplicar (`duplicarTransferencia`), Eliminar (`confirmarEliminarTransferencia`).
+  - **Comportamiento Seguro de la Acción Duplicar:** Al clonar un registro, se cargan todos sus atributos (ítems, cantidades, costos, cuentas, desglose, notas), se establece la fecha actual de hoy y se limpia el identificador único (`editingOrderId = null`, `purchase-id-hidden = ''`, `expense-id-hidden = ''`, `transfer-id-hidden = ''`), impidiendo la sobreescritura accidental del registro original y permitiendo registrar un nuevo movimiento correlativo con un solo clic.
+  - **Controladores y Exportaciones en `NovaprintUI`:** Incorporadas y exportadas `editarGasto`, `duplicarGasto`, `editarTransferencia`, `duplicarTransferencia`, `duplicarPedido` y `duplicarCompra`.
+
 - **Edición Interactiva de Cantidad y Costo en "Separar en 2 Facturas" (Spec 034):**
   - **Inputs Editables en Diálogo:** Se reemplazó el texto estático de cantidad y costo en ambas tablas de `#dialog-split-purchase` por `<input type="number">` estilizados y reactivos para Poleras y Estampados DTF.
   - **Controlador Reactivo `actualizarItemSplit`:** Al editar cantidad o costo unitario, se recalculan inmediatamente el subtotal de fila, los badges de conteo (`X prendas`, `Y estampados`), los subtotales de cada factura (con IVA 19% y Delivery) y el Gran Total Consolidado en tiempo real.
@@ -226,6 +236,17 @@ Registro de todo lo que debe preservarse entre sesiones de trabajo: arquitectura
 ---
 
 ## 3. Historial de cambios
+
+### 2026-11-11 (CRUD Completo y Acción Duplicar en el Libro Diario — Spec 035)
+- **Interfaz de Usuario y Controladores (`assets/js/ui.js`):**
+  - Se habilitaron las acciones interactivas para todos los registros del Libro Diario (`#acc-journal-tbody`), renderizando un grupo de botones: Editar `[✏️]`, Duplicar `[📋]` y Eliminar `[🗑️]` tanto para Pedidos de Ventas (`NP-`), Compras a Proveedores (`CMP-`), Gastos Operacionales (`EXP-`) y Transferencias entre Cuentas (`TRF-`).
+  - Implementación de controladores `duplicarPedido`, `duplicarCompra`, `duplicarGasto` y `duplicarTransferencia` con precarga completa de datos, asignación de fecha de hoy y limpieza de ID para impedir colisiones o sobreescritura del origen.
+  - Implementación de `editarGasto` y `editarTransferencia` para abrir y precargar los modales de edición correspondientes.
+  - Exportación de las 6 nuevas funciones en `NovaprintUI`.
+- **Pruebas Automatizadas (`tests/journal_crud_duplicate.test.js`):**
+  - 7 pruebas unitarias cubriendo el renderizado de los botones para los 4 tipos de movimientos, precarga de edición y duplicación sin ID persistente.
+  - Suite global completa: 286 pruebas unitarias en 28 suites pasando al 100% (0 fallos).
+- **Metodología SDD:** Especificación formal en `specs/035-crud-duplicar-libro-diario/` (`spec.md`, `plan.md`, `tasks.md`).
 
 ### 2026-11-11 (Edición Interactiva de Cantidad y Costo en Separación de Compras — Spec 034)
 - **Interfaz de Usuario y Controladores (`assets/js/ui.js`):**

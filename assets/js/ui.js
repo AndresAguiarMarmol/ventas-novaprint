@@ -1076,6 +1076,66 @@
     recalcularTotalesFormulario();
   }
 
+  function duplicarPedido(orderId) {
+    const storage = global.NovaprintStorage;
+    if (!storage) return;
+    const pedido = storage.getOrderById(orderId);
+    if (!pedido) {
+      showToast('No se encontró el pedido a duplicar.', 'error');
+      return;
+    }
+
+    abrirModalNuevoPedido();
+    editingOrderId = null; // Limpiar ID para generar un nuevo identificador al guardar
+
+    const titleEl = document.getElementById('order-modal-title');
+    if (titleEl) titleEl.textContent = `Duplicar Pedido (Copia de ${pedido.id})`;
+    const idDisp = document.getElementById('order-id-display');
+    if (idDisp) idDisp.textContent = 'Nuevo (Copia)';
+
+    const clientSel = document.getElementById('order-client-select');
+    if (clientSel) clientSel.value = pedido.clientId || '';
+
+    // Fecha de entrega: hoy o mantener si existía
+    const deliveryDateEl = document.getElementById('order-delivery-date');
+    if (deliveryDateEl) {
+      deliveryDateEl.value = pedido.dates?.deliveryDate || new Date().toISOString().split('T')[0];
+    }
+
+    const statusSel = document.getElementById('order-status-select');
+    if (statusSel) statusSel.value = 'Cotización';
+
+    const notesInput = document.getElementById('order-notes-input');
+    if (notesInput) {
+      const origNotes = pedido.notes ? `${pedido.notes} ` : '';
+      notesInput.value = `${origNotes}[Copia de pedido ${pedido.id}]`.trim();
+    }
+
+    const depInput = document.getElementById('order-deposit-input');
+    if (depInput) depInput.value = 0; // Iniciar abono en 0 para nuevo pedido
+
+    // IVA y Delivery
+    const checkIva = document.getElementById('order-apply-iva');
+    if (checkIva) checkIva.checked = Boolean(pedido.totals?.applyIva);
+    const checkDeliv = document.getElementById('order-apply-delivery');
+    const inputDeliv = document.getElementById('order-delivery-input');
+    const contDeliv = document.getElementById('order-delivery-input-container');
+    const hasDelivery = Boolean(pedido.totals?.applyDelivery || (pedido.totals?.deliveryAmount > 0));
+    if (checkDeliv) checkDeliv.checked = hasDelivery;
+    if (inputDeliv) inputDeliv.value = pedido.totals?.deliveryAmount || 0;
+    if (contDeliv) {
+      if (hasDelivery) contDeliv.classList.remove('hidden');
+      else contDeliv.classList.add('hidden');
+    }
+
+    currentOrderItems = (pedido.items && pedido.items.length > 0) ? JSON.parse(JSON.stringify(pedido.items)) : [];
+    if (currentOrderItems.length === 0) agregarFilaPrenda();
+    renderTablaItemsFormulario();
+    recalcularTotalesFormulario();
+
+    showToast(`Pedido ${pedido.id} clonado. Revisa y haz clic en "Guardar Pedido".`, 'info');
+  }
+
   function cambiarEstado(orderId, nuevoEstado) {
     const storage = global.NovaprintStorage;
     storage.updateOrderStatus(orderId, nuevoEstado);
@@ -1965,6 +2025,85 @@
 
     const dlg = document.getElementById('dialog-purchase');
     if (dlg && typeof dlg.showModal === 'function') dlg.showModal();
+  }
+
+  function duplicarCompra(purchaseId) {
+    const storage = global.NovaprintStorage;
+    if (!storage) return;
+
+    const compra = storage.getPurchaseById(purchaseId);
+    if (!compra) {
+      showToast('No se encontró la compra a duplicar.', 'error');
+      return;
+    }
+
+    abrirModalNuevaCompra();
+
+    const hiddenId = document.getElementById('purchase-id-hidden');
+    if (hiddenId) hiddenId.value = '';
+
+    const modalTitle = document.getElementById('purchase-modal-title');
+    if (modalTitle) modalTitle.textContent = `Duplicar Compra (Copia de ${compra.id})`;
+    const modalSub = document.getElementById('purchase-modal-subtitle');
+    if (modalSub) modalSub.textContent = 'Nueva compra generada a partir de los datos existentes. Revisa y guarda.';
+    const submitBtn = document.getElementById('btn-submit-purchase');
+    if (submitBtn) submitBtn.textContent = '💾 Guardar Nueva Compra';
+
+    // Proveedor
+    const selectProv = document.getElementById('purchase-supplier-select');
+    if (selectProv) {
+      selectProv.value = compra.supplierId || '';
+    }
+
+    const dateInput = document.getElementById('purchase-date-input');
+    if (dateInput) dateInput.value = new Date().toISOString().split('T')[0];
+
+    const invoiceInput = document.getElementById('purchase-invoice-input');
+    if (invoiceInput) invoiceInput.value = compra.invoiceNumber ? `${compra.invoiceNumber}-COPIA` : '';
+
+    const notesInput = document.getElementById('purchase-notes-input');
+    if (notesInput) {
+      const origNotes = compra.notes ? `${compra.notes} ` : '';
+      notesInput.value = `${origNotes}[Copia de compra ${compra.id}]`.trim();
+    }
+
+    // IVA y Delivery
+    const checkIva = document.getElementById('purchase-apply-iva');
+    if (checkIva) checkIva.checked = Boolean(compra.applyIva);
+
+    const checkDeliv = document.getElementById('purchase-apply-delivery');
+    if (checkDeliv) checkDeliv.checked = Boolean(compra.applyDelivery);
+
+    const inputDeliv = document.getElementById('purchase-delivery-input');
+    if (inputDeliv) inputDeliv.value = compra.deliveryAmount || 0;
+
+    const contDeliv = document.getElementById('purchase-delivery-input-container');
+    if (contDeliv) {
+      if (compra.applyDelivery) contDeliv.classList.remove('hidden');
+      else contDeliv.classList.add('hidden');
+    }
+
+    // Cargar ítems clonados
+    currentPurchaseItems = Array.isArray(compra.items) && compra.items.length > 0
+      ? JSON.parse(JSON.stringify(compra.items)).map((it, idx) => ({
+          id: `p-it-${Date.now()}-${idx}-${Math.random().toString(36).substr(2, 4)}`,
+          inventoryItemId: it.inventoryItemId || '',
+          name: it.name || '',
+          quantity: Math.max(1, Number(it.quantity) || 1),
+          unitCost: Math.max(0, Number(it.unitCost) || 0),
+          subtotal: (Math.max(1, Number(it.quantity) || 1)) * (Math.max(0, Number(it.unitCost) || 0))
+        }))
+      : [];
+
+    if (currentPurchaseItems.length === 0) {
+      agregarFilaItemCompra();
+    } else {
+      renderTablaItemsCompraFormulario();
+    }
+
+    recalcularTotalesCompraFormulario();
+
+    showToast(`Compra ${compra.id} clonada. Revisa y haz clic en "Guardar Nueva Compra".`, 'info');
   }
 
   function confirmarEliminarCompra(purchaseId) {
@@ -3404,8 +3543,49 @@
 
     tbody.innerHTML = filtrados.map(a => {
       const fechaFmt = a.fecha ? a.fecha.split('T')[0] : '-';
-      const esGastoManual = a.id && a.id.startsWith('AS-EXP-');
-      const esTransferenciaManual = a.id && a.id.startsWith('AS-TRF-');
+      const refId = a.referenciaId || '';
+      const isOrder = (a.id && a.id.startsWith('AS-NP-')) || refId.startsWith('NP-');
+      const isPurchase = (a.id && a.id.startsWith('AS-CMP-')) || refId.startsWith('CMP-');
+      const isExpense = (a.id && a.id.startsWith('AS-EXP-')) || refId.startsWith('EXP-') || a.tipo === 'Gasto';
+      const isTransfer = (a.id && a.id.startsWith('AS-TRF-')) || refId.startsWith('TRF-') || a.tipo === 'Transferencia';
+
+      let editFn = '';
+      let dupFn = '';
+      let delFn = '';
+      let editTitle = 'Editar';
+      let dupTitle = 'Duplicar';
+      let delTitle = 'Eliminar';
+
+      if (isOrder) {
+        editFn = `NovaprintUI.editarPedido('${refId}')`;
+        dupFn = `NovaprintUI.duplicarPedido('${refId}')`;
+        delFn = `NovaprintUI.confirmarEliminarPedido('${refId}')`;
+        editTitle = 'Editar Pedido de Venta';
+        dupTitle = 'Duplicar Pedido de Venta';
+        delTitle = 'Eliminar Pedido';
+      } else if (isPurchase) {
+        editFn = `NovaprintUI.editarCompra('${refId}')`;
+        dupFn = `NovaprintUI.duplicarCompra('${refId}')`;
+        delFn = `NovaprintUI.confirmarEliminarCompra('${refId}')`;
+        editTitle = 'Editar Compra a Proveedor';
+        dupTitle = 'Duplicar Compra a Proveedor';
+        delTitle = 'Eliminar Compra';
+      } else if (isTransfer) {
+        editFn = `NovaprintUI.editarTransferencia('${refId}')`;
+        dupFn = `NovaprintUI.duplicarTransferencia('${refId}')`;
+        delFn = `NovaprintUI.confirmarEliminarTransferencia('${refId}')`;
+        editTitle = 'Editar Transferencia Contable';
+        dupTitle = 'Duplicar Transferencia Contable';
+        delTitle = 'Eliminar Transferencia';
+      } else {
+        // Por defecto: Gasto Operacional
+        editFn = `NovaprintUI.editarGasto('${refId}')`;
+        dupFn = `NovaprintUI.duplicarGasto('${refId}')`;
+        delFn = `NovaprintUI.confirmarEliminarGasto('${refId}')`;
+        editTitle = 'Editar Gasto Operacional';
+        dupTitle = 'Duplicar Gasto Operacional';
+        delTitle = 'Eliminar Gasto';
+      }
 
       let tipoBadge = '';
       if (a.tipo === 'Ingreso') {
@@ -3439,17 +3619,17 @@
           <td class="py-2.5 px-3 text-right font-mono font-bold text-gray-900">${sales ? sales.formatearMoneda(a.debe || 0) : `$${a.debe}`}</td>
           <td class="py-2.5 px-3 text-right font-mono font-bold text-gray-900">${sales ? sales.formatearMoneda(a.haber || 0) : `$${a.haber}`}</td>
           <td class="py-2.5 px-3 text-right whitespace-nowrap">
-            ${esGastoManual ? `
-              <button type="button" class="p-1 text-red-500 hover:text-red-700 rounded transition cursor-pointer" title="Eliminar este gasto" onclick="NovaprintUI.confirmarEliminarGasto('${a.referenciaId}')">
+            <div class="inline-flex items-center gap-1 justify-end">
+              <button type="button" class="p-1 text-gray-500 hover:text-gray-800 hover:bg-gray-100 rounded transition cursor-pointer" title="${editTitle}" onclick="${editFn}">
+                ✏️
+              </button>
+              <button type="button" class="p-1 text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded transition cursor-pointer" title="${dupTitle}" onclick="${dupFn}">
+                📋
+              </button>
+              <button type="button" class="p-1 text-red-500 hover:text-red-700 hover:bg-red-50 rounded transition cursor-pointer" title="${delTitle}" onclick="${delFn}">
                 🗑️
               </button>
-            ` : esTransferenciaManual ? `
-              <button type="button" class="p-1 text-red-500 hover:text-red-700 rounded transition cursor-pointer" title="Eliminar esta transferencia" onclick="NovaprintUI.confirmarEliminarTransferencia('${a.referenciaId}')">
-                🗑️
-              </button>
-            ` : `
-              <span class="text-gray-300 text-[10px]">Auto</span>
-            `}
+            </div>
           </td>
         </tr>
       `;
@@ -3632,6 +3812,99 @@
     if (dialog && typeof dialog.showModal === 'function') {
       dialog.showModal();
     }
+  }
+
+  function editarGasto(gastoId) {
+    if (typeof document === 'undefined') return;
+    const storage = global.NovaprintStorage;
+    if (!storage) return;
+
+    const g = storage.getExpenseById(gastoId);
+    if (!g) {
+      showToast('No se encontró el gasto a editar.', 'error');
+      return;
+    }
+
+    const form = document.getElementById('form-expense');
+    if (form) form.reset();
+
+    const idInput = document.getElementById('expense-id-hidden');
+    if (idInput) idInput.value = g.id;
+
+    const dateInput = document.getElementById('expense-date-input');
+    if (dateInput) dateInput.value = g.date || new Date().toISOString().split('T')[0];
+
+    const catInput = document.getElementById('expense-category-select');
+    if (catInput) catInput.value = g.category || 'Otros Gastos';
+
+    const descInput = document.getElementById('expense-desc-input');
+    if (descInput) descInput.value = g.description || '';
+
+    const amountInput = document.getElementById('expense-amount-input');
+    if (amountInput) amountInput.value = g.amount || '';
+
+    const methodInput = document.getElementById('expense-payment-method');
+    if (methodInput) methodInput.value = g.paymentMethod || 'Transferencia / Banco';
+
+    const notesInput = document.getElementById('expense-notes-input');
+    if (notesInput) notesInput.value = g.notes || '';
+
+    const titleEl = document.getElementById('expense-modal-title');
+    if (titleEl) titleEl.textContent = `Editar Gasto (${g.id})`;
+
+    const dialog = document.getElementById('dialog-expense');
+    if (dialog && typeof dialog.showModal === 'function') {
+      dialog.showModal();
+    }
+  }
+
+  function duplicarGasto(gastoId) {
+    if (typeof document === 'undefined') return;
+    const storage = global.NovaprintStorage;
+    if (!storage) return;
+
+    const g = storage.getExpenseById(gastoId);
+    if (!g) {
+      showToast('No se encontró el gasto a duplicar.', 'error');
+      return;
+    }
+
+    const form = document.getElementById('form-expense');
+    if (form) form.reset();
+
+    const idInput = document.getElementById('expense-id-hidden');
+    if (idInput) idInput.value = ''; // Limpiar ID para generar un nuevo gasto
+
+    const dateInput = document.getElementById('expense-date-input');
+    if (dateInput) dateInput.value = new Date().toISOString().split('T')[0];
+
+    const catInput = document.getElementById('expense-category-select');
+    if (catInput) catInput.value = g.category || 'Otros Gastos';
+
+    const descInput = document.getElementById('expense-desc-input');
+    if (descInput) descInput.value = g.description ? `${g.description} (Copia)` : 'Gasto (Copia)';
+
+    const amountInput = document.getElementById('expense-amount-input');
+    if (amountInput) amountInput.value = g.amount || '';
+
+    const methodInput = document.getElementById('expense-payment-method');
+    if (methodInput) methodInput.value = g.paymentMethod || 'Transferencia / Banco';
+
+    const notesInput = document.getElementById('expense-notes-input');
+    if (notesInput) {
+      const origNotes = g.notes ? `${g.notes} ` : '';
+      notesInput.value = `${origNotes}[Copia de gasto ${g.id}]`.trim();
+    }
+
+    const titleEl = document.getElementById('expense-modal-title');
+    if (titleEl) titleEl.textContent = `Duplicar Gasto (Copia de ${g.id})`;
+
+    const dialog = document.getElementById('dialog-expense');
+    if (dialog && typeof dialog.showModal === 'function') {
+      dialog.showModal();
+    }
+
+    showToast(`Gasto ${g.id} clonado. Revisa y haz clic en "Guardar Gasto".`, 'info');
   }
 
   function guardarGastoDesdeFormulario() {
@@ -4071,6 +4344,83 @@
     }
   }
 
+  function editarTransferencia(transferId) {
+    const storage = global.NovaprintStorage;
+    if (!storage) return;
+
+    const trf = storage.getTransferById(transferId);
+    if (!trf) {
+      showToast('No se encontró la transferencia a editar.', 'error');
+      return;
+    }
+
+    abrirModalTransferencia();
+
+    const hiddenId = document.getElementById('transfer-id-hidden');
+    if (hiddenId) hiddenId.value = trf.id;
+
+    const dateInput = document.getElementById('transfer-date');
+    if (dateInput) dateInput.value = trf.date || new Date().toISOString().split('T')[0];
+
+    const amountInput = document.getElementById('transfer-amount');
+    if (amountInput) amountInput.value = trf.amount || '';
+
+    const descInput = document.getElementById('transfer-description');
+    if (descInput) descInput.value = trf.description || '';
+
+    const refInput = document.getElementById('transfer-reference');
+    if (refInput) refInput.value = trf.reference || '';
+
+    const selectSource = document.getElementById('transfer-source-account');
+    if (selectSource && trf.sourceAccountId) selectSource.value = trf.sourceAccountId;
+
+    const selectDest = document.getElementById('transfer-destination-account');
+    if (selectDest && trf.destinationAccountId) selectDest.value = trf.destinationAccountId;
+
+    actualizarPreviewTransferencia();
+  }
+
+  function duplicarTransferencia(transferId) {
+    const storage = global.NovaprintStorage;
+    if (!storage) return;
+
+    const trf = storage.getTransferById(transferId);
+    if (!trf) {
+      showToast('No se encontró la transferencia a duplicar.', 'error');
+      return;
+    }
+
+    abrirModalTransferencia();
+
+    const hiddenId = document.getElementById('transfer-id-hidden');
+    if (hiddenId) hiddenId.value = ''; // Limpiar ID para generar una nueva transferencia
+
+    const dateInput = document.getElementById('transfer-date');
+    if (dateInput) dateInput.value = new Date().toISOString().split('T')[0];
+
+    const amountInput = document.getElementById('transfer-amount');
+    if (amountInput) amountInput.value = trf.amount || '';
+
+    const descInput = document.getElementById('transfer-description');
+    if (descInput) descInput.value = trf.description ? `${trf.description} (Copia)` : 'Transferencia (Copia)';
+
+    const refInput = document.getElementById('transfer-reference');
+    if (refInput) {
+      const origRef = trf.reference ? `${trf.reference} ` : '';
+      refInput.value = `${origRef}[Copia de TRF ${trf.id}]`.trim();
+    }
+
+    const selectSource = document.getElementById('transfer-source-account');
+    if (selectSource && trf.sourceAccountId) selectSource.value = trf.sourceAccountId;
+
+    const selectDest = document.getElementById('transfer-destination-account');
+    if (selectDest && trf.destinationAccountId) selectDest.value = trf.destinationAccountId;
+
+    actualizarPreviewTransferencia();
+
+    showToast(`Transferencia ${trf.id} clonada. Revisa y haz clic en "Confirmar Transferencia".`, 'info');
+  }
+
   function actualizarPreviewTransferencia() {
     const sales = global.NovaprintSales;
 
@@ -4289,6 +4639,7 @@
     abrirModalDescuentosVolumen,
     guardarPedidoDesdeFormulario,
     editarPedido,
+    duplicarPedido,
     cambiarEstado,
     abrirModalCambiarEstado,
     seleccionarNuevoEstado,
@@ -4323,6 +4674,7 @@
     renderPurchasesTable,
     abrirModalNuevaCompra,
     editarCompra,
+    duplicarCompra,
     confirmarEliminarCompra,
     agregarFilaItemCompra,
     eliminarFilaItemCompra,
@@ -4359,6 +4711,8 @@
     renderAccountingJournal,
     filtrarLibroDiario,
     abrirModalNuevoGasto,
+    editarGasto,
+    duplicarGasto,
     guardarGastoDesdeFormulario,
     confirmarEliminarGasto,
     // Spec 022: Plan de Cuentas Contable (CRUD)
@@ -4369,8 +4723,10 @@
     guardarCuentaDesdeFormulario,
     confirmarEliminarCuenta,
     confirmarRestablecerCuentas,
-    // Spec 023/024: Transferencia entre Cuentas Contables y Movimientos
+    // Spec 023/024/035: Transferencia entre Cuentas Contables y Movimientos
     abrirModalTransferencia,
+    editarTransferencia,
+    duplicarTransferencia,
     actualizarPreviewTransferencia,
     guardarTransferenciaDesdeFormulario,
     confirmarEliminarTransferencia,
