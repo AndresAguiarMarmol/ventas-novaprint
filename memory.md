@@ -80,6 +80,11 @@ Registro de todo lo que debe preservarse entre sesiones de trabajo: arquitectura
   - **Spec 025 (Implementada):** Filtros por Mes de Transacción y por Cuenta Contable en Libro Diario de Movimientos.
   - **Spec 026 (Implementada):** Opción "Ninguno" en Campo Estampado con Precio $0 CLP.
   - **Spec 027 (Implementada):** Blindaje y Preservación Estricta del Plan de Cuentas y Datos del Taller.
+  - **Spec 028 (Implementada):** Corrección y Optimización de Filtros en Libro Diario de Movimientos.
+- **Corrección y Optimización de Filtros en Libro Diario (Spec 028):**
+  - **Resolución Determinística de Cuentas (`asientoAfectaCuenta` en `accounting.js`):** Mapeo canónico de categorías operacionales de gasto a sus códigos contables oficiales (`5201 Arriendo`, `5202 Electricidad`, `5203 Mantenimiento`, `5204 Fletes`, `5205 Mermas`, `5206 Otros Gastos`). Vinculación contable automática para cuentas de impuestos `1104 Crédito Fiscal IVA` (compras con IVA) y `2102 Débito Fiscal IVA` (ventas con IVA), `4103 Ingresos por Despacho y Flete` (pedidos con delivery), `1103 Inventario` (compras de insumos textiles y DTF), `4101 Ventas de Prendas`, `1101 Caja y Bancos` y `1102 Cuentas por Cobrar`.
+  - **Normalización Resiliente de Fechas (`normalizarMesTransaccion`):** Extracción determinística de `YYYY-MM` para fechas ISO (`2026-11-10T...`), fechas simples (`2026-11-10`) y formatos regionales, garantizando coincidencia cronológica exacta.
+  - **Reactividad Instantánea en UI (`ui.js` e `index.html`):** `filtrarLibroDiario()`, `limpiarFiltroMesLibroDiario()` y `resetFiltrosLibroDiario()` re-renderizan directamente `renderAccountingJournal()` con los datos contables en memoria, eliminando recargas globales pesadas de la aplicación. Inclusión de `oninput="NovaprintUI.filtrarLibroDiario()"` en `#acc-journal-filter-month`.
 - **Preservación Estricta del Plan de Cuentas y Datos del Taller (Spec 027):**
   - **Neutralización Definitiva de Borrado en Arranque (`main.js`):** Se eliminó la llamada a `limpiarDatosDemoPrevios()` en `init()` y se neutralizó su implementación como no-op seguro, erradicando que cualquier cliente, pedido o proveedor con códigos de prueba o sugeridos (como `PRV-001` de la Spec 021) dispare `storage.clearAllData()`. Ninguna recarga o inicio de sesión vacía datos de `localStorage`.
   - **Remoción del Botón Destructivo en Plan de Cuentas (`index.html`):** Se retiró del DOM el botón `#btn-reset-accounts` ("🔄 Predeterminadas"), eliminando el riesgo de que una pulsación accidental sobreescriba el catálogo de cuentas de usuario. La barra de acciones conserva únicamente `+ Nueva Cuenta` (`#btn-new-account`).
@@ -183,6 +188,19 @@ Registro de todo lo que debe preservarse entre sesiones de trabajo: arquitectura
 ---
 
 ## 3. Historial de cambios
+
+### 2026-11-10 (Corrección y Optimización de Filtros en Libro Diario — Spec 028)
+- **Motor Contable (`assets/js/accounting.js`):**
+  - Implementación de `MAPA_CATEGORIAS_GASTO_CODIGOS` en `asientoAfectaCuenta`: resolución determinística de gastos operacionales hacia sus cuentas correspondientes (`5201` Arriendo, `5202` Electricidad, `5203` Mantenimiento, `5204` Fletes, `5205` Mermas y `5206` Otros Gastos).
+  - Vinculación contable de compras y pedidos a cuentas de impuestos (`1104` Crédito Fiscal IVA y `2102` Débito Fiscal IVA), despacho (`4103` Ingresos por Despacho y Flete) y bodega (`1103` Inventario).
+  - Implementación de `normalizarMesTransaccion` en `filtrarAsientosContables`: soporte confiable para formatos ISO y fecha simple (`YYYY-MM`).
+- **Capa de Interfaz de Usuario (`assets/js/ui.js`):**
+  - Implementación de `refrescarVistaLibroDiario`: re-renderizado reactivo inmediato de la tabla del Libro Diario (`renderAccountingJournal`) al cambiar filtros en `filtrarLibroDiario()`, `limpiarFiltroMesLibroDiario()` y `resetFiltrosLibroDiario()`, eliminando latencias y recargas globales innecesarias.
+- **Estructura HTML (`index.html`):**
+  - Agregado evento `oninput="NovaprintUI.filtrarLibroDiario()"` al control `#acc-journal-filter-month` para filtrado en tiempo real sin requerir pérdida de foco (`blur`).
+- **Pruebas Automatizadas (`tests/journal_filters_bugfix.test.js`):**
+  - 15 nuevas pruebas unitarias cubriendo resolución de cuentas de gasto (5201-5206), vinculación de IVA y delivery, normalización de mes y eventos en UI.
+  - Suite global completa: 247 pruebas unitarias en 21 suites ejecutándose y pasando al 100% (0 fallos).
 
 ### 2026-11-10 (Blindaje y Preservación Estricta del Plan de Cuentas y Datos del Taller — Spec 027)
 - **Respaldo Previo de Seguridad:**

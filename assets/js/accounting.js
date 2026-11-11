@@ -872,12 +872,51 @@
     return saldosPorCuenta;
   }
 
-  // --- FILTROS DE ASIENTOS CONTABLES EN LIBRO DIARIO (SPEC 025) ---
+  // --- FILTROS DE ASIENTOS CONTABLES EN LIBRO DIARIO (SPEC 025 & SPEC 028) ---
+  const MAPA_CATEGORIAS_GASTO_CODIGOS = {
+    'arriendo de taller': '5201',
+    'arriendo': '5201',
+    'electricidad y servicios': '5202',
+    'electricidad': '5202',
+    'luz': '5202',
+    'mantenimiento de maquinaria': '5203',
+    'mantenimiento': '5203',
+    'fletes y envíos': '5204',
+    'fletes y despachos': '5204',
+    'fletes': '5204',
+    'flete': '5204',
+    'mermas y pruebas': '5205',
+    'mermas': '5205',
+    'otros gastos': '5206',
+    'otros': '5206'
+  };
+
+  function normalizarMesTransaccion(fechaStr) {
+    if (!fechaStr) return '';
+    const s = fechaStr.toString().trim();
+    if (/^\d{4}-\d{2}/.test(s)) {
+      return s.substring(0, 7);
+    }
+    const match = s.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})/);
+    if (match) {
+      const mes = match[2].padStart(2, '0');
+      const año = match[3];
+      return `${año}-${mes}`;
+    }
+    const d = new Date(s);
+    if (!isNaN(d.getTime())) {
+      const año = d.getFullYear();
+      const mes = String(d.getMonth() + 1).padStart(2, '0');
+      return `${año}-${mes}`;
+    }
+    return '';
+  }
+
   function asientoAfectaCuenta(asiento, cuentaIdentificador, catalogoCuentas = []) {
     if (!asiento || !cuentaIdentificador || cuentaIdentificador === 'todas') return true;
 
     const term = cuentaIdentificador.toString().trim().toLowerCase();
-    if (!term) return true;
+    if (!term || term === 'todas') return true;
 
     // Buscar si corresponde a una cuenta registrada para obtener su código y nombre exacto
     let cuentaObj = null;
@@ -893,38 +932,100 @@
     const nombre = cuentaObj ? (cuentaObj.nombre || '').toString().trim().toLowerCase() : term;
 
     // 1. Coincidencia en cuentas directas (Debe / Haber)
-    const cDebe = (asiento.cuentaDebe || '').toString().toLowerCase();
-    const cHaber = (asiento.cuentaHaber || '').toString().toLowerCase();
+    const cDebe = (asiento.cuentaDebe || '').toString().toLowerCase().trim();
+    const cHaber = (asiento.cuentaHaber || '').toString().toLowerCase().trim();
 
-    if (cDebe.includes(term) || cHaber.includes(term)) return true;
-    if (nombre && (cDebe.includes(nombre) || cHaber.includes(nombre))) return true;
+    if (term && (cDebe.includes(term) || cHaber.includes(term))) return true;
     if (codigo && (cDebe.includes(codigo) || cHaber.includes(codigo))) return true;
+    if (nombre && nombre.length >= 5) {
+      if (cDebe === nombre || cHaber === nombre) return true;
+      if (cDebe && cDebe.includes(nombre)) return true;
+      if (cHaber && cHaber.includes(nombre)) return true;
+    }
 
     // 2. Coincidencia en detalle de Transferencias (origen/destino)
     const det = asiento.detalle;
     if (det) {
-      const origCod = (det.origenCodigo || '').toString().toLowerCase();
-      const origId = (det.origenId || '').toString().toLowerCase();
-      const origNom = (det.origenNombre || '').toString().toLowerCase();
-      const destCod = (det.destinoCodigo || '').toString().toLowerCase();
-      const destId = (det.destinoId || '').toString().toLowerCase();
-      const destNom = (det.destinoNombre || '').toString().toLowerCase();
+      const origCod = (det.origenCodigo || '').toString().trim().toLowerCase();
+      const origId = (det.origenId || '').toString().trim().toLowerCase();
+      const origNom = (det.origenNombre || '').toString().trim().toLowerCase();
+      const destCod = (det.destinoCodigo || '').toString().trim().toLowerCase();
+      const destId = (det.destinoId || '').toString().trim().toLowerCase();
+      const destNom = (det.destinoNombre || '').toString().trim().toLowerCase();
 
-      if (origCod === term || origId === term || origNom.includes(term) ||
-          destCod === term || destId === term || destNom.includes(term)) {
-        return true;
-      }
-      if (codigo && (origCod === codigo || destCod === codigo)) return true;
-      if (nombre && (origNom.includes(nombre) || destNom.includes(nombre))) return true;
+      if (origCod && (origCod === term || origCod === codigo)) return true;
+      if (destCod && (destCod === term || destCod === codigo)) return true;
+      if (origId && origId === term) return true;
+      if (destId && destId === term) return true;
+      if (origNom && nombre && (origNom.includes(nombre) || (origNom.length >= 6 && nombre.includes(origNom)))) return true;
+      if (destNom && nombre && (destNom.includes(nombre) || (destNom.length >= 6 && nombre.includes(destNom)))) return true;
     }
 
-    // 3. Casos canónicos por código especial
-    if (codigo === '1101' && (cDebe.includes('caja') || cDebe.includes('banco') || cHaber.includes('caja') || cHaber.includes('banco'))) return true;
-    if (codigo === '1102' && (cDebe.includes('cobrar') || cDebe.includes('cxc') || cHaber.includes('cobrar') || cHaber.includes('cxc'))) return true;
-    if (codigo === '1103' && (cDebe.includes('inventario') || cHaber.includes('inventario'))) return true;
-    if (codigo === '4101' && (cDebe.includes('venta') || cHaber.includes('venta'))) return true;
-    if (codigo === '5101' && (cDebe.includes('insumo') || cHaber.includes('insumo'))) return true;
-    if (codigo === '2101' && (cDebe.includes('pagar') || cHaber.includes('pagar'))) return true;
+    // 3. Mapeo específico de Gastos Operacionales (Spec 028: 5201 - 5206)
+    if (asiento.tipo === 'Gasto') {
+      const cat = (asiento.detalle?.categoria || asiento.cuentaDebe || '').toString().toLowerCase().trim();
+      for (const [key, codeVal] of Object.entries(MAPA_CATEGORIAS_GASTO_CODIGOS)) {
+        if (cat.includes(key) && codigo === codeVal) return true;
+      }
+    }
+
+    // 4. Casos canónicos por código especial del taller
+    // 1101: Caja y Bancos (Disponible)
+    if (codigo === '1101') {
+      if (cDebe.includes('caja') || cDebe.includes('banco') || cHaber.includes('caja') || cHaber.includes('banco')) return true;
+      if (asiento.tipo === 'Ingreso' && asiento.subcuenta === 'Banco') return true;
+      if (asiento.tipo === 'Costo') return true;
+      if (asiento.tipo === 'Gasto') return true;
+    }
+
+    // 1102: Cuentas por Cobrar Clientes
+    if (codigo === '1102') {
+      if (cDebe.includes('cobrar') || cDebe.includes('cxc') || cHaber.includes('cobrar') || cHaber.includes('cxc')) return true;
+      if (asiento.tipo === 'Ingreso' && asiento.subcuenta === 'Cuentas por Cobrar') return true;
+    }
+
+    // 1103: Inventario de Existencias / Materias Primas
+    if (codigo === '1103') {
+      if (asiento.tipo === 'Costo' || cDebe.includes('inventario') || cHaber.includes('inventario')) return true;
+    }
+
+    // 1104: Crédito Fiscal IVA (Compras de Insumos)
+    if (codigo === '1104') {
+      if (cDebe.includes('crédito') || cDebe.includes('credito')) return true;
+      if (asiento.tipo === 'Costo' && det && Number(det.iva) > 0) return true;
+    }
+
+    // 1201: Maquinaria y Equipos
+    if (codigo === '1201') {
+      if (cDebe.includes('maquinaria') || cHaber.includes('maquinaria') || cDebe.includes('equipo') || cHaber.includes('equipo')) return true;
+    }
+
+    // 2101: Cuentas por Pagar Proveedores
+    if (codigo === '2101') {
+      if (cDebe.includes('pagar') || cHaber.includes('pagar') || cDebe.includes('cxp') || cHaber.includes('cxp')) return true;
+    }
+
+    // 2102: Débito Fiscal IVA (Ventas de Pedidos)
+    if (codigo === '2102') {
+      if (cHaber.includes('débito') || cHaber.includes('debito')) return true;
+      if (asiento.tipo === 'Ingreso' && det && Number(det.iva) > 0) return true;
+    }
+
+    // 4101: Ventas de Prendas y Confección
+    if (codigo === '4101') {
+      if (asiento.tipo === 'Ingreso') return true;
+      if (cDebe.includes('venta') || cHaber.includes('venta') || cDebe.includes('polera') || cHaber.includes('polera') || cDebe.includes('prenda') || cHaber.includes('prenda')) return true;
+    }
+
+    // 4103: Ingresos por Despacho y Flete
+    if (codigo === '4103') {
+      if (asiento.tipo === 'Ingreso' && det && Number(det.delivery) > 0) return true;
+    }
+
+    // 5101: Costo de Insumos y Prendas Base
+    if (codigo === '5101') {
+      if (asiento.tipo === 'Costo' || cDebe.includes('insumo') || cHaber.includes('insumo')) return true;
+    }
 
     return false;
   }
@@ -945,8 +1046,8 @@
 
       // 2. Filtro por Mes de la transacción (formato 'YYYY-MM')
       if (mesFiltro) {
-        const fechaStr = (a.fecha || '').toString().trim();
-        if (!fechaStr.startsWith(mesFiltro)) {
+        const mesAsiento = normalizarMesTransaccion(a.fecha);
+        if (mesAsiento !== mesFiltro) {
           return false;
         }
       }

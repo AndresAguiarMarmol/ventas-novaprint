@@ -3366,6 +3366,22 @@
     }).join('');
   }
 
+  function refrescarVistaLibroDiario() {
+    const storage = global.NovaprintStorage;
+    const acc = global.NovaprintAccounting;
+    const sales = global.NovaprintSales;
+    if (storage && acc && sales) {
+      const pedidos = storage.getOrders ? storage.getOrders() : [];
+      const compras = storage.getPurchases ? storage.getPurchases() : [];
+      const gastos = storage.getExpenses ? storage.getExpenses() : [];
+      const trans = storage.getTransfers ? storage.getTransfers() : [];
+      const todosAsientos = acc.generarLibroDiario(pedidos, compras, gastos, trans);
+      renderAccountingJournal(todosAsientos, sales);
+    } else if (global.NovaprintMain && typeof global.NovaprintMain.refrescarDatos === 'function') {
+      global.NovaprintMain.refrescarDatos();
+    }
+  }
+
   function filtrarLibroDiario() {
     const sel = document.getElementById('acc-journal-filter-type');
     if (sel) {
@@ -3379,9 +3395,7 @@
     if (selAccount) {
       currentJournalAccountFilter = selAccount.value.trim();
     }
-    if (global.NovaprintMain && typeof global.NovaprintMain.refrescarDatos === 'function') {
-      global.NovaprintMain.refrescarDatos();
-    }
+    refrescarVistaLibroDiario();
   }
 
   function limpiarFiltroMesLibroDiario() {
@@ -3406,9 +3420,7 @@
     if (selAccount) selAccount.value = 'todas';
     currentJournalAccountFilter = 'todas';
 
-    if (global.NovaprintMain && typeof global.NovaprintMain.refrescarDatos === 'function') {
-      global.NovaprintMain.refrescarDatos();
-    }
+    filtrarLibroDiario();
   }
 
   function abrirModalNuevoGasto() {
@@ -4173,10 +4185,11 @@
     guardarTransferenciaDesdeFormulario,
     confirmarEliminarTransferencia,
     verMovimientosCuenta,
-    // Spec 025: Filtros por Mes y Cuenta en Libro Diario
+    // Spec 025/028: Filtros por Mes y Cuenta en Libro Diario
     poblarSelectorCuentasLibroDiario,
     limpiarFiltroMesLibroDiario,
-    resetFiltrosLibroDiario
+    resetFiltrosLibroDiario,
+    refrescarVistaLibroDiario
   };
 
   if (typeof module !== 'undefined' && module.exports) {

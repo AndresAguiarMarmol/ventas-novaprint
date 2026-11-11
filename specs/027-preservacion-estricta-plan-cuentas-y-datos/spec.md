@@ -25,3 +25,4 @@ Al realizar la auditoría técnica del código, se identificaron tres vectores d
 3. El botón `#btn-reset-accounts` ya no existe en el DOM de la aplicación.
 4. `storage.resetDefaultAccounts()` preserva las cuentas personalizadas existentes a menos que se fuerce explícitamente en tests.
 5. El 100% de la suite de pruebas unitarias y de integración se ejecuta exitosamente.
+
