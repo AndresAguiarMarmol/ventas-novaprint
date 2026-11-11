@@ -3445,10 +3445,8 @@
 
     const testExpenses = expenses.filter(e => isTest(e, 'gastos'));
     const testTransfers = transfers.filter(t => isTest(t, 'transferencias'));
-    const testOrders = orders.filter(o => isTest(o, 'pedidos'));
-    const testPurchases = purchases.filter(p => isTest(p, 'compras'));
 
-    const totalPruebas = testExpenses.length + testTransfers.length + testOrders.length + testPurchases.length;
+    const totalPruebas = testExpenses.length + testTransfers.length;
 
     if (summaryEl) {
       summaryEl.innerHTML = `
@@ -3461,19 +3459,19 @@
           <span class="font-bold ${testTransfers.length > 0 ? 'text-amber-700 font-mono' : 'text-gray-500 font-mono'}">${testTransfers.length}</span>
         </div>
         <div class="flex justify-between items-center py-1 border-b border-gray-200">
-          <span class="font-medium text-gray-700">Ventas/Pedidos demo de prueba:</span>
-          <span class="font-bold ${testOrders.length > 0 ? 'text-amber-700 font-mono' : 'text-gray-500 font-mono'}">${testOrders.length}</span>
+          <span class="font-medium text-gray-700">Ventas y Pedidos de clientes:</span>
+          <span class="font-bold text-emerald-700 font-mono">${orders.length} (100% Preservados)</span>
         </div>
         <div class="flex justify-between items-center py-1 border-b border-gray-200">
-          <span class="font-medium text-gray-700">Compras de insumos demo de prueba:</span>
-          <span class="font-bold ${testPurchases.length > 0 ? 'text-amber-700 font-mono' : 'text-gray-500 font-mono'}">${testPurchases.length}</span>
+          <span class="font-medium text-gray-700">Compras de insumos:</span>
+          <span class="font-bold text-emerald-700 font-mono">${purchases.length} (100% Preservadas)</span>
         </div>
         <div class="flex justify-between items-center pt-2 font-bold text-gray-900">
           <span>Total movimientos de prueba a purgar:</span>
           <span class="text-sm font-mono ${totalPruebas > 0 ? 'text-amber-800' : 'text-emerald-700'}">${totalPruebas}</span>
         </div>
         <div class="mt-2 text-[11px] text-gray-500 bg-white p-2 rounded border border-gray-200">
-          ℹ️ Registros legítimos preservados: <strong>${orders.length - testOrders.length}</strong> ventas, <strong>${purchases.length - testPurchases.length}</strong> compras, <strong>${expenses.length - testExpenses.length}</strong> gastos de taller y <strong>${transfers.length - testTransfers.length}</strong> transferencias.
+          ℹ️ Registros legítimos protegidos: <strong>${orders.length}</strong> ventas, <strong>${purchases.length}</strong> compras, <strong>${expenses.length - testExpenses.length}</strong> gastos de taller y <strong>${transfers.length - testTransfers.length}</strong> transferencias.
         </div>
       `;
     }

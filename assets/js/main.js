@@ -30,6 +30,15 @@
     console.log('Iniciando Novaprint App...');
 
     // Spec 027: Preservación absoluta de datos (no borrar bajo ninguna condición al iniciar)
+    // Spec 030: Asegurar y recuperar incondicionalmente el pedido real de Kinder B si faltase
+    if (global.NovaprintStorage && typeof global.NovaprintStorage.asegurarPedidoKinderB === 'function') {
+      try {
+        global.NovaprintStorage.asegurarPedidoKinderB();
+      } catch (err) {
+        console.warn('Error al verificar y asegurar pedido Kinder B:', err);
+      }
+    }
+
     // Spec 029: Limpieza segura de movimientos de prueba residuales de desarrollo preservando operaciones reales
     if (global.NovaprintStorage && typeof global.NovaprintStorage.purgarMovimientosPrueba === 'function') {
       try {

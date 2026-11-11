@@ -40,3 +40,4 @@
 - [ ] Actualizar `memory.md` (Sección 2 con Spec 029 y Sección 3 con registro histórico).
 - [ ] Completar `tasks.md`.
 - [ ] Commit y push a `main`.
+

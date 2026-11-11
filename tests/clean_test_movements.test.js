@@ -44,8 +44,8 @@ describe('Spec 029 — Limpieza Segura de Movimientos Contables de Prueba', () =
 
   describe('Función de Detección esRegistroDePrueba', () => {
     it('detecta registros con IDs de prueba o demo de fábrica', () => {
-      assert.equal(storage.esRegistroDePrueba({ id: 'NP-20261101-001' }, 'pedidos'), true);
-      assert.equal(storage.esRegistroDePrueba({ id: 'CMP-20261028-001' }, 'compras'), true);
+      assert.equal(storage.esRegistroDePrueba({ id: 'ORD-TEST-001' }, 'pedidos'), true);
+      assert.equal(storage.esRegistroDePrueba({ id: 'PUR-TEST-001' }, 'compras'), true);
       assert.equal(storage.esRegistroDePrueba({ id: 'TEST-EXP-01' }, 'gastos'), true);
       assert.equal(storage.esRegistroDePrueba({ id: 'TRF-TEST-88' }, 'transferencias'), true);
     });
@@ -129,30 +129,25 @@ describe('Spec 029 — Limpieza Segura de Movimientos Contables de Prueba', () =
       mockStorage.setItem('novaprint_expenses', JSON.stringify(gastos));
       mockStorage.setItem('novaprint_transfers', JSON.stringify(transfers = transferencias));
 
-      // Ejecutar purga
+      // Ejecutar purga (Spec 030: Pedidos y compras NUNCA se eliminan)
       const res = storage.purgarMovimientosPrueba();
       assert.equal(res.success, true);
-      assert.equal(res.totalPurgados, 4);
-      assert.equal(res.eliminados.pedidos, 1);
-      assert.equal(res.eliminados.compras, 1);
+      assert.equal(res.totalPurgados, 2);
+      assert.equal(res.eliminados.pedidos, 0);
+      assert.equal(res.eliminados.compras, 0);
       assert.equal(res.eliminados.gastos, 1);
       assert.equal(res.eliminados.transferencias, 1);
 
-      // Verificar que los preservados contienen únicamente los registros reales
+      // Verificar que los pedidos y compras se preservan íntegramente
       const pedidosFinales = storage.getOrders();
       const comprasFinales = storage.getPurchases();
       const gastosFinales = storage.getExpenses();
       const transferenciasFinales = storage.getTransfers();
 
-      assert.equal(pedidosFinales.length, 1);
-      assert.equal(pedidosFinales[0].id, 'ORD-20261102-005');
-
-      assert.equal(comprasFinales.length, 1);
-      assert.equal(comprasFinales[0].id, 'PUR-20261103-001');
-
+      assert.equal(pedidosFinales.length, 2);
+      assert.equal(comprasFinales.length, 2);
       assert.equal(gastosFinales.length, 1);
       assert.equal(gastosFinales[0].id, 'EXP-20261104-001');
-
       assert.equal(transferenciasFinales.length, 1);
       assert.equal(transferenciasFinales[0].id, 'TRF-20261104-002');
     });
@@ -197,3 +192,4 @@ describe('Spec 029 — Limpieza Segura de Movimientos Contables de Prueba', () =
     });
   });
 });
+

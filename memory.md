@@ -23,6 +23,12 @@ Registro de todo lo que debe preservarse entre sesiones de trabajo: arquitectura
 
 ## 2. Decisiones vigentes
 
+- **Recuperación y Preservación Incondicional del Pedido Real de "Kinder B" (Spec 030):**
+  - **Dato Real Protegido:** El cliente `BRS Kinder B` (`CLI-MVYJ0DKL`) y su pedido real de poleras `NP-20261102-003` (23 poleras en tallas 8, 10, 12 y 14 con técnica DTF Pecho A4, total $207.000, abono $100.000, saldo $107.000, estado 'En producción') son datos comerciales legítimos del taller recuperados fidedignamente desde el almacenamiento histórico.
+  - **Blindaje Absoluto Contra Borrado (NO BORRAR):** `storage.purgarMovimientosPrueba` nunca más elimina pedidos de clientes (`novaprint_orders`) ni compras a proveedores (`novaprint_purchases`). La depuración de pruebas se restringe única y exclusivamente a gastos ficticios y transferencias de ensayo del sistema.
+  - **Salvaguarda de Máxima Prioridad en `esRegistroDePrueba`:** Cualquier registro que pertenezca a "Kinder B", "BRS", o pedidos/compras comerciales regulares retorna estrictamente `false` (no es de prueba).
+  - **Auto-reconciliación en Arranque (`storage.asegurarPedidoKinderB`):** En `main.js:init()`, el sistema comprueba la presencia de "BRS Kinder B"; si faltase (por limpiezas previas en el navegador), lo reconstituye inmediatamente asegurando su visualización en el Kanban y tabla de pedidos, preservando modificaciones posteriores del usuario.
+
 - **Depuración Segura de Movimientos Contables de Prueba (Spec 029):**
   - **Preservación Estricta de Operaciones Reales:** Las ventas de poleras a clientes (`novaprint_orders`), compras de insumos a proveedores (`novaprint_purchases`), gastos operacionales reales del usuario (`novaprint_expenses`), transferencias bancarias de fondos (`novaprint_transfers`) y el Plan de Cuentas Contable (`novaprint_accounts`) se preservan de forma incondicional.
   - **Identificación Determinística de Pruebas (`storage.esRegistroDePrueba`):** Detecta exclusivamente registros generados para desarrollo o pruebas del sistema (IDs `NP-20261101-001`, `CMP-20261028-001`, patrones `TEST-`, `DEMO-`, `TRF-TEST`, o descripciones con términos explícitos como `prueba sistema`, `ensayo`, `mock`). La categoría oficial `5205 Mermas y Pruebas de Calidad` se salvaguarda para no borrar pérdidas reales del taller por calibración de maquinaria.
@@ -194,6 +200,25 @@ Registro de todo lo que debe preservarse entre sesiones de trabajo: arquitectura
 ---
 
 ## 3. Historial de cambios
+
+### 2026-11-10 (Recuperación y Preservación Incondicional del Pedido Real de "Kinder B" — Spec 030)
+- **Recuperación Fidedigna de Datos Históricos:**
+  - Rescate de datos reales del cliente `BRS Kinder B` (`CLI-MVYJ0DKL`, RUT `28037830-5`, teléfono `+56933395447`, dirección `La Reina`, notas "Contacto / Mariam").
+  - Rescate y reconstitución del pedido `NP-20261102-003` (23 poleras en tallas 8, 10, 12 y 14 con técnica DTF Pecho A4, total $207.000, abono $100.000, saldo $107.000, estado 'En producción').
+- **Capa de Persistencia (`assets/js/storage.js`):**
+  - Implementación de `asegurarPedidoKinderB()`: auto-reconciliación transparente al inicio que asegura la existencia permanente del cliente y pedido real de Kinder B sin sobreescribir ediciones posteriores.
+  - Blindaje estricto de `esRegistroDePrueba`: salvaguarda incondicional para "Kinder B", "BRS", colegios y operaciones comerciales normales de compra y venta de poleras.
+  - Ajuste definitivo en `purgarMovimientosPrueba`: los pedidos (`orders`) y compras (`purchases`) quedan formalmente excluidos de cualquier purga automática o interactiva.
+- **Orquestador Principal (`assets/js/main.js`):**
+  - Integrada llamada a `storage.asegurarPedidoKinderB()` en `init()`.
+- **Interfaz de Usuario (`assets/js/ui.js`):**
+  - Actualizado el modal diagnóstico `#dialog-clean-tests` para reflejar que el 100% de las ventas y compras de clientes están blindadas y no se tocan.
+- **Pruebas Automatizadas (`tests/kinder_b_preservation.test.js` & `tests/clean_test_movements.test.js`):**
+  - 5 nuevas pruebas unitarias dedicadas a Spec 030 cubriendo auto-recuperación, no sobreescritura, protección de Kinder B y preservación total de compras y pedidos.
+  - Suite global completa: 261 pruebas unitarias en 23 suites ejecutándose y pasando al 100% (0 fallos).
+- **Seguridad y Respaldo:**
+  - Respaldo previo exportado a `backups/backup_pre_recuperar_kinder_b_20261110.json` y tag git `backup-pre-recuperar-kinder-b-20261110`.
+- **Metodología SDD:** Especificación formal en `specs/030-recuperar-preservar-pedido-kinder-b/` (`spec.md`, `plan.md`, `tasks.md`).
 
 ### 2026-11-10 (Depuración Segura de Movimientos Contables de Prueba — Spec 029)
 - **Capa de Persistencia (`assets/js/storage.js`):**

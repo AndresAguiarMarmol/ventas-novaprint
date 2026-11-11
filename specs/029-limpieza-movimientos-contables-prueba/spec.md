@@ -36,3 +36,4 @@ El usuario necesita una depuración limpia y controlada que:
 4. El Plan de Cuentas (`novaprint_accounts`) no sufre ninguna alteración ni pérdida de cuentas personalizadas.
 5. El botón `[🧹 Limpiar Pruebas]` en el Libro Diario permite al usuario ejecutar la limpieza de forma accesible y transparente.
 6. 100% de la suite de pruebas unitarias y de integración se ejecuta exitosamente.
+

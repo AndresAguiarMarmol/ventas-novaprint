@@ -986,46 +986,61 @@
     return { success: true };
   }
 
-  // --- DEPURACIÓN Y LIMPIEZA DE MOVIMIENTOS DE PRUEBA (SPEC 029) ---
+  // --- DEPURACIÓN Y LIMPIEZA DE MOVIMIENTOS DE PRUEBA (SPEC 029 & SPEC 030) ---
   function esRegistroDePrueba(item, tipoEntidad) {
     if (!item) return false;
 
-    // 1. Detección por ID
+    // Spec 030: Blindaje absoluto e incondicional para pedidos reales y entidades protegidas
     const id = (item.id || '').toString().toUpperCase();
-    if (id === 'NP-20261101-001' || id === 'CMP-20261028-001') return true;
-    if (/^(TEST|DEMO|ORD-TEST|PUR-TEST|TRF-TEST|EXP-TEST)/i.test(id)) return true;
-    if (/-(TEST|DEMO)$/i.test(id)) return true;
-
-    // 2. Textos relevantes a analizar (descripción, notas, referencia)
+    const cliente = (item.clientName || item.name || '').toString().toLowerCase();
     const desc = (item.description || item.concepto || '').toString().toLowerCase();
     const notas = (item.notes || '').toString().toLowerCase();
     const ref = (item.reference || item.referencia || '').toString().toLowerCase();
-    const cliente = (item.clientName || '').toString().toLowerCase();
     const proveedor = (item.supplierName || '').toString().toLowerCase();
     const factura = (item.invoiceNumber || '').toString().toUpperCase();
 
-    // Comprobación de cliente/proveedor demo o test
-    if (cliente === 'club deportivo leones' && id.startsWith('NP-20261101')) return true;
+    // 0. Kinder B, BRS, colegios y datos reales bajo ninguna circunstancia se consideran de prueba
+    if (cliente.includes('kinder') || cliente.includes('brs') || id.includes('KINDER') || notas.includes('kinder')) {
+      return false;
+    }
+
+    // Pedidos de venta y compras regulares son operaciones comerciales legítimas
+    const tipoNorm = (tipoEntidad || '').toString().toLowerCase();
+    const esPedidoOCompra = tipoNorm.startsWith('pedido') || tipoNorm.startsWith('compra') || tipoNorm.startsWith('orden');
+
+    if (esPedidoOCompra) {
+      // Solo se marcan como prueba si su ID contiene explícitamente ORD-TEST, PUR-TEST o TEST
+      if (/^(ORD-TEST|PUR-TEST|TEST-|DEMO-)/i.test(id) || /-(TEST|DEMO)$/i.test(id)) {
+        return true;
+      }
+      return false;
+    }
+
+    // 1. Detección por ID para gastos y transferencias de prueba
+    if (/^(TEST|DEMO|ORD-TEST|PUR-TEST|TRF-TEST|EXP-TEST)/i.test(id)) return true;
+    if (/-(TEST|DEMO)$/i.test(id)) return true;
+
+    // Comprobación de cliente/proveedor dummy explícito
     if (cliente.includes('cliente prueba') || cliente.includes('cliente test') || cliente.includes('test client')) return true;
     if (proveedor.includes('proveedor prueba') || proveedor.includes('proveedor test')) return true;
-    if (factura.includes('TEST') || factura.includes('PRUEBA') || factura === 'FAC-9120') return true;
+    if (factura.includes('TEST') || factura.includes('PRUEBA')) return true;
 
     // Para gastos: salvaguardar la categoría oficial "Mermas y Pruebas"
     const esCategoriaMermas = (item.category || '').toLowerCase().includes('mermas');
 
-    // Palabras clave de prueba
-    const regexTest = /\b(prueba\s*sistema|test|testing|demo|ensayo|dummy|mock|movimiento\s*de\s*prueba|gasto\s*de\s*prueba|traspaso\s*de\s*prueba|orden\s*de\s*prueba)\b/i;
+    // Palabras clave de prueba informática de desarrollo
+    const regexTest = /\b(prueba\s*sistema|test\s*qa|testing|dummy|mock|movimiento\s*de\s*prueba|gasto\s*de\s*prueba|traspaso\s*de\s*prueba)\b/i;
 
     if (regexTest.test(ref)) return true;
     if (regexTest.test(desc)) {
-      if (esCategoriaMermas && !/\b(sistema|dummy|mock|test)\b/i.test(desc)) {
+      if (esCategoriaMermas && !/\b(sistema|dummy|mock|qa)\b/i.test(desc)) {
         // Es un gasto legítimo de merma/calibración del taller
       } else {
         return true;
       }
     }
     if (regexTest.test(notas)) {
-      if (esCategoriaMermas && !/\b(sistema|dummy|mock|test)\b/i.test(notas)) {
+      if (esCategoriaMermas && !/\b(sistema|dummy|mock|qa)\b/i.test(notas)) {
         // Es un gasto legítimo de merma/calibración del taller
       } else {
         return true;
@@ -1045,37 +1060,29 @@
   function purgarMovimientosPrueba(opciones = {}) {
     const expenses = getExpenses();
     const transfers = getTransfers();
-    const orders = getOrders();
-    const purchases = getPurchases();
 
+    // Spec 030: NUNCA depurar pedidos (orders) ni compras (purchases) reales del taller
     const cleanExpenses = expenses.filter(e => !esRegistroDePrueba(e, 'gasto'));
     const cleanTransfers = transfers.filter(t => !esRegistroDePrueba(t, 'transferencia'));
-    const cleanOrders = orders.filter(o => !esRegistroDePrueba(o, 'pedido'));
-    const cleanPurchases = purchases.filter(p => !esRegistroDePrueba(p, 'compra'));
 
     const eliminados = {
       gastos: expenses.length - cleanExpenses.length,
       transferencias: transfers.length - cleanTransfers.length,
-      pedidos: orders.length - cleanOrders.length,
-      compras: purchases.length - cleanPurchases.length,
-      total: (expenses.length - cleanExpenses.length) +
-             (transfers.length - cleanTransfers.length) +
-             (orders.length - cleanOrders.length) +
-             (purchases.length - cleanPurchases.length)
+      pedidos: 0,
+      compras: 0,
+      total: (expenses.length - cleanExpenses.length) + (transfers.length - cleanTransfers.length)
     };
 
     const preservados = {
       gastos: cleanExpenses.length,
       transferencias: cleanTransfers.length,
-      pedidos: cleanOrders.length,
-      compras: cleanPurchases.length
+      pedidos: getOrders().length,
+      compras: getPurchases().length
     };
 
     if (eliminados.total > 0) {
       setItem(STORAGE_KEYS.EXPENSES, cleanExpenses);
       setItem(STORAGE_KEYS.TRANSFERS, cleanTransfers);
-      setItem(STORAGE_KEYS.ORDERS, cleanOrders);
-      setItem(STORAGE_KEYS.PURCHASES, cleanPurchases);
       if (!opciones.silencioso) {
         console.log(`[NovaprintStorage] Depuración de movimientos de prueba completada: ${eliminados.total} registros eliminados.`);
       }
@@ -1086,6 +1093,150 @@
       totalPurgados: eliminados.total,
       eliminados,
       preservados
+    };
+  }
+
+  // --- Spec 030: Recuperar y Preservar Incondicionalmente Pedido Real de Kinder B ---
+  const DATOS_CANONICOS_KINDER_B = {
+    cliente: {
+      id: 'CLI-MVYJ0DKL',
+      name: 'BRS Kinder B',
+      phone: '+56933395447',
+      email: '',
+      rut: '28037830-5',
+      address: 'La Reina',
+      notes: 'Contacto / Mariam',
+      createdAt: '2026-11-02T00:34:02.805Z',
+      updatedAt: '2026-11-02T23:23:05.846Z'
+    },
+    pedido: {
+      id: 'NP-20261102-003',
+      clientId: 'CLI-MVYJ0DKL',
+      clientName: 'BRS Kinder B',
+      clientPhone: '+56933395447',
+      dates: {
+        createdAt: '2026-11-02T00:34:02.805Z',
+        deliveryDate: '2026-11-05',
+        deliveredAt: null
+      },
+      items: [
+        {
+          id: 'ITEM-1793662461047-2kf1',
+          garmentType: 'Polera',
+          color: 'Sin Informacion de Color',
+          size: '8',
+          technique: 'DTF',
+          printLocation: 'Pecho grande A4',
+          quantity: 4,
+          unitPrice: 10000,
+          notes: '',
+          subtotal: 40000
+        },
+        {
+          id: 'ITEM-1793662510788-6i09',
+          garmentType: 'Polera',
+          color: 'Sin Informacion de Color',
+          size: '10',
+          technique: 'DTF',
+          printLocation: 'Pecho grande A4',
+          quantity: 9,
+          unitPrice: 10000,
+          notes: '',
+          subtotal: 90000
+        },
+        {
+          id: 'ITEM-1793662542300-9f2z',
+          garmentType: 'Polera',
+          color: 'Sin Informacion de Color',
+          size: '12',
+          technique: 'DTF',
+          printLocation: 'Pecho grande A4',
+          quantity: 5,
+          unitPrice: 10000,
+          notes: '',
+          subtotal: 50000
+        },
+        {
+          id: 'ITEM-1793662585856-dsu0',
+          garmentType: 'Polera',
+          color: 'Sin Informacion de Color',
+          size: '14',
+          technique: 'DTF',
+          printLocation: 'Pecho grande A4',
+          quantity: 5,
+          unitPrice: 10000,
+          notes: '',
+          subtotal: 50000
+        }
+      ],
+      totals: {
+        totalQuantity: 23,
+        subtotalBruto: 230000,
+        volumeDiscountPercentage: 10,
+        volumeDiscountAmount: 23000,
+        neto: 207000,
+        applyIva: false,
+        ivaPercent: 0,
+        ivaAmount: 0,
+        applyDelivery: false,
+        deliveryAmount: 0,
+        totalAmount: 207000,
+        depositAmount: 100000,
+        balanceAmount: 107000,
+        paymentStatus: 'Pendiente'
+      },
+      status: 'En producción',
+      notes: 'Poleras curso Kinder B'
+    }
+  };
+
+  function asegurarPedidoKinderB() {
+    let restauradoCliente = false;
+    let restauradoPedido = false;
+
+    // 1. Asegurar existencia del cliente BRS Kinder B
+    const clients = getClients();
+    const existeCliente = clients.find(c =>
+      c.id === DATOS_CANONICOS_KINDER_B.cliente.id ||
+      (c.name && c.name.toLowerCase().includes('kinder b'))
+    );
+    if (!existeCliente) {
+      clients.unshift({ ...DATOS_CANONICOS_KINDER_B.cliente });
+      setItem(STORAGE_KEYS.CLIENTS, clients);
+      restauradoCliente = true;
+    }
+
+    // 2. Asegurar existencia del pedido de BRS Kinder B
+    const orders = getOrders();
+    const existePedido = orders.find(o =>
+      o.id === DATOS_CANONICOS_KINDER_B.pedido.id ||
+      (o.clientName && o.clientName.toLowerCase().includes('kinder b')) ||
+      (o.notes && o.notes.toLowerCase().includes('kinder b'))
+    );
+
+    let pedidoFinal = existePedido;
+    if (!existePedido) {
+      pedidoFinal = { ...DATOS_CANONICOS_KINDER_B.pedido };
+      // Asociar asientos contables si el módulo contable está disponible
+      try {
+        let acc = global.NovaprintAccounting;
+        if (!acc && typeof require !== 'undefined') {
+          try { acc = require('./accounting.js'); } catch (_) {}
+        }
+        if (acc && typeof acc.generarAsientosPedido === 'function') {
+          pedidoFinal.asientosContables = acc.generarAsientosPedido(pedidoFinal);
+        }
+      } catch (_) {}
+
+      orders.unshift(pedidoFinal);
+      setItem(STORAGE_KEYS.ORDERS, orders);
+      restauradoPedido = true;
+    }
+
+    return {
+      success: true,
+      restaurado: restauradoCliente || restauradoPedido,
+      pedido: pedidoFinal
     };
   }
 
@@ -1616,6 +1767,8 @@
     // Spec 029: Depuración de movimientos de prueba
     esRegistroDePrueba,
     purgarMovimientosPrueba,
+    // Spec 030: Recuperar y preservar pedido de Kinder B
+    asegurarPedidoKinderB,
     exportBackup,
     importBackup,
     initDemoData
