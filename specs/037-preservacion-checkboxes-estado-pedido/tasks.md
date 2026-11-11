@@ -25,6 +25,6 @@
 
 ## Fase 4: Documentación y Despliegue
 - [x] T12: Actualizar `memory.md` (Sección 2 y Sección 3).
-- [ ] T13: Commit y push a `origin/main`.
-- [ ] T14: Entregar informe final con pasos de verificación.
+- [x] T13: Commit y push a `origin/main`.
+- [x] T14: Entregar informe final con pasos de verificación.
 
