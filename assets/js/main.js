@@ -22,32 +22,14 @@
   let fabricationStageFilter = 'todos';
 
   function limpiarDatosDemoPrevios() {
-    if (!global.NovaprintStorage) return;
-    try {
-      const storage = global.NovaprintStorage;
-      const clientes = storage.getClients();
-      const pedidos = storage.getOrders();
-      const proveedores = storage.getSuppliers();
-
-      // Detectar si aún existen datos de la plantilla inicial de prueba
-      const tieneClientesDemo = clientes.some(c => c.id === 'CLI-001' || c.id === 'CLI-002' || c.id === 'CLI-003');
-      const tienePedidosDemo = pedidos.some(p => p.id === 'ORD-2026-0001' || p.id === 'ORD-2026-0002');
-      const tieneProveedoresDemo = proveedores.some(p => p.id === 'PRV-001' || p.id === 'PRV-002');
-
-      if (tieneClientesDemo || tienePedidosDemo || tieneProveedoresDemo) {
-        storage.clearAllData(true);
-        console.log('Datos de prueba eliminados. La base de datos está limpia para uso de datos propios.');
-      }
-    } catch (e) {
-      console.warn('Error al verificar datos de prueba iniciales:', e);
-    }
+    // Spec 027: Neutralizado permanentemente para garantizar preservación estricta de datos reales
+    return;
   }
 
   function init() {
     console.log('Iniciando Novaprint App...');
 
-    // Limpiar automáticamente los datos de muestra iniciales si aún existen en el navegador
-    limpiarDatosDemoPrevios();
+    // Spec 027: Preservación absoluta de datos (no borrar bajo ninguna condición al iniciar)
 
     // Aplicar tema guardado en configuración (Spec 010)
     if (global.NovaprintStorage) {

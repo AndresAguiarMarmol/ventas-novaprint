@@ -94,7 +94,7 @@
     setItem(STORAGE_KEYS.PROJECTS, []);
     setItem(STORAGE_KEYS.EXPENSES, []);
     setItem(STORAGE_KEYS.TRANSFERS, []);
-    resetDefaultAccounts();
+    resetDefaultAccounts(true);
     return true;
   }
 
@@ -901,10 +901,33 @@
     return { success: true };
   }
 
-  function resetDefaultAccounts() {
+  function resetDefaultAccounts(forzarReemplazo = false) {
     const defecto = obtenerPlanCuentasDefecto();
-    setItem(STORAGE_KEYS.ACCOUNTS, defecto);
-    return defecto;
+    if (forzarReemplazo === true) {
+      setItem(STORAGE_KEYS.ACCOUNTS, defecto);
+      return defecto;
+    }
+
+    // Spec 027: Preservación estricta de cuentas personalizadas y cambios del usuario (merge no destructivo)
+    const actuales = getItem(STORAGE_KEYS.ACCOUNTS);
+    if (!Array.isArray(actuales) || actuales.length === 0) {
+      setItem(STORAGE_KEYS.ACCOUNTS, defecto);
+      return defecto;
+    }
+
+    const codigosExistentes = new Set(actuales.map(a => (a.codigo || '').toString().trim()));
+    const combinadas = [...actuales];
+
+    for (const d of defecto) {
+      const cod = (d.codigo || '').toString().trim();
+      if (cod && !codigosExistentes.has(cod)) {
+        combinadas.push(d);
+        codigosExistentes.add(cod);
+      }
+    }
+
+    setItem(STORAGE_KEYS.ACCOUNTS, combinadas);
+    return combinadas;
   }
 
   // --- TRANSFERENCIAS ENTRE CUENTAS CONTABLES (SPEC 023) ---

@@ -229,13 +229,20 @@ describe('Spec 022 — Plan de Cuentas Contable y Operaciones CRUD', () => {
       assert.equal(storage.getAccountById(custom.id), null);
     });
 
-    it('resetDefaultAccounts debe restablecer las 21 cuentas originales del taller', () => {
+    it('resetDefaultAccounts debe preservar cuentas existentes por defecto y solo restablecer si se fuerza', () => {
       // Agregar 2 cuentas adicionales
       storage.saveAccount({ codigo: '1191', nombre: 'Extra 1', tipo: 'Activo' });
       storage.saveAccount({ codigo: '1192', nombre: 'Extra 2', tipo: 'Activo' });
       assert.equal(storage.getAccounts().length, 23);
 
-      const resetRes = storage.resetDefaultAccounts();
+      // Spec 027: Llamada estándar no destructiva preserva cuentas de usuario
+      const resNoDestructivo = storage.resetDefaultAccounts();
+      assert.equal(resNoDestructivo.length, 23);
+      assert.ok(storage.getAccountByCode('1191'), 'Cuenta personalizada 1191 debe preservarse');
+      assert.ok(storage.getAccountByCode('1192'), 'Cuenta personalizada 1192 debe preservarse');
+
+      // Restablecimiento forzado explícito (ej. para pruebas o reinicialización hard)
+      const resetRes = storage.resetDefaultAccounts(true);
       assert.equal(resetRes.length, 21);
       assert.equal(storage.getAccounts().length, 21);
       assert.equal(storage.getAccountByCode('1191'), null);

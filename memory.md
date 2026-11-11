@@ -16,7 +16,7 @@ Registro de todo lo que debe preservarse entre sesiones de trabajo: arquitectura
 - **`novaprint_purchases`:** Historial de compras de insumos/prendas a proveedores (`id, supplierId, supplierName, invoiceNumber, date, items, subtotalNeto, applyIva, ivaPercent, ivaAmount, applyDelivery, deliveryAmount, totalAmount, notes, createdAt`).
 - **`novaprint_projects`:** Órdenes de fabricación / proyectos de taller vinculadas a pedidos o stock (`id, code, orderId, name, garmentType, quantity, printTechnique, stage, startDate, targetDate, assignedTo, notes`).
 - **`novaprint_expenses`:** Registro de gastos operacionales de taller (`id, date, category, description, amount, paymentMethod, reference, notes, createdAt`).
-- **`novaprint_accounts`:** Catálogo oficial del Plan de Cuentas Contable del taller (`id, codigo, nombre, tipo, subtipo, descripcion, esSistema, activo, createdAt, updatedAt`).
+- **`novaprint_accounts`:** Catálogo oficial del Plan de Cuentas Contable del taller (`id, codigo, nombre, tipo, subtipo, descripcion, esSistema, activo, createdAt, updatedAt`). Blindado contra eliminación accidental y con preservación estricta de cuentas personalizadas de usuario ante inicios de app o reinicializaciones.
 - **`novaprint_transfers`:** Registro de transferencias y traspasos entre cuentas contables (`id, date, sourceAccountId, sourceAccountCode, sourceAccountName, destinationAccountId, destinationAccountCode, destinationAccountName, amount, description, reference, createdAt, updatedAt`).
 
 ---
@@ -79,6 +79,12 @@ Registro de todo lo que debe preservarse entre sesiones de trabajo: arquitectura
   - **Spec 024 (Implementada):** Reflejo Dinámico de Transferencias en Cuentas Contables (Origen y Destino) y Listado de Movimientos.
   - **Spec 025 (Implementada):** Filtros por Mes de Transacción y por Cuenta Contable en Libro Diario de Movimientos.
   - **Spec 026 (Implementada):** Opción "Ninguno" en Campo Estampado con Precio $0 CLP.
+  - **Spec 027 (Implementada):** Blindaje y Preservación Estricta del Plan de Cuentas y Datos del Taller.
+- **Preservación Estricta del Plan de Cuentas y Datos del Taller (Spec 027):**
+  - **Neutralización Definitiva de Borrado en Arranque (`main.js`):** Se eliminó la llamada a `limpiarDatosDemoPrevios()` en `init()` y se neutralizó su implementación como no-op seguro, erradicando que cualquier cliente, pedido o proveedor con códigos de prueba o sugeridos (como `PRV-001` de la Spec 021) dispare `storage.clearAllData()`. Ninguna recarga o inicio de sesión vacía datos de `localStorage`.
+  - **Remoción del Botón Destructivo en Plan de Cuentas (`index.html`):** Se retiró del DOM el botón `#btn-reset-accounts` ("🔄 Predeterminadas"), eliminando el riesgo de que una pulsación accidental sobreescriba el catálogo de cuentas de usuario. La barra de acciones conserva únicamente `+ Nueva Cuenta` (`#btn-new-account`).
+  - **Merge No Destructivo en `resetDefaultAccounts` (`storage.js`):** Se blindó `resetDefaultAccounts(forzarReemplazo = false)` para que actúe por defecto como una sincronización no destructiva: preserva íntegramente las cuentas creadas y modificadas por el usuario, y únicamente añade cuentas canónicas del sistema si faltase alguna esencial. La sobreescritura total solo opera si se especifica explícitamente `forzarReemplazo === true` (reservado para pruebas aisladas).
+  - **Integridad Total de Datos:** Garantía de persistencia incondicional para clientes, pedidos, existencias de bodega, compras, gastos, transferencias y el plan contable ante cualquier actualización o recarga.
 - **Opción "Ninguno" en Campo Estampado ($0 CLP) (Spec 026):**
   - **Parametrización Oficial en `OPCIONES_ESTAMPADO`:** Se agregó la opción `NINGUNO: { id: 'Ninguno', nombre: 'Ninguno', label: 'Ninguno ($0)', costoCompra: 0, precioVentaSugerido: 0 }` en `assets/js/production.js`. `normalizarOpcionEstampado` detecta variaciones como `'ninguno'`, `'sin estampado'`, `'sin'`, `'lisa'`, `'liso'`, retornando la opción con costo 0.
   - **Cálculo de Precio Sugerido en Cotizaciones (`sales.js`):** Al seleccionar "Ninguno", `calcularPrecioSugeridoPrenda` asigna estrictamente $0 CLP al costo de estampado, resultando en un precio sugerido equivalente al costo base de la prenda textil lisa (ej. $3.500 para Polera algodón estándar) más recargos de tallas especiales si corresponden.
@@ -177,6 +183,22 @@ Registro de todo lo que debe preservarse entre sesiones de trabajo: arquitectura
 ---
 
 ## 3. Historial de cambios
+
+### 2026-11-10 (Blindaje y Preservación Estricta del Plan de Cuentas y Datos del Taller — Spec 027)
+- **Respaldo Previo de Seguridad:**
+  - Exportación de estado de datos a `backups/backup_pre_preservacion_plan_cuentas_20261110.json` y publicación de Git tag `backup-pre-preservacion-plan-cuentas-20261110`.
+- **Neutralización de Borrado Automático (`assets/js/main.js`):**
+  - Removida la ejecución de `limpiarDatosDemoPrevios()` en el arranque (`init()`).
+  - Neutralizado el cuerpo de la función como no-op seguro que nunca invoca `storage.clearAllData()`.
+- **Interfaz de Usuario (`index.html`):**
+  - Removido del DOM el botón destructivo `#btn-reset-accounts` ("🔄 Predeterminadas") en la cabecera del Plan de Cuentas (`#acc-subview-chart`), manteniendo exclusivamente `+ Nueva Cuenta` (`#btn-new-account`).
+- **Capa de Persistencia (`assets/js/storage.js`):**
+  - Blindada `resetDefaultAccounts(forzarReemplazo = false)`: por defecto realiza una combinación (merge) no destructiva que conserva intactas todas las cuentas personalizadas y modificaciones del usuario, incorporando únicamente cuentas del sistema faltantes. La sustitución completa solo se habilita con `forzarReemplazo === true` explícito en suites de prueba.
+  - Actualizado `clearAllData(preserveSettings = true)` para pasar `forzarReemplazo = true` en reseteos de pruebas automatizadas.
+- **Pruebas Automatizadas (`tests/data_preservation_chart_accounts.test.js`):**
+  - 8 nuevas pruebas unitarias cubriendo preservación de cuentas personalizadas en `resetDefaultAccounts()`, merge no destructivo, ausencia de invocaciones destructivas en `main.js`, eliminación de `#btn-reset-accounts` en `index.html` y persistencia en respaldos.
+  - Actualizada prueba en `tests/chart_of_accounts_crud.test.js` para validar comportamiento no destructivo por defecto y modo forzado.
+  - Suite global completa: 232 pruebas unitarias en 20 suites ejecutándose y pasando al 100% (0 fallos).
 
 ### 2026-11-10 (Opción "Ninguno" en Campo Estampado a $0 CLP — Spec 026)
 - **Motor de Producción (`assets/js/production.js`):**
