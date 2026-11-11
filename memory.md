@@ -23,6 +23,11 @@ Registro de todo lo que debe preservarse entre sesiones de trabajo: arquitectura
 
 ## 2. Decisiones vigentes
 
+- **Preservación de Checkboxes (Desc. Volumen, IVA, Delivery) al Avanzar o Modificar Estado (Spec 037):**
+  - **Atributo Explícito `applyDiscount` en `totals` (`sales.js`):** La función `calcularTotalesPedido` exporta e incluye siempre `applyDiscount: Boolean(aplicarDescuentoVolumen)` junto a `applyIva` y `applyDelivery`.
+  - **Restauración Fiel en Formularios (`ui.js`):** En `editarPedido` y `duplicarPedido`, el checkbox `#form-apply-discount` se restaura explícitamente desde `pedido.totals.applyDiscount` (con retrocompatibilidad que deduce `volumeDiscountAmount > 0`), asegurando que la decisión del vendedor sobre otorgar o no descuento por volumen nunca sea pisada o reiniciada a `true` al editar o modificar el estado del pedido desde el diálogo.
+  - **Inmutabilidad en Avance de Estado (`storage.js` & `ui.js`):** `updateOrderStatus`, `cambiarEstado` y `seleccionarNuevoEstado` actualizan exclusivamente `status`, `updatedAt` y `deliveredAt`, garantizando que ninguna transición operativa altere las selecciones comerciales ni recalcule los importes del pedido.
+
 - **Resaltado con Recuadro Verde del Menú Horizontal de Contabilidad (Spec 036):**
   - **Identificador y Estilizado Distintivo (`#acc-subnav-container`):** El contenedor de la barra de sub-navegación contable en `index.html` cuenta con enmarcado verde de alta visibilidad: borde sólido de 2px (`border-2 border-emerald-500`), fondo sutilmente entonado (`bg-emerald-50/50`), esquinas redondeadas (`rounded-xl`) y sombra suave (`shadow-sm`).
   - **Preservación Funcional Incondicional:** Los 4 botones de navegación interna (`#btn-acc-sub-balance`, `#btn-acc-sub-pnl`, `#btn-acc-sub-journal` y `#btn-acc-sub-chart`) mantienen sus identificadores, eventos `NovaprintUI.cambiarSubVistaContable(...)` y estilos dinámicos de selección intactos.
@@ -240,6 +245,17 @@ Registro de todo lo que debe preservarse entre sesiones de trabajo: arquitectura
 ---
 
 ## 3. Historial de cambios
+
+### 2026-11-11 (Preservación de Checkboxes al Avanzar o Modificar Estado del Pedido — Spec 037)
+- **Módulo de Ventas (`assets/js/sales.js`):**
+  - Se incorporó formalmente `applyDiscount: Boolean(aplicarDescuentoVolumen)` en el objeto `totals` generado por `calcularTotalesPedido`. Si `aplicarDescuentoVolumen` es `false`, `volumeDiscountPercent` y `volumeDiscountAmount` se fijan estrictamente en 0.
+- **Interfaz de Usuario y Controladores (`assets/js/ui.js`):**
+  - En `editarPedido` y `duplicarPedido`, se restaura fielmente el checkbox `#form-apply-discount` según `pedido.totals.applyDiscount` (o deducción retrocompatible), además de `#order-apply-iva` y `#order-apply-delivery`.
+  - Garantizada inmutabilidad de los totales comerciales al invocar `cambiarEstado` y `seleccionarNuevoEstado`.
+- **Pruebas Automatizadas (`tests/order_checkboxes_preservation.test.js`):**
+  - 5 pruebas unitarias verificando la presencia de `applyDiscount`, restauración de checkboxes en formulario, inmutabilidad al avanzar estado y clonación en duplicar pedido.
+  - Suite global completa: 293 pruebas unitarias en 30 suites pasando al 100% (0 fallos).
+- **Metodología SDD:** Especificación formal en `specs/037-preservacion-checkboxes-estado-pedido/` (`spec.md`, `plan.md`, `tasks.md`).
 
 ### 2026-11-11 (Resaltado con Recuadro Verde del Menú Horizontal de Contabilidad — Spec 036)
 - **Interfaz de Usuario (`index.html`):**

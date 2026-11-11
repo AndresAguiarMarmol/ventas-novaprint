@@ -1056,7 +1056,17 @@
     document.getElementById('order-notes-input').value = pedido.notes || '';
     document.getElementById('order-deposit-input').value = pedido.totals?.depositAmount || 0;
 
-    // Cargar IVA y Delivery
+    // Spec 037: Cargar Descuento por Volumen, IVA y Delivery preservando selecciones del usuario
+    const checkDesc = document.getElementById('form-apply-discount');
+    if (checkDesc) {
+      if (pedido.totals && typeof pedido.totals.applyDiscount === 'boolean') {
+        checkDesc.checked = pedido.totals.applyDiscount;
+      } else {
+        // Retrocompatibilidad con pedidos anteriores: si no está definido applyDiscount, inferir si tuvo descuento
+        checkDesc.checked = Boolean(pedido.totals?.volumeDiscountAmount > 0 || (pedido.totals?.volumeDiscountPercent > 0 && pedido.totals?.subtotalBruto > 0));
+      }
+    }
+
     const checkIva = document.getElementById('order-apply-iva');
     if (checkIva) checkIva.checked = Boolean(pedido.totals?.applyIva);
     const checkDeliv = document.getElementById('order-apply-delivery');
@@ -1114,7 +1124,16 @@
     const depInput = document.getElementById('order-deposit-input');
     if (depInput) depInput.value = 0; // Iniciar abono en 0 para nuevo pedido
 
-    // IVA y Delivery
+    // Spec 037: Preservar selecciones de Descuento por Volumen, IVA y Delivery del pedido clonado
+    const checkDesc = document.getElementById('form-apply-discount');
+    if (checkDesc) {
+      if (pedido.totals && typeof pedido.totals.applyDiscount === 'boolean') {
+        checkDesc.checked = pedido.totals.applyDiscount;
+      } else {
+        checkDesc.checked = Boolean(pedido.totals?.volumeDiscountAmount > 0 || (pedido.totals?.volumeDiscountPercent > 0 && pedido.totals?.subtotalBruto > 0));
+      }
+    }
+
     const checkIva = document.getElementById('order-apply-iva');
     if (checkIva) checkIva.checked = Boolean(pedido.totals?.applyIva);
     const checkDeliv = document.getElementById('order-apply-delivery');

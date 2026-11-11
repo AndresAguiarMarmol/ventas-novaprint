@@ -196,6 +196,7 @@
     const ivaPercent = applyIva ? 19 : 0;
     const applyDelivery = montoDelivery > 0;
     const deliveryAmount = montoDelivery;
+    const applyDiscount = Boolean(aplicarDescuentoVolumen);
 
     if (!Array.isArray(items) || items.length === 0) {
       const totalAmount = deliveryAmount;
@@ -206,6 +207,7 @@
       return {
         totalQuantity: 0,
         subtotalBruto: 0,
+        applyDiscount,
         volumeDiscountPercent: 0,
         volumeDiscountAmount: 0,
         netAmount: 0,
@@ -232,7 +234,9 @@
     });
 
     const desc = calcularDescuentoVolumen(totalQuantity, subtotalBruto);
-    const netAmount = aplicarDescuentoVolumen ? desc.totalNeto : subtotalBruto;
+    const volumeDiscountPercent = aplicarDescuentoVolumen ? desc.porcentaje : 0;
+    const volumeDiscountAmount = aplicarDescuentoVolumen ? desc.montoDescuento : 0;
+    const netAmount = subtotalBruto - volumeDiscountAmount;
     const ivaAmount = applyIva ? Math.round(netAmount * TASA_IVA_CHILE) : 0;
     const totalAmount = netAmount + ivaAmount + deliveryAmount;
 
@@ -252,8 +256,9 @@
     return {
       totalQuantity,
       subtotalBruto,
-      volumeDiscountPercent: desc.porcentaje,
-      volumeDiscountAmount: desc.montoDescuento,
+      applyDiscount,
+      volumeDiscountPercent,
+      volumeDiscountAmount,
       netAmount,
       applyIva,
       ivaPercent,
