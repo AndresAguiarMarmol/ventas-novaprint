@@ -27,6 +27,6 @@
 
 ## Fase 4: Documentación y Despliegue
 - [x] T14: Actualizar `memory.md` (Sección 2 y Sección 3).
-- [ ] T15: Realizar commit y push a `origin/main`.
-- [ ] T16: Entregar el informe de cierre al usuario con instrucciones de verificación.
+- [x] T15: Realizar commit y push a `origin/main`.
+- [x] T16: Entregar el informe de cierre al usuario con instrucciones de verificación.
 
