@@ -42,3 +42,4 @@
   - Existencia de elementos visuales en el DOM de `index.html`.
   - Integración con `verMovimientosCuenta`.
 - Ejecutar la suite completa (`node --test tests/*.test.js`) asegurando 200+ tests en verde sin regresiones.
+

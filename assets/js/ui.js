@@ -642,6 +642,7 @@
       return prod.normalizarOpcionEstampado(ubicacion).nombre;
     }
     const txt = (ubicacion || '').toString().toLowerCase();
+    if (txt.includes('ningun') || txt.includes('sin') || txt === 'lisa' || txt === 'liso' || txt === 'no') return 'Ninguno';
     if (txt.includes('ambos') || txt.includes('adelante y atras') || txt.includes('pecho y espalda')) return 'Ambos';
     if (txt.includes('atras') || txt.includes('espalda') || txt.includes('posterior')) return 'Atrás';
     return 'Adelante';
@@ -692,6 +693,7 @@
         </td>
         <td class="py-2 px-1">
           <select class="w-32 p-1.5 border border-gray-300 rounded font-semibold text-gray-800" onchange="NovaprintUI.actualizarItemProp('${it.id}', 'printLocation', this.value)">
+            <option value="Ninguno" ${normalizarUbicacionEstampado(it.printLocation) === 'Ninguno' ? 'selected' : ''}>Ninguno ($0)</option>
             <option value="Adelante" ${normalizarUbicacionEstampado(it.printLocation) === 'Adelante' ? 'selected' : ''}>Adelante ($1.800)</option>
             <option value="Atrás" ${normalizarUbicacionEstampado(it.printLocation) === 'Atrás' ? 'selected' : ''}>Atrás ($2.200)</option>
             <option value="Ambos" ${normalizarUbicacionEstampado(it.printLocation) === 'Ambos' ? 'selected' : ''}>Ambos ($3.500)</option>

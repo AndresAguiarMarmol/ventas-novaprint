@@ -78,6 +78,12 @@ Registro de todo lo que debe preservarse entre sesiones de trabajo: arquitectura
   - **Spec 023 (Implementada):** Transferencia entre Cuentas Contables (Botón en Cabecera, Asientos de Partida Doble en Libro Diario y Modal Interactivo).
   - **Spec 024 (Implementada):** Reflejo Dinámico de Transferencias en Cuentas Contables (Origen y Destino) y Listado de Movimientos.
   - **Spec 025 (Implementada):** Filtros por Mes de Transacción y por Cuenta Contable en Libro Diario de Movimientos.
+  - **Spec 026 (Implementada):** Opción "Ninguno" en Campo Estampado con Precio $0 CLP.
+- **Opción "Ninguno" en Campo Estampado ($0 CLP) (Spec 026):**
+  - **Parametrización Oficial en `OPCIONES_ESTAMPADO`:** Se agregó la opción `NINGUNO: { id: 'Ninguno', nombre: 'Ninguno', label: 'Ninguno ($0)', costoCompra: 0, precioVentaSugerido: 0 }` en `assets/js/production.js`. `normalizarOpcionEstampado` detecta variaciones como `'ninguno'`, `'sin estampado'`, `'sin'`, `'lisa'`, `'liso'`, retornando la opción con costo 0.
+  - **Cálculo de Precio Sugerido en Cotizaciones (`sales.js`):** Al seleccionar "Ninguno", `calcularPrecioSugeridoPrenda` asigna estrictamente $0 CLP al costo de estampado, resultando en un precio sugerido equivalente al costo base de la prenda textil lisa (ej. $3.500 para Polera algodón estándar) más recargos de tallas especiales si corresponden.
+  - **Exclusión en Compras de Faltantes (`production.js` y `storage.js`):** `calcularFaltantesPedido` omite la compra de insumos de estampado cuando `printLocation` es `'Ninguno'` o su costo es 0, manteniendo el contador de estampados faltantes en 0 y evitando generar órdenes de compra ficticias de transferencias o insumos DTF. `asegurarItemInventarioEstampado` retorna `null` para "Ninguno".
+  - **Selector en Formulario de Pedidos (`ui.js`):** En `renderTablaItemsFormulario`, la columna "Estampado" incorpora `<option value="Ninguno">Ninguno ($0)</option>`, actualizando reactivamente los precios y subtotales en vivo al alternar entre prendas lisas y estampadas.
 - **Filtros por Mes y Cuenta en Libro Diario (Spec 025):**
   - **Filtro por Mes de la Transacción (`YYYY-MM`):** En `#acc-subview-journal`, se incluye `<input type="month" id="acc-journal-filter-month">` junto al botón interactivo `[Todos]` (`#btn-journal-clear-month`). Permite acotar los asientos contables a cualquier mes y año específico (`a.fecha.startsWith(mes)`) o ver el historial completo.
   - **Filtro por Cuenta Contable:** Selector desplegable `#acc-journal-filter-account` poblado dinámicamente con las cuentas activas del Plan de Cuentas (`poblarSelectorCuentasLibroDiario`), organizadas y agrupadas por categorías contables (1. Activos, 2. Pasivos, 3. Capital, 4. Ingresos, 5. Egresos), permitiendo filtrar únicamente los asientos donde la cuenta participe al Debe o al Haber (incluyendo orígenes y destinos de transferencias).
@@ -171,6 +177,25 @@ Registro de todo lo que debe preservarse entre sesiones de trabajo: arquitectura
 ---
 
 ## 3. Historial de cambios
+
+### 2026-11-10 (Opción "Ninguno" en Campo Estampado a $0 CLP — Spec 026)
+- **Motor de Producción (`assets/js/production.js`):**
+  - Incorporación de `NINGUNO` en `OPCIONES_ESTAMPADO` (`id: 'Ninguno'`, `nombre: 'Ninguno'`, `costoCompra: 0`, `precioVentaSugerido: 0`, `label: 'Ninguno ($0)'`).
+  - Actualización de `normalizarOpcionEstampado` para mapear `'ninguno'`, `'sin estampado'`, `'sin'`, `'lisa'`, `'liso'` a `OPCIONES_ESTAMPADO.NINGUNO`.
+  - Actualización de `calcularFaltantesPedido`: omite la compra de estampados y no suma a `totalEstampadosFaltantes` cuando la prenda tiene estampado "Ninguno" o costo de compra 0.
+- **Motor de Ventas y Cotizaciones (`assets/js/sales.js`):**
+  - Actualización de `calcularPrecioSugeridoPrenda`: asigna costo de estampado en $0 CLP cuando `printLocation` es "Ninguno" o prendas lisas, cotizando exclusivamente el costo base textil.
+- **Capa de Persistencia (`assets/js/storage.js`):**
+  - `asegurarItemInventarioEstampado`: devuelve `null` para la opción "Ninguno", evitando crear existencias innecesarias de estampados en bodega.
+- **Interfaz de Usuario (`assets/js/ui.js`):**
+  - Inclusión de `<option value="Ninguno">Ninguno ($0)</option>` en el selector de estampado de la tabla de prendas en `renderTablaItemsFormulario`.
+  - Soporte en `normalizarUbicacionEstampado` para devolver `'Ninguno'` en tiempo real.
+- **Pruebas Automatizadas (`tests/print_option_none.test.js`):**
+  - 11 nuevas pruebas unitarias cubriendo definición de opción, normalización, cálculo de precio sugerido, exclusión en faltantes de compra y renderizado UI.
+  - Suite global completa: 224 pruebas unitarias en 19 suites ejecutándose y pasando al 100% en verde (0 fallos).
+- **Seguridad y Respaldo:**
+  - Respaldo previo en `backups/backup_pre_estampado_ninguno_20261110.json` y tag git `backup-pre-estampado-ninguno-20261110`.
+- **Metodología SDD:** Especificación completa en `specs/026-estampado-ninguno-precio-cero/` (`spec.md`, `plan.md`, `tasks.md`).
 
 ### 2026-11-10 (Filtros por Mes y Cuenta Contable en Libro Diario — Spec 025)
 - **Motor Contable (`assets/js/accounting.js`):**

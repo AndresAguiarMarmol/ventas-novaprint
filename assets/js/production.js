@@ -59,8 +59,15 @@
 
   const TASA_IVA_CHILE = 0.19;
 
-  // Spec 020: Opciones oficiales de estampado y costos de compra / precios sugeridos
+  // Spec 020/026: Opciones oficiales de estampado y costos de compra / precios sugeridos
   const OPCIONES_ESTAMPADO = Object.freeze({
+    NINGUNO: {
+      id: 'Ninguno',
+      nombre: 'Ninguno',
+      label: 'Ninguno ($0)',
+      costoCompra: 0,
+      precioVentaSugerido: 0
+    },
     ADELANTE: {
       id: 'Adelante',
       nombre: 'Adelante',
@@ -87,6 +94,9 @@
   function normalizarOpcionEstampado(ubicacion) {
     if (!ubicacion) return OPCIONES_ESTAMPADO.ADELANTE;
     const txt = normalizarTexto(String(ubicacion));
+    if (txt.includes('ningun') || txt.includes('sin estampado') || txt === 'sin' || txt === 'lisa' || txt === 'liso' || txt === 'ninguna' || txt === 'no') {
+      return OPCIONES_ESTAMPADO.NINGUNO;
+    }
     if (txt.includes('ambos') || txt.includes('adelante y atras') || txt.includes('pecho y espalda')) {
       return OPCIONES_ESTAMPADO.AMBOS;
     }
@@ -431,12 +441,12 @@
         }
       }
 
-      // Spec 020: Considerar compra del estampado para cada unidad
+      // Spec 020/026: Considerar compra del estampado para cada unidad (omitir si es "Ninguno" con costo $0)
       if (opciones && opciones.incluirEstampados) {
         const qty = Math.max(0, Number(it.quantity) || 0);
-        if (qty > 0) {
+        const opEstampado = normalizarOpcionEstampado(it.printLocation || 'Adelante');
+        if (qty > 0 && opEstampado.id !== 'Ninguno' && opEstampado.costoCompra > 0) {
           totalEstampadosFaltantes += qty;
-          const opEstampado = normalizarOpcionEstampado(it.printLocation || 'Adelante');
           const tecnica = it.technique || 'DTF';
           const unitCost = opEstampado.costoCompra;
           const subtotal = qty * unitCost;

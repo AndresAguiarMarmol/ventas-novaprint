@@ -156,9 +156,11 @@
       recargoTalla = COSTOS_REFERENCIA.recargoTallasEspeciales;
     }
 
-    // Costo de estampado (Spec 020: Opciones Adelante, Atrás y Ambos)
+    // Costo de estampado (Spec 020/026: Opciones Ninguno ($0), Adelante, Atrás y Ambos)
     let costoEstampado = COSTOS_REFERENCIA.estampados.grande_a4;
-    if (ubicacion === 'ambos' || ubicacion.includes('ambos') || ubicacion.includes('adelante y atras') || ubicacion.includes('pecho y espalda')) {
+    if (ubicacion === 'ninguno' || ubicacion.includes('ningun') || ubicacion.includes('sin estampado') || ubicacion === 'sin' || ubicacion === 'lisa' || ubicacion === 'liso' || ubicacion === 'no') {
+      costoEstampado = 0;
+    } else if (ubicacion === 'ambos' || ubicacion.includes('ambos') || ubicacion.includes('adelante y atras') || ubicacion.includes('pecho y espalda')) {
       costoEstampado = 5500;
     } else if (ubicacion === 'atras' || ubicacion.includes('atras') || ubicacion.includes('espalda') || ubicacion.includes('posterior')) {
       costoEstampado = 3500;

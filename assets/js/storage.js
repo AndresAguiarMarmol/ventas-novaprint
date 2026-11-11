@@ -477,6 +477,11 @@
     const tecNorm = normalizar(technique || 'DTF');
     const ubiNorm = normalizar(location || 'Adelante');
 
+    // Spec 026: Si es "Ninguno" (sin estampado), no requiere crear ni adquirir insumos
+    if (ubiNorm.includes('ningun') || ubiNorm.includes('sin') || ubiNorm === 'lisa' || ubiNorm === 'liso' || ubiNorm === 'no') {
+      return null;
+    }
+
     let opNombre = 'Adelante';
     let costoCompra = 1800;
     if (ubiNorm.includes('ambos') || ubiNorm.includes('adelante y atras') || ubiNorm.includes('pecho y espalda')) {

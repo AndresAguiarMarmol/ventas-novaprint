@@ -286,3 +286,4 @@ describe('Spec 025 — Filtros por Mes de Transacción y por Cuenta Contable en 
     });
   });
 });
+
