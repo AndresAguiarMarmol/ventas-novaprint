@@ -23,6 +23,11 @@ Registro de todo lo que debe preservarse entre sesiones de trabajo: arquitectura
 
 ## 2. Decisiones vigentes
 
+- **Edición Interactiva de Cantidad y Costo en "Separar en 2 Facturas" (Spec 034):**
+  - **Inputs Editables en Diálogo:** Se reemplazó el texto estático de cantidad y costo en ambas tablas de `#dialog-split-purchase` por `<input type="number">` estilizados y reactivos para Poleras y Estampados DTF.
+  - **Controlador Reactivo `actualizarItemSplit`:** Al editar cantidad o costo unitario, se recalculan inmediatamente el subtotal de fila, los badges de conteo (`X prendas`, `Y estampados`), los subtotales de cada factura (con IVA 19% y Delivery) y el Gran Total Consolidado en tiempo real.
+  - **Persistencia Fiel en `confirmarSeparacionCompra`:** Las dos facturas generadas/actualizadas registran exactamente las cantidades y costos negociados por el usuario, actualizando el stock y costos de reposición correspondientes en bodega.
+
 - **Corrección de "storage is not defined" en renderPurchasesTable y Transferencias (Spec 033):**
   - **Resolución Canónica en `renderPurchasesTable`:** Se agregó la declaración explícita `const storage = global.NovaprintStorage` junto a comprobación defensiva (`storage && typeof storage.getInventory === 'function'`) en `assets/js/ui.js`.
   - **Sincronización Reactiva Segura:** Al realizar transferencias contables entre cualquier par de cuentas (ej. `3101` y `3102`), la cadena de refresco `refrescarContabilidadCompleta()` -> `refrescarDatos()` -> `refrescarCompras()` -> `renderPurchasesTable()` se ejecuta fluidamente sin arrojar `ReferenceError` independientemente de si existen compras previas en bodega.
@@ -113,6 +118,7 @@ Registro de todo lo que debe preservarse entre sesiones de trabajo: arquitectura
   - **Spec 031 (Implementada):** Reinicio de Existencias Físicas a Saldo Cero en Todo el Inventario.
   - **Spec 032 (Implementada):** Respeto a la Eliminación Definitiva del Pedido "BRS Kinder B" (Prevención de Resurrección Automática).
   - **Spec 033 (Implementada):** Corrección de "storage is not defined" en renderPurchasesTable y Transferencias Contables.
+  - **Spec 034 (Implementada):** Edición Interactiva de Cantidad y Costo al Separar Compra en 2 Facturas.
 - **Corrección y Optimización de Filtros en Libro Diario (Spec 028):**
   - **Resolución Determinística de Cuentas (`asientoAfectaCuenta` en `accounting.js`):** Mapeo canónico de categorías operacionales de gasto a sus códigos contables oficiales (`5201 Arriendo`, `5202 Electricidad`, `5203 Mantenimiento`, `5204 Fletes`, `5205 Mermas`, `5206 Otros Gastos`). Vinculación contable automática para cuentas de impuestos `1104 Crédito Fiscal IVA` (compras con IVA) y `2102 Débito Fiscal IVA` (ventas con IVA), `4103 Ingresos por Despacho y Flete` (pedidos con delivery), `1103 Inventario` (compras de insumos textiles y DTF), `4101 Ventas de Prendas`, `1101 Caja y Bancos` y `1102 Cuentas por Cobrar`.
   - **Normalización Resiliente de Fechas (`normalizarMesTransaccion`):** Extracción determinística de `YYYY-MM` para fechas ISO (`2026-11-10T...`), fechas simples (`2026-11-10`) y formatos regionales, garantizando coincidencia cronológica exacta.
@@ -220,6 +226,17 @@ Registro de todo lo que debe preservarse entre sesiones de trabajo: arquitectura
 ---
 
 ## 3. Historial de cambios
+
+### 2026-11-11 (Edición Interactiva de Cantidad y Costo en Separación de Compras — Spec 034)
+- **Interfaz de Usuario y Controladores (`assets/js/ui.js`):**
+  - Renderizado de campos numéricos `<input type="number">` editables para Cantidad (`min="1"`) y Costo Unitario (`min="0" step="any"`) en ambas tablas de ítems (Factura 1 Poleras y Factura 2 DTF) de `#dialog-split-purchase`.
+  - Implementación de `actualizarItemSplit(tipo, index, campo, valor)`: recalcula en tiempo real el subtotal por fila, los badges de conteo (`X prendas`, `Y estampados`), los subtotales de cada factura (con IVA 19% y Delivery) y el Gran Total Consolidado.
+  - Exportación de `actualizarItemSplit` en `NovaprintUI`.
+  - Integración transparente con `confirmarSeparacionCompra()`, persistiendo en `novaprint_purchases` e impactando `novaprint_inventory` con las cantidades y costos negociados por el usuario.
+- **Pruebas Automatizadas (`tests/split_purchase_edit_items.test.js`):**
+  - 3 pruebas unitarias verificando la presencia de inputs, el recálculo reactivo dinámico y la persistencia fidedigna tras confirmación.
+  - Suite global completa: 279 pruebas unitarias en 27 suites ejecutándose y pasando al 100% (0 fallos).
+- **Metodología SDD:** Especificación formal en `specs/034-edicion-costo-cantidad-separar-compra/` (`spec.md`, `plan.md`, `tasks.md`).
 
 ### 2026-11-11 (Corrección de "storage is not defined" en Transferencias y Tabla de Compras — Spec 033)
 - **Interfaz de Usuario y Controladores (`assets/js/ui.js`):**

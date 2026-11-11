@@ -14,3 +14,7 @@ Desktop.ini
 node_modules/
 npm-debug.log*
 
+# User local backup exports in root
+novaprint-backup-*.json
+
+

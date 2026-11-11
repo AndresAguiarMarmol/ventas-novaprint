@@ -2484,27 +2484,35 @@
     const badgeDtf = document.getElementById('split-badge-count-dtf');
     if (badgeDtf) badgeDtf.textContent = `${countDtf} estampados`;
 
-    // Renderizar tablas de items
+    // Renderizar tablas de items (Spec 034: inputs editables para cantidad y costo unitario)
     const tbodyPoleras = document.getElementById('split-items-poleras-tbody');
     if (tbodyPoleras) {
-      tbodyPoleras.innerHTML = currentSplitState.itemsPoleras.map(it => `
+      tbodyPoleras.innerHTML = currentSplitState.itemsPoleras.map((it, idx) => `
         <tr class="hover:bg-blue-50/50">
           <td class="py-2 px-2.5 font-medium text-gray-800">${it.name}</td>
-          <td class="py-2 px-1 text-center font-bold text-gray-900">${it.quantity}</td>
-          <td class="py-2 px-1 text-right text-gray-600">${sales ? sales.formatearMoneda(it.unitCost) : `$${it.unitCost}`}</td>
-          <td class="py-2 pr-2.5 text-right font-bold text-blue-900">${sales ? sales.formatearMoneda((it.quantity || 0) * (it.unitCost || 0)) : `$${(it.quantity || 0) * (it.unitCost || 0)}`}</td>
+          <td class="py-1 px-1 text-center">
+            <input type="number" min="1" step="1" value="${it.quantity}" class="w-16 p-1 bg-white border border-gray-300 rounded text-center text-xs font-bold text-gray-900 focus:outline-none focus:border-blue-500" oninput="NovaprintUI.actualizarItemSplit('poleras', ${idx}, 'quantity', this.value)">
+          </td>
+          <td class="py-1 px-1 text-right">
+            <input type="number" min="0" step="any" value="${it.unitCost}" class="w-20 p-1 bg-white border border-gray-300 rounded text-right text-xs font-medium text-gray-800 focus:outline-none focus:border-blue-500" oninput="NovaprintUI.actualizarItemSplit('poleras', ${idx}, 'unitCost', this.value)">
+          </td>
+          <td id="split-subtotal-poleras-${idx}" class="py-2 pr-2.5 text-right font-bold text-blue-900">${sales ? sales.formatearMoneda((it.quantity || 0) * (it.unitCost || 0)) : `$${(it.quantity || 0) * (it.unitCost || 0)}`}</td>
         </tr>
       `).join('');
     }
 
     const tbodyDtf = document.getElementById('split-items-dtf-tbody');
     if (tbodyDtf) {
-      tbodyDtf.innerHTML = currentSplitState.itemsDtf.map(it => `
+      tbodyDtf.innerHTML = currentSplitState.itemsDtf.map((it, idx) => `
         <tr class="hover:bg-purple-50/50">
           <td class="py-2 px-2.5 font-medium text-gray-800">${it.name}</td>
-          <td class="py-2 px-1 text-center font-bold text-gray-900">${it.quantity}</td>
-          <td class="py-2 px-1 text-right text-gray-600">${sales ? sales.formatearMoneda(it.unitCost) : `$${it.unitCost}`}</td>
-          <td class="py-2 pr-2.5 text-right font-bold text-purple-900">${sales ? sales.formatearMoneda((it.quantity || 0) * (it.unitCost || 0)) : `$${(it.quantity || 0) * (it.unitCost || 0)}`}</td>
+          <td class="py-1 px-1 text-center">
+            <input type="number" min="1" step="1" value="${it.quantity}" class="w-16 p-1 bg-white border border-gray-300 rounded text-center text-xs font-bold text-gray-900 focus:outline-none focus:border-purple-500" oninput="NovaprintUI.actualizarItemSplit('dtf', ${idx}, 'quantity', this.value)">
+          </td>
+          <td class="py-1 px-1 text-right">
+            <input type="number" min="0" step="any" value="${it.unitCost}" class="w-20 p-1 bg-white border border-gray-300 rounded text-right text-xs font-medium text-gray-800 focus:outline-none focus:border-purple-500" oninput="NovaprintUI.actualizarItemSplit('dtf', ${idx}, 'unitCost', this.value)">
+          </td>
+          <td id="split-subtotal-dtf-${idx}" class="py-2 pr-2.5 text-right font-bold text-purple-900">${sales ? sales.formatearMoneda((it.quantity || 0) * (it.unitCost || 0)) : `$${(it.quantity || 0) * (it.unitCost || 0)}`}</td>
         </tr>
       `).join('');
     }
@@ -2557,6 +2565,42 @@
       if (chk.checked) cont.classList.remove('hidden');
       else cont.classList.add('hidden');
     }
+    recalcularTotalesSeparacion();
+  }
+
+  // Spec 034: Edición interactiva de cantidad y costo unitario al separar en 2 facturas
+  function actualizarItemSplit(tipo, index, campo, valor) {
+    if (!currentSplitState) return;
+    const list = tipo === 'poleras' ? currentSplitState.itemsPoleras : currentSplitState.itemsDtf;
+    if (!Array.isArray(list) || !list[index]) return;
+
+    const it = list[index];
+    const num = Number(valor);
+    if (campo === 'quantity') {
+      it.quantity = isNaN(num) || num < 0 ? 0 : Math.round(num);
+    } else if (campo === 'unitCost') {
+      it.unitCost = isNaN(num) || num < 0 ? 0 : num;
+    }
+    it.subtotal = (Number(it.quantity) || 0) * (Number(it.unitCost) || 0);
+
+    // Actualizar celda de subtotal de la fila
+    const sales = global.NovaprintSales;
+    const cellSubtotal = document.getElementById(`split-subtotal-${tipo}-${index}`);
+    if (cellSubtotal) {
+      cellSubtotal.textContent = sales && typeof sales.formatearMoneda === 'function'
+        ? sales.formatearMoneda(it.subtotal)
+        : `$${it.subtotal}`;
+    }
+
+    // Actualizar badges de conteo
+    const countPoleras = currentSplitState.itemsPoleras.reduce((acc, item) => acc + (Number(item.quantity) || 0), 0);
+    const countDtf = currentSplitState.itemsDtf.reduce((acc, item) => acc + (Number(item.quantity) || 0), 0);
+    const badgePoleras = document.getElementById('split-badge-count-poleras');
+    if (badgePoleras) badgePoleras.textContent = `${countPoleras} prendas`;
+    const badgeDtf = document.getElementById('split-badge-count-dtf');
+    if (badgeDtf) badgeDtf.textContent = `${countDtf} estampados`;
+
+    // Recalcular subtotales netos, IVA, delivery y gran total
     recalcularTotalesSeparacion();
   }
 
@@ -4287,12 +4331,13 @@
     togglePurchaseDeliveryInput,
     recalcularTotalesCompraFormulario,
     guardarCompraDesdeFormulario,
-    // Spec 021: Separación de Compras (Poleras y Estampado DTF)
+    // Spec 021 / Spec 034: Separación de Compras (Poleras y Estampado DTF)
     abrirModalSepararCompra,
     toggleSplitDeliveryPoleras,
     toggleSplitDeliveryDtf,
     recalcularTotalesSeparacion,
     confirmarSeparacionCompra,
+    actualizarItemSplit,
     // Spec 004: Faltantes y Compras
     abrirModalCompraConFaltantes,
     comprarFaltantesDePedido,
