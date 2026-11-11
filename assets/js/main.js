@@ -30,6 +30,14 @@
     console.log('Iniciando Novaprint App...');
 
     // Spec 027: Preservación absoluta de datos (no borrar bajo ninguna condición al iniciar)
+    // Spec 029: Limpieza segura de movimientos de prueba residuales de desarrollo preservando operaciones reales
+    if (global.NovaprintStorage && typeof global.NovaprintStorage.purgarMovimientosPrueba === 'function') {
+      try {
+        global.NovaprintStorage.purgarMovimientosPrueba({ silencioso: true });
+      } catch (err) {
+        console.warn('Error en purga preventiva de movimientos de prueba:', err);
+      }
+    }
 
     // Aplicar tema guardado en configuración (Spec 010)
     if (global.NovaprintStorage) {

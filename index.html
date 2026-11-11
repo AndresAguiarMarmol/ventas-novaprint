@@ -928,6 +928,11 @@
             <button type="button" id="btn-journal-reset-filters" onclick="NovaprintUI.resetFiltrosLibroDiario()" class="px-2.5 py-1.5 text-xs bg-gray-100 hover:bg-gray-200 text-gray-700 hover:text-gray-900 rounded-lg border border-gray-300 font-bold cursor-pointer transition flex items-center gap-1 shadow-2xs whitespace-nowrap" title="Restablecer todos los filtros a sus valores predeterminados">
               <span>✕</span> Limpiar
             </button>
+
+            <!-- Botón Limpiar Pruebas (Spec 029) -->
+            <button type="button" id="btn-journal-clean-tests" onclick="NovaprintUI.abrirModalLimpiarPruebas()" class="px-2.5 py-1.5 text-xs bg-amber-50 hover:bg-amber-100 text-amber-800 hover:text-amber-900 rounded-lg border border-amber-300 font-bold cursor-pointer transition flex items-center gap-1 shadow-2xs whitespace-nowrap" title="Depurar y eliminar movimientos generados para pruebas del sistema">
+              <span>🧹</span> <span class="hidden sm:inline">Limpiar Pruebas</span>
+            </button>
           </div>
 
           <div class="text-xs text-gray-500 font-medium whitespace-nowrap self-end lg:self-center">
@@ -2060,6 +2065,53 @@
           </button>
         </div>
       </form>
+    </div>
+  </dialog>
+
+  <!-- MODAL DE LIMPIEZA DE MOVIMIENTOS DE PRUEBA (SPEC 029) -->
+  <dialog id="dialog-clean-tests" class="w-full max-w-lg p-0 bg-transparent">
+    <div class="bg-white rounded-2xl shadow-2xl border border-gray-200 overflow-hidden">
+      <div class="px-6 py-4 bg-amber-50 border-b border-amber-200 flex justify-between items-center">
+        <div class="flex items-center gap-2">
+          <span class="text-xl">🧹</span>
+          <div>
+            <h3 class="font-bold text-gray-900 text-base">Limpiar Movimientos de Prueba</h3>
+            <p class="text-xs text-amber-800">Depuración segura del Libro Diario y registros de ensayo</p>
+          </div>
+        </div>
+        <button type="button" class="text-gray-400 hover:text-gray-600 font-bold text-lg" onclick="document.getElementById('dialog-clean-tests').close()">✕</button>
+      </div>
+
+      <div class="p-6 space-y-4">
+        <div class="bg-blue-50 border border-blue-200 rounded-xl p-3 text-xs text-blue-900 leading-relaxed">
+          <div class="font-bold flex items-center gap-1 text-blue-950 mb-1">
+            <span>🛡️</span> Reglas de Preservación Estricta:
+          </div>
+          <ul class="list-disc list-inside space-y-1 text-blue-800">
+            <li><strong>Compras y Ventas de Poleras:</strong> Se preservan 100% intactas todas las operaciones normales del taller.</li>
+            <li><strong>Movimientos del Usuario:</strong> Gastos y transferencias reales del usuario no se tocan.</li>
+            <li><strong>Plan de Cuentas:</strong> El catálogo contable y saldos reales permanecen íntegros.</li>
+            <li><strong>Solamente se eliminan:</strong> Registros creados específicamente para pruebas o demostración del sistema.</li>
+          </ul>
+        </div>
+
+        <div id="clean-tests-diagnostic-container" class="space-y-2">
+          <div class="text-xs font-bold text-gray-700">Diagnóstico de registros detectados:</div>
+          <div id="clean-tests-summary" class="bg-gray-50 border border-gray-200 rounded-xl p-3 text-xs text-gray-600 space-y-1.5">
+            <!-- Rellenado dinámicamente por NovaprintUI.abrirModalLimpiarPruebas() -->
+          </div>
+        </div>
+
+        <div class="pt-3 border-t border-gray-100 flex justify-end gap-2">
+          <button type="button" class="px-4 py-2 border border-gray-300 text-gray-700 font-bold rounded-lg hover:bg-gray-100 text-xs cursor-pointer" onclick="document.getElementById('dialog-clean-tests').close()">
+            Cancelar
+          </button>
+          <button id="btn-confirm-clean-tests" type="button" onclick="NovaprintUI.confirmarLimpiarPruebas()" class="px-5 py-2 bg-amber-600 hover:bg-amber-700 text-white font-bold rounded-lg shadow-sm text-xs flex items-center gap-1.5 cursor-pointer transition">
+            <span>🧹</span>
+            <span>Confirmar y Limpiar Pruebas</span>
+          </button>
+        </div>
+      </div>
     </div>
   </dialog>
 

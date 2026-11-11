@@ -23,6 +23,12 @@ Registro de todo lo que debe preservarse entre sesiones de trabajo: arquitectura
 
 ## 2. Decisiones vigentes
 
+- **Depuración Segura de Movimientos Contables de Prueba (Spec 029):**
+  - **Preservación Estricta de Operaciones Reales:** Las ventas de poleras a clientes (`novaprint_orders`), compras de insumos a proveedores (`novaprint_purchases`), gastos operacionales reales del usuario (`novaprint_expenses`), transferencias bancarias de fondos (`novaprint_transfers`) y el Plan de Cuentas Contable (`novaprint_accounts`) se preservan de forma incondicional.
+  - **Identificación Determinística de Pruebas (`storage.esRegistroDePrueba`):** Detecta exclusivamente registros generados para desarrollo o pruebas del sistema (IDs `NP-20261101-001`, `CMP-20261028-001`, patrones `TEST-`, `DEMO-`, `TRF-TEST`, o descripciones con términos explícitos como `prueba sistema`, `ensayo`, `mock`). La categoría oficial `5205 Mermas y Pruebas de Calidad` se salvaguarda para no borrar pérdidas reales del taller por calibración de maquinaria.
+  - **Mecanismos de Purga (`storage.purgarMovimientosPrueba`):** Método atómico que filtra y actualiza `localStorage` de una sola vez, informando cantidades de eliminados y preservados. Se ejecuta de forma silenciosa preventiva en `main.js:init()` y mediante control interactivo en pantalla.
+  - **Control Visual en Libro Diario (`index.html` & `ui.js`):** Botón `[🧹 Limpiar Pruebas]` (`#btn-journal-clean-tests`) en la barra del Libro Diario que abre el modal `<dialog id="dialog-clean-tests">`. Presenta un diagnóstico previo con el recuento de registros de prueba detectados frente a los registros legítimos preservados antes de confirmar la depuración.
+
 - **Reglas del Cotizador Textil (skill.md):**
   - **Compatibilidad Técnica:** Sublimación exclusiva para prendas blancas o claras de poliéster (invalida automáticamente telas oscuras o algodón recomendando DTF). Serigrafía sugerida solo para tirajes de 30+ unidades.
   - **Costos de Referencia:** Polera algodón base $3.500, Polera poliéster $2.800, Polerón $11.000, Buzo $12.000, Gorra $3.500. Recargo por tallas especiales (XXL, 3XL) de +$1.200. Estampado logo pecho hasta 10x10 cm ($1.500), grande A4 ($3.200), extra grande A3 ($4.800), sublimación A4 ($1.800).
@@ -188,6 +194,23 @@ Registro de todo lo que debe preservarse entre sesiones de trabajo: arquitectura
 ---
 
 ## 3. Historial de cambios
+
+### 2026-11-10 (Depuración Segura de Movimientos Contables de Prueba — Spec 029)
+- **Capa de Persistencia (`assets/js/storage.js`):**
+  - Implementación de `esRegistroDePrueba(item, tipoEntidad)`: detección estricta de registros de prueba (IDs demo de fábrica `NP-20261101-001`, `CMP-20261028-001`, prefijos `TEST-`, `DEMO-`, `TRF-TEST`, o referencias explícitas a ensayos del sistema), salvaguardando la categoría oficial de mermas técnicas de taller.
+  - Implementación de `purgarMovimientosPrueba(opciones)`: remoción segura de registros de prueba en `novaprint_expenses`, `novaprint_transfers`, `novaprint_orders` y `novaprint_purchases`, preservando intactas las ventas reales de poleras, compras de insumos, gastos del usuario y el Plan de Cuentas (`novaprint_accounts`).
+- **Interfaz de Usuario y Controladores (`assets/js/ui.js` & `index.html`):**
+  - Botón `#btn-journal-clean-tests` en la barra de herramientas del Libro Diario con ícono `🧹` ("Limpiar Pruebas").
+  - Modal accesible `<dialog id="dialog-clean-tests">` con panel diagnóstico que detalla la cantidad de registros de prueba detectados por categoría frente a los registros legítimos que serán preservados.
+  - Controladores `NovaprintUI.abrirModalLimpiarPruebas()` y `NovaprintUI.confirmarLimpiarPruebas()`.
+- **Orquestador Principal (`assets/js/main.js`):**
+  - Incorporada purga preventiva silenciosa en `init()` para neutralizar datos residuales de desarrollo sin afectar la experiencia de usuario.
+- **Pruebas Automatizadas (`tests/clean_test_movements.test.js`):**
+  - 9 pruebas unitarias cubriendo detección por ID y texto, preservación de pedidos de poleras y compras reales, salvaguarda de mermas de taller, purga atómica de persistencia, integridad absoluta del Plan de Cuentas y controles de UI.
+  - Suite global completa: 256 pruebas unitarias en 22 suites ejecutándose y pasando al 100% (0 fallos).
+- **Seguridad y Respaldo:**
+  - Respaldo previo exportado a `backups/backup_pre_limpieza_movimientos_prueba_20261110.json` y tag git `backup-pre-limpieza-movimientos-prueba-20261110`.
+- **Metodología SDD:** Especificación formal en `specs/029-limpieza-movimientos-contables-prueba/` (`spec.md`, `plan.md`, `tasks.md`).
 
 ### 2026-11-10 (Corrección y Optimización de Filtros en Libro Diario — Spec 028)
 - **Motor Contable (`assets/js/accounting.js`):**

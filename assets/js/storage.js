@@ -986,6 +986,109 @@
     return { success: true };
   }
 
+  // --- DEPURACIÓN Y LIMPIEZA DE MOVIMIENTOS DE PRUEBA (SPEC 029) ---
+  function esRegistroDePrueba(item, tipoEntidad) {
+    if (!item) return false;
+
+    // 1. Detección por ID
+    const id = (item.id || '').toString().toUpperCase();
+    if (id === 'NP-20261101-001' || id === 'CMP-20261028-001') return true;
+    if (/^(TEST|DEMO|ORD-TEST|PUR-TEST|TRF-TEST|EXP-TEST)/i.test(id)) return true;
+    if (/-(TEST|DEMO)$/i.test(id)) return true;
+
+    // 2. Textos relevantes a analizar (descripción, notas, referencia)
+    const desc = (item.description || item.concepto || '').toString().toLowerCase();
+    const notas = (item.notes || '').toString().toLowerCase();
+    const ref = (item.reference || item.referencia || '').toString().toLowerCase();
+    const cliente = (item.clientName || '').toString().toLowerCase();
+    const proveedor = (item.supplierName || '').toString().toLowerCase();
+    const factura = (item.invoiceNumber || '').toString().toUpperCase();
+
+    // Comprobación de cliente/proveedor demo o test
+    if (cliente === 'club deportivo leones' && id.startsWith('NP-20261101')) return true;
+    if (cliente.includes('cliente prueba') || cliente.includes('cliente test') || cliente.includes('test client')) return true;
+    if (proveedor.includes('proveedor prueba') || proveedor.includes('proveedor test')) return true;
+    if (factura.includes('TEST') || factura.includes('PRUEBA') || factura === 'FAC-9120') return true;
+
+    // Para gastos: salvaguardar la categoría oficial "Mermas y Pruebas"
+    const esCategoriaMermas = (item.category || '').toLowerCase().includes('mermas');
+
+    // Palabras clave de prueba
+    const regexTest = /\b(prueba\s*sistema|test|testing|demo|ensayo|dummy|mock|movimiento\s*de\s*prueba|gasto\s*de\s*prueba|traspaso\s*de\s*prueba|orden\s*de\s*prueba)\b/i;
+
+    if (regexTest.test(ref)) return true;
+    if (regexTest.test(desc)) {
+      if (esCategoriaMermas && !/\b(sistema|dummy|mock|test)\b/i.test(desc)) {
+        // Es un gasto legítimo de merma/calibración del taller
+      } else {
+        return true;
+      }
+    }
+    if (regexTest.test(notas)) {
+      if (esCategoriaMermas && !/\b(sistema|dummy|mock|test)\b/i.test(notas)) {
+        // Es un gasto legítimo de merma/calibración del taller
+      } else {
+        return true;
+      }
+    }
+
+    // Comprobación específica para transferencias
+    if (tipoEntidad === 'transferencia' || id.startsWith('TRF-')) {
+      if (/\b(prueba|test|demo)\b/i.test(desc) || /\b(prueba|test|demo)\b/i.test(ref)) {
+        return true;
+      }
+    }
+
+    return false;
+  }
+
+  function purgarMovimientosPrueba(opciones = {}) {
+    const expenses = getExpenses();
+    const transfers = getTransfers();
+    const orders = getOrders();
+    const purchases = getPurchases();
+
+    const cleanExpenses = expenses.filter(e => !esRegistroDePrueba(e, 'gasto'));
+    const cleanTransfers = transfers.filter(t => !esRegistroDePrueba(t, 'transferencia'));
+    const cleanOrders = orders.filter(o => !esRegistroDePrueba(o, 'pedido'));
+    const cleanPurchases = purchases.filter(p => !esRegistroDePrueba(p, 'compra'));
+
+    const eliminados = {
+      gastos: expenses.length - cleanExpenses.length,
+      transferencias: transfers.length - cleanTransfers.length,
+      pedidos: orders.length - cleanOrders.length,
+      compras: purchases.length - cleanPurchases.length,
+      total: (expenses.length - cleanExpenses.length) +
+             (transfers.length - cleanTransfers.length) +
+             (orders.length - cleanOrders.length) +
+             (purchases.length - cleanPurchases.length)
+    };
+
+    const preservados = {
+      gastos: cleanExpenses.length,
+      transferencias: cleanTransfers.length,
+      pedidos: cleanOrders.length,
+      compras: cleanPurchases.length
+    };
+
+    if (eliminados.total > 0) {
+      setItem(STORAGE_KEYS.EXPENSES, cleanExpenses);
+      setItem(STORAGE_KEYS.TRANSFERS, cleanTransfers);
+      setItem(STORAGE_KEYS.ORDERS, cleanOrders);
+      setItem(STORAGE_KEYS.PURCHASES, cleanPurchases);
+      if (!opciones.silencioso) {
+        console.log(`[NovaprintStorage] Depuración de movimientos de prueba completada: ${eliminados.total} registros eliminados.`);
+      }
+    }
+
+    return {
+      success: true,
+      totalPurgados: eliminados.total,
+      eliminados,
+      preservados
+    };
+  }
+
   // --- RESPALDO Y RESTAURACIÓN JSON ---
   function exportBackup() {
     const payload = {
@@ -1510,6 +1613,9 @@
     getTransferById,
     saveTransfer,
     deleteTransfer,
+    // Spec 029: Depuración de movimientos de prueba
+    esRegistroDePrueba,
+    purgarMovimientosPrueba,
     exportBackup,
     importBackup,
     initDemoData
