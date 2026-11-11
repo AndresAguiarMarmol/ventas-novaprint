@@ -275,9 +275,26 @@
 
   function deleteOrder(id) {
     const orders = getOrders();
+    const orderToDelete = orders.find(o => o.id === id);
     const filtered = orders.filter(o => o.id !== id);
     if (filtered.length !== orders.length) {
       setItem(STORAGE_KEYS.ORDERS, filtered);
+
+      // Spec 032: Si el usuario elimina voluntariamente el pedido de Kinder B, registrarlo
+      // en configuración para evitar que el mecanismo de auto-recuperación lo resucite en futuros arranques
+      if (
+        id === 'NP-20261102-003' ||
+        (orderToDelete && orderToDelete.clientName && orderToDelete.clientName.toLowerCase().includes('kinder b')) ||
+        (orderToDelete && orderToDelete.notes && orderToDelete.notes.toLowerCase().includes('kinder b'))
+      ) {
+        try {
+          const cfg = getSettings() || {};
+          cfg.kinderBOrderDeleted = true;
+          cfg.kinderBRecoveryApplied_v1 = true;
+          saveSettings(cfg);
+        } catch (_) {}
+      }
+
       return true;
     }
     return false;
@@ -1226,7 +1243,38 @@
     }
   };
 
-  function asegurarPedidoKinderB() {
+  function asegurarPedidoKinderB(opciones = {}) {
+    const cfg = getSettings() || {};
+
+    // Spec 032: Si el usuario eliminó voluntariamente el pedido o si la recuperación inicial
+    // ya fue completada y el pedido ya no está presente (borrado por usuario),
+    // respetar la decisión y no resucitarlo (a menos que se pase explícitamente { forzar: true })
+    if (!opciones.forzar) {
+      if (cfg.kinderBOrderDeleted === true) {
+        return {
+          success: true,
+          restaurado: false,
+          eliminadoPorUsuario: true,
+          mensaje: 'El pedido fue eliminado voluntariamente por el usuario.'
+        };
+      }
+      if (cfg.kinderBRecoveryApplied_v1 === true) {
+        const orders = getOrders();
+        const existe = orders.find(o =>
+          o.id === DATOS_CANONICOS_KINDER_B.pedido.id ||
+          (o.clientName && o.clientName.toLowerCase().includes('kinder b'))
+        );
+        if (!existe) {
+          return {
+            success: true,
+            restaurado: false,
+            eliminadoPorUsuario: true,
+            mensaje: 'La recuperación histórica ya fue aplicada previamente; el pedido fue removido.'
+          };
+        }
+      }
+    }
+
     let restauradoCliente = false;
     let restauradoPedido = false;
 
@@ -1267,6 +1315,14 @@
       orders.unshift(pedidoFinal);
       setItem(STORAGE_KEYS.ORDERS, orders);
       restauradoPedido = true;
+    }
+
+    // Spec 032: Sellar que la recuperación inicial fue procesada en la configuración
+    if (!cfg.kinderBRecoveryApplied_v1) {
+      try {
+        cfg.kinderBRecoveryApplied_v1 = true;
+        saveSettings(cfg);
+      } catch (_) {}
     }
 
     return {

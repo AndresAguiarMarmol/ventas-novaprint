@@ -30,10 +30,17 @@
     console.log('Iniciando Novaprint App...');
 
     // Spec 027: Preservación absoluta de datos (no borrar bajo ninguna condición al iniciar)
-    // Spec 030: Asegurar y recuperar incondicionalmente el pedido real de Kinder B si faltase
+    // Spec 030 / Spec 032: Asegurar y recuperar pedido real de Kinder B únicamente si no ha sido recuperado antes ni eliminado por el usuario
     if (global.NovaprintStorage && typeof global.NovaprintStorage.asegurarPedidoKinderB === 'function') {
       try {
-        global.NovaprintStorage.asegurarPedidoKinderB();
+        const configKinder = global.NovaprintStorage.getSettings() || {};
+        if (!configKinder.kinderBRecoveryApplied_v1 && !configKinder.kinderBOrderDeleted) {
+          global.NovaprintStorage.asegurarPedidoKinderB();
+          configKinder.kinderBRecoveryApplied_v1 = true;
+          if (typeof global.NovaprintStorage.saveSettings === 'function') {
+            global.NovaprintStorage.saveSettings(configKinder);
+          }
+        }
       } catch (err) {
         console.warn('Error al verificar y asegurar pedido Kinder B:', err);
       }

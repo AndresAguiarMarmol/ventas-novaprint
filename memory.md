@@ -8,7 +8,7 @@ Registro de todo lo que debe preservarse entre sesiones de trabajo: arquitectura
 ## 1. Estructura de datos y persistencia
 
 ### A. Claves en `localStorage`
-- **`novaprint_settings`:** Configuración de la empresa (nombre, RUT, teléfono/WhatsApp, dirección, moneda `$`, mensaje pie de ticket, preferencia de tema `theme: 'light' | 'dark' | 'system'`).
+- **`novaprint_settings`:** Configuración de la empresa (nombre, RUT, teléfono/WhatsApp, dirección, moneda `$`, mensaje pie de ticket, preferencia de tema `theme: 'light' | 'dark' | 'system'`, banderas de control como `inventoryZeroStockApplied_v1`, `kinderBRecoveryApplied_v1`, `kinderBOrderDeleted`).
 - **`novaprint_clients`:** Directorio de clientes (`id, name, phone, email, rut, address, notes, createdAt`).
 - **`novaprint_orders`:** Registro de pedidos con prendas (poleras, polerones, buzos, gorras), técnicas de estampado (DTF, serigrafía, sublimación, vinilo, bordado), tallas, colores, montos, desglose de IVA (19%), Delivery, abonos y estado.
 - **`novaprint_suppliers`:** Catálogo de proveedores (`id, name, contact, phone, email, category, address, notes, createdAt, updatedAt`).
@@ -22,6 +22,11 @@ Registro de todo lo que debe preservarse entre sesiones de trabajo: arquitectura
 ---
 
 ## 2. Decisiones vigentes
+
+- **Respeto a la Eliminación Definitiva del Pedido "BRS Kinder B" (Spec 032):**
+  - **Eliminación Voluntaria y Definitiva:** Cuando el usuario elimina el pedido `NP-20261102-003` o coincidente con "BRS Kinder B" mediante `deleteOrder(id)` (o el botón papelera de la interfaz), el sistema elimina el pedido de `novaprint_orders` y persiste inmediatamente en `novaprint_settings`: `kinderBOrderDeleted: true` y `kinderBRecoveryApplied_v1: true`.
+  - **Erradicación del Efecto Zombie / Recreación Incondicional:** `asegurarPedidoKinderB` y `main.js:init()` comprueban estas banderas; si el pedido fue eliminado por el usuario o si la migración inicial ya concluyó y el pedido fue removido, el sistema respeta estrictamente la decisión y se abstiene de re-insertarlo o resucitarlo ante recargas de página o inicios posteriores de la aplicación.
+  - **Opción de Forzado Exclusivamente Administrativo:** Solo llamadas explícitas que incluyan `{ forzar: true }` pueden re-inyectar el pedido, garantizando que el flujo regular de usuario permanezca siempre libre de recreaciones no deseadas.
 
 - **Reinicio General de Existencias a Saldo 0 en Inventarios (Spec 031):**
   - **Saldo Cero Generalizado (`currentStock = 0`):** La totalidad de artículos registrados en `novaprint_inventory` se colocan con existencia 0 para reflejar el reinicio de stock físico de bodega solicitado por el usuario.
@@ -99,6 +104,10 @@ Registro de todo lo que debe preservarse entre sesiones de trabajo: arquitectura
   - **Spec 026 (Implementada):** Opción "Ninguno" en Campo Estampado con Precio $0 CLP.
   - **Spec 027 (Implementada):** Blindaje y Preservación Estricta del Plan de Cuentas y Datos del Taller.
   - **Spec 028 (Implementada):** Corrección y Optimización de Filtros en Libro Diario de Movimientos.
+  - **Spec 029 (Implementada):** Limpieza Segura de Movimientos Contables de Prueba Preservando Compras y Ventas.
+  - **Spec 030 (Implementada):** Recuperación y Preservación Incondicional del Pedido Real de "Kinder B".
+  - **Spec 031 (Implementada):** Reinicio de Existencias Físicas a Saldo Cero en Todo el Inventario.
+  - **Spec 032 (Implementada):** Respeto a la Eliminación Definitiva del Pedido "BRS Kinder B" (Prevención de Resurrección Automática).
 - **Corrección y Optimización de Filtros en Libro Diario (Spec 028):**
   - **Resolución Determinística de Cuentas (`asientoAfectaCuenta` en `accounting.js`):** Mapeo canónico de categorías operacionales de gasto a sus códigos contables oficiales (`5201 Arriendo`, `5202 Electricidad`, `5203 Mantenimiento`, `5204 Fletes`, `5205 Mermas`, `5206 Otros Gastos`). Vinculación contable automática para cuentas de impuestos `1104 Crédito Fiscal IVA` (compras con IVA) y `2102 Débito Fiscal IVA` (ventas con IVA), `4103 Ingresos por Despacho y Flete` (pedidos con delivery), `1103 Inventario` (compras de insumos textiles y DTF), `4101 Ventas de Prendas`, `1101 Caja y Bancos` y `1102 Cuentas por Cobrar`.
   - **Normalización Resiliente de Fechas (`normalizarMesTransaccion`):** Extracción determinística de `YYYY-MM` para fechas ISO (`2026-11-10T...`), fechas simples (`2026-11-10`) y formatos regionales, garantizando coincidencia cronológica exacta.
@@ -206,6 +215,17 @@ Registro de todo lo que debe preservarse entre sesiones de trabajo: arquitectura
 ---
 
 ## 3. Historial de cambios
+
+### 2026-11-11 (Respeto a la Eliminación Definitiva del Pedido "BRS Kinder B" — Spec 032)
+- **Capa de Persistencia (`assets/js/storage.js`):**
+  - Modificación de `deleteOrder(id)`: si se elimina el pedido `NP-20261102-003` o coincidente con "BRS Kinder B", persiste automáticamente `kinderBOrderDeleted: true` y `kinderBRecoveryApplied_v1: true` en `novaprint_settings`.
+  - Blindaje en `asegurarPedidoKinderB(opciones = {})`: respeta las banderas de configuración y no recrea el pedido si fue eliminado voluntariamente o si la migración inicial ya concluyó (a menos que se pase `{ forzar: true }`).
+- **Orquestador Principal (`assets/js/main.js`):**
+  - Guardia de ciclo de vida en `init()`: solo invoca la auto-recuperación si `!configKinder.kinderBRecoveryApplied_v1 && !configKinder.kinderBOrderDeleted`, erradicando el efecto "pedido zombie" al recargar el navegador.
+- **Pruebas Automatizadas (`tests/kinder_b_deletion_preservation.test.js`):**
+  - 6 pruebas unitarias verificando la eliminación permanente, persistencia de banderas en configuración, no-resurrección tras recargas y no afectación de pedidos regulares.
+  - Suite global completa: 273 pruebas unitarias en 25 suites ejecutándose y pasando al 100% (0 fallos).
+- **Metodología SDD:** Especificación formal en `specs/032-eliminacion-definitiva-pedido-kinder-b/` (`spec.md`, `plan.md`, `tasks.md`).
 
 ### 2026-11-11 (Reinicio de Existencias Físicas a Saldo Cero en Todo el Inventario — Spec 031)
 - **Capa de Persistencia (`assets/js/storage.js`):**
