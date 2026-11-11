@@ -1798,6 +1798,7 @@
     const tableBody = document.getElementById('purchases-table-body');
     if (!tableBody) return;
 
+    const storage = global.NovaprintStorage;
     const sales = global.NovaprintSales;
 
     if (compras.length === 0) {
@@ -1812,7 +1813,7 @@
     }
 
     const prod = global.NovaprintProduction;
-    const inventario = storage ? storage.getInventory() : [];
+    const inventario = storage && typeof storage.getInventory === 'function' ? storage.getInventory() : [];
 
     tableBody.innerHTML = compras.map(c => {
       const totalStr = sales ? sales.formatearMoneda(c.totalAmount || 0) : `$${c.totalAmount}`;
@@ -3280,8 +3281,9 @@
 
     // Restaurar valor previo si existe en las opciones
     let existe = false;
-    for (let i = 0; i < selAccount.options.length; i++) {
-      if (selAccount.options[i].value === valorDeseado) {
+    const opts = selAccount.options || [];
+    for (let i = 0; i < opts.length; i++) {
+      if (opts[i].value === valorDeseado) {
         selAccount.selectedIndex = i;
         existe = true;
         break;

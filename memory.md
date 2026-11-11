@@ -23,6 +23,10 @@ Registro de todo lo que debe preservarse entre sesiones de trabajo: arquitectura
 
 ## 2. Decisiones vigentes
 
+- **Corrección de "storage is not defined" en renderPurchasesTable y Transferencias (Spec 033):**
+  - **Resolución Canónica en `renderPurchasesTable`:** Se agregó la declaración explícita `const storage = global.NovaprintStorage` junto a comprobación defensiva (`storage && typeof storage.getInventory === 'function'`) en `assets/js/ui.js`.
+  - **Sincronización Reactiva Segura:** Al realizar transferencias contables entre cualquier par de cuentas (ej. `3101` y `3102`), la cadena de refresco `refrescarContabilidadCompleta()` -> `refrescarDatos()` -> `refrescarCompras()` -> `renderPurchasesTable()` se ejecuta fluidamente sin arrojar `ReferenceError` independientemente de si existen compras previas en bodega.
+
 - **Respeto a la Eliminación Definitiva del Pedido "BRS Kinder B" (Spec 032):**
   - **Eliminación Voluntaria y Definitiva:** Cuando el usuario elimina el pedido `NP-20261102-003` o coincidente con "BRS Kinder B" mediante `deleteOrder(id)` (o el botón papelera de la interfaz), el sistema elimina el pedido de `novaprint_orders` y persiste inmediatamente en `novaprint_settings`: `kinderBOrderDeleted: true` y `kinderBRecoveryApplied_v1: true`.
   - **Erradicación del Efecto Zombie / Recreación Incondicional:** `asegurarPedidoKinderB` y `main.js:init()` comprueban estas banderas; si el pedido fue eliminado por el usuario o si la migración inicial ya concluyó y el pedido fue removido, el sistema respeta estrictamente la decisión y se abstiene de re-insertarlo o resucitarlo ante recargas de página o inicios posteriores de la aplicación.
@@ -108,6 +112,7 @@ Registro de todo lo que debe preservarse entre sesiones de trabajo: arquitectura
   - **Spec 030 (Implementada):** Recuperación y Preservación Incondicional del Pedido Real de "Kinder B".
   - **Spec 031 (Implementada):** Reinicio de Existencias Físicas a Saldo Cero en Todo el Inventario.
   - **Spec 032 (Implementada):** Respeto a la Eliminación Definitiva del Pedido "BRS Kinder B" (Prevención de Resurrección Automática).
+  - **Spec 033 (Implementada):** Corrección de "storage is not defined" en renderPurchasesTable y Transferencias Contables.
 - **Corrección y Optimización de Filtros en Libro Diario (Spec 028):**
   - **Resolución Determinística de Cuentas (`asientoAfectaCuenta` en `accounting.js`):** Mapeo canónico de categorías operacionales de gasto a sus códigos contables oficiales (`5201 Arriendo`, `5202 Electricidad`, `5203 Mantenimiento`, `5204 Fletes`, `5205 Mermas`, `5206 Otros Gastos`). Vinculación contable automática para cuentas de impuestos `1104 Crédito Fiscal IVA` (compras con IVA) y `2102 Débito Fiscal IVA` (ventas con IVA), `4103 Ingresos por Despacho y Flete` (pedidos con delivery), `1103 Inventario` (compras de insumos textiles y DTF), `4101 Ventas de Prendas`, `1101 Caja y Bancos` y `1102 Cuentas por Cobrar`.
   - **Normalización Resiliente de Fechas (`normalizarMesTransaccion`):** Extracción determinística de `YYYY-MM` para fechas ISO (`2026-11-10T...`), fechas simples (`2026-11-10`) y formatos regionales, garantizando coincidencia cronológica exacta.
@@ -215,6 +220,16 @@ Registro de todo lo que debe preservarse entre sesiones de trabajo: arquitectura
 ---
 
 ## 3. Historial de cambios
+
+### 2026-11-11 (Corrección de "storage is not defined" en Transferencias y Tabla de Compras — Spec 033)
+- **Interfaz de Usuario y Controladores (`assets/js/ui.js`):**
+  - Incorporada declaración canónica `const storage = global.NovaprintStorage` y comprobación segura `storage && typeof storage.getInventory === 'function'` dentro de `renderPurchasesTable(compras)`.
+  - Asegurada comprobación defensiva de opciones en `poblarSelectorCuentasLibroDiario` (`selAccount.options || []`).
+  - Al realizar transferencias contables entre cuentas (incluyendo cuentas de Capital como `3101` y `3102`), la sincronización reactiva global `refrescarDatos()` -> `refrescarCompras()` opera fluidamente y sin lanzar `ReferenceError`.
+- **Pruebas Automatizadas (`tests/purchases_table_render_storage.test.js`):**
+  - 3 pruebas unitarias cubriendo renderizado de compras con existencias y simulación completa de transferencia entre cuentas 3101 y 3102 con compras cargadas.
+  - Suite global completa: 276 pruebas unitarias en 26 suites ejecutándose y pasando al 100% (0 fallos).
+- **Metodología SDD:** Especificación formal en `specs/033-correccion-error-storage-transferencias/` (`spec.md`, `plan.md`, `tasks.md`).
 
 ### 2026-11-11 (Respeto a la Eliminación Definitiva del Pedido "BRS Kinder B" — Spec 032)
 - **Capa de Persistencia (`assets/js/storage.js`):**
