@@ -23,6 +23,10 @@ Registro de todo lo que debe preservarse entre sesiones de trabajo: arquitectura
 
 ## 2. Decisiones vigentes
 
+- **Resaltado con Recuadro Verde del Menú Horizontal de Contabilidad (Spec 036):**
+  - **Identificador y Estilizado Distintivo (`#acc-subnav-container`):** El contenedor de la barra de sub-navegación contable en `index.html` cuenta con enmarcado verde de alta visibilidad: borde sólido de 2px (`border-2 border-emerald-500`), fondo sutilmente entonado (`bg-emerald-50/50`), esquinas redondeadas (`rounded-xl`) y sombra suave (`shadow-sm`).
+  - **Preservación Funcional Incondicional:** Los 4 botones de navegación interna (`#btn-acc-sub-balance`, `#btn-acc-sub-pnl`, `#btn-acc-sub-journal` y `#btn-acc-sub-chart`) mantienen sus identificadores, eventos `NovaprintUI.cambiarSubVistaContable(...)` y estilos dinámicos de selección intactos.
+
 - **CRUD Completo y Acción Duplicar en el Libro Diario de Movimientos (Spec 035):**
   - **Acciones Habilitadas para el 100% de Asientos Contables:** Se reemplazó el texto estático `Auto` y `-` en la columna "Acciones" de `#acc-journal-tbody` por un grupo unificado de botones de acción: Editar `[✏️]`, Duplicar `[📋]` y Eliminar `[🗑️]`.
   - **Mapeo Inteligente por Asiento:** Detecta automáticamente el tipo de movimiento subyacente según su prefijo o tipo contable:
@@ -236,6 +240,15 @@ Registro de todo lo que debe preservarse entre sesiones de trabajo: arquitectura
 ---
 
 ## 3. Historial de cambios
+
+### 2026-11-11 (Resaltado con Recuadro Verde del Menú Horizontal de Contabilidad — Spec 036)
+- **Interfaz de Usuario (`index.html`):**
+  - Se estilizó el contenedor de la barra de sub-navegación contable (`#acc-subnav-container`) en `#view-accounting` con un recuadro verde destacado: borde sólido 2px (`border-2 border-emerald-500`), fondo suave (`bg-emerald-50/50`), esquinas redondeadas y padding ergonómico, maximizando la visibilidad del menú para el usuario.
+  - Se preservó íntegramente la operatividad de los 4 accesos: Balance General, Estado de Resultados, Libro Diario y Plan de Cuentas.
+- **Pruebas Automatizadas (`tests/accounting_subnav_highlight.test.js`):**
+  - 2 pruebas unitarias verificando la existencia del contenedor con estilos de borde verde y la presencia intacta de los 4 botones.
+  - Suite global: 288 pruebas unitarias en 29 suites ejecutándose con 100% de éxito (0 fallos).
+- **Metodología SDD:** Especificación formal en `specs/036-resaltado-verde-menu-contable/` (`spec.md`, `plan.md`, `tasks.md`).
 
 ### 2026-11-11 (CRUD Completo y Acción Duplicar en el Libro Diario — Spec 035)
 - **Interfaz de Usuario y Controladores (`assets/js/ui.js`):**
