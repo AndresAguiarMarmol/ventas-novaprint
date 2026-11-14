@@ -1870,6 +1870,186 @@
     }
   }
 
+  // --- SUB-VISTA DE CONSUMO DE MATERIALES (SPEC 038) ---
+  let currentInventorySubView = 'stock'; // 'stock' | 'usage'
+
+  function cambiarSubVistaInventario(subview = 'stock') {
+    currentInventorySubView = subview;
+    if (typeof document === 'undefined') return;
+
+    const btnStock = document.getElementById('btn-inv-sub-stock');
+    const btnUsage = document.getElementById('btn-inv-sub-usage');
+    const viewStock = document.getElementById('inv-subview-stock');
+    const viewUsage = document.getElementById('inv-subview-usage');
+
+    if (subview === 'usage') {
+      if (btnStock) {
+        btnStock.className = 'px-4 py-2 rounded-lg text-xs font-bold bg-gray-100 text-gray-700 hover:bg-gray-200 transition cursor-pointer';
+      }
+      if (btnUsage) {
+        btnUsage.className = 'px-4 py-2 rounded-lg text-xs font-bold bg-blue-600 text-white shadow-xs transition cursor-pointer';
+      }
+      if (viewStock) viewStock.classList.add('hidden');
+      if (viewUsage) viewUsage.classList.remove('hidden');
+
+      filtrarMaterialUsado();
+    } else {
+      if (btnStock) {
+        btnStock.className = 'px-4 py-2 rounded-lg text-xs font-bold bg-blue-600 text-white shadow-xs transition cursor-pointer';
+      }
+      if (btnUsage) {
+        btnUsage.className = 'px-4 py-2 rounded-lg text-xs font-bold bg-gray-100 text-gray-700 hover:bg-gray-200 transition cursor-pointer';
+      }
+      if (viewStock) viewStock.classList.remove('hidden');
+      if (viewUsage) viewUsage.classList.add('hidden');
+    }
+  }
+
+  function seleccionarMesActualUso() {
+    if (typeof document === 'undefined') return;
+    const monthInput = document.getElementById('inv-usage-filter-month');
+    if (monthInput) {
+      monthInput.value = new Date().toISOString().slice(0, 7);
+      filtrarMaterialUsado();
+    }
+  }
+
+  function filtrarMaterialUsado() {
+    if (typeof document === 'undefined') return;
+
+    const storage = global.NovaprintStorage;
+    const prod = global.NovaprintProduction;
+    if (!storage || !prod || typeof prod.calcularConsumoMateriales !== 'function') return;
+
+    const monthInput = document.getElementById('inv-usage-filter-month');
+    const mesFiltro = (monthInput && monthInput.value) ? monthInput.value : new Date().toISOString().slice(0, 7);
+
+    if (monthInput && !monthInput.value) {
+      monthInput.value = mesFiltro;
+    }
+
+    const pedidos = typeof storage.getOrders === 'function' ? storage.getOrders() : [];
+    const inventario = typeof storage.getInventory === 'function' ? storage.getInventory() : [];
+
+    const consumoData = prod.calcularConsumoMateriales(pedidos, inventario, mesFiltro);
+
+    // Búsqueda por texto (código, nombre, categoría, color)
+    const searchInput = document.getElementById('inv-usage-search-input');
+    const query = searchInput ? searchInput.value.trim().toLowerCase() : '';
+
+    if (query && Array.isArray(consumoData.items)) {
+      consumoData.items = consumoData.items.filter(it => {
+        const cod = (it.code || '').toLowerCase();
+        const nom = (it.name || '').toLowerCase();
+        const cat = (it.category || '').toLowerCase();
+        const col = (it.color || '').toLowerCase();
+        return cod.includes(query) || nom.includes(query) || cat.includes(query) || col.includes(query);
+      });
+    }
+
+    renderInventoryUsage(consumoData);
+  }
+
+  function renderInventoryUsage(consumoData) {
+    if (typeof document === 'undefined' || !consumoData) return;
+
+    const sales = global.NovaprintSales;
+    const fmt = (val) => {
+      if (sales && typeof sales.formatearMoneda === 'function') {
+        return sales.formatearMoneda(val || 0);
+      }
+      return '$' + Math.round(Number(val) || 0).toLocaleString('es-CL');
+    };
+
+    const resumen = consumoData.resumen || {
+      unidadesMes: 0,
+      costoMes: 0,
+      unidadesAcumulado: 0,
+      costoAcumulado: 0,
+      totalArticulos: 0
+    };
+
+    const elUnitsMonth = document.getElementById('inv-usage-metric-units-month');
+    const elCostMonth = document.getElementById('inv-usage-metric-cost-month');
+    const elUnitsTotal = document.getElementById('inv-usage-metric-units-total');
+    const elCostTotal = document.getElementById('inv-usage-metric-cost-total');
+    const elMonthLabel = document.getElementById('inv-usage-metric-month-label');
+    const elCount = document.getElementById('inv-usage-items-count');
+    const tableBody = document.getElementById('inv-usage-table-body');
+
+    if (elUnitsMonth) elUnitsMonth.textContent = `${(resumen.unidadesMes || 0).toLocaleString('es-CL')} un.`;
+    if (elCostMonth) elCostMonth.textContent = fmt(resumen.costoMes || 0);
+    if (elUnitsTotal) elUnitsTotal.textContent = `${(resumen.unidadesAcumulado || 0).toLocaleString('es-CL')} un.`;
+    if (elCostTotal) elCostTotal.textContent = fmt(resumen.costoAcumulado || 0);
+    if (elMonthLabel && consumoData.mesConsultado) {
+      elMonthLabel.textContent = `Período: ${consumoData.mesConsultado}`;
+    }
+
+    const items = Array.isArray(consumoData.items) ? consumoData.items : [];
+    if (elCount) elCount.textContent = String(items.length);
+
+    if (!tableBody) return;
+
+    if (items.length === 0) {
+      tableBody.innerHTML = `
+        <tr>
+          <td colspan="8" class="text-center py-8 text-gray-400">
+            <div class="flex flex-col items-center justify-center">
+              <span class="text-3xl mb-2">📦</span>
+              <p class="font-medium text-sm">No se registra material usado en el período seleccionado.</p>
+              <p class="text-xs text-gray-400 mt-1">Los consumos se calculan automáticamente a partir de los pedidos del taller.</p>
+            </div>
+          </td>
+        </tr>
+      `;
+      return;
+    }
+
+    tableBody.innerHTML = items.map(it => {
+      const codeStr = it.code || 'S/C';
+      const nameStr = it.name || 'Sin especificar';
+      const catBadge = it.category || 'General';
+      const stockStr = `${(Number(it.currentStock) || 0).toLocaleString('es-CL')} ${it.unit || 'un.'}`;
+      const detalles = [
+        it.color ? `Color: ${it.color}` : null,
+        it.size ? `Talla: ${it.size}` : null
+      ].filter(Boolean).join(' • ');
+
+      const usadoMesClass = it.usadoMes > 0 ? 'text-blue-700 font-black' : 'text-gray-400 font-semibold';
+      const costoMesClass = it.costoMes > 0 ? 'text-emerald-700 font-bold' : 'text-gray-400 font-semibold';
+      const usadoTotalClass = it.usadoAcumulado > 0 ? 'text-purple-700 font-black' : 'text-gray-400 font-semibold';
+      const costoTotalClass = it.costoAcumulado > 0 ? 'text-amber-700 font-bold' : 'text-gray-400 font-semibold';
+
+      return `
+        <tr class="hover:bg-gray-50/80 transition">
+          <td class="py-3 px-3 font-mono font-bold text-gray-600">${codeStr}</td>
+          <td class="py-3 px-3">
+            <div class="font-bold text-gray-900">${nameStr}</div>
+            ${detalles ? `<div class="text-[11px] text-gray-500">${detalles}</div>` : ''}
+          </td>
+          <td class="py-3 px-3">
+            <span class="inline-block px-2 py-0.5 rounded text-[11px] font-semibold bg-gray-100 text-gray-700 border border-gray-200">
+              ${catBadge}
+            </span>
+          </td>
+          <td class="py-3 px-3 text-right font-semibold text-gray-700">${stockStr}</td>
+          <td class="py-3 px-3 text-right bg-blue-50/30 ${usadoMesClass}">
+            ${(it.usadoMes || 0).toLocaleString('es-CL')} ${it.unit || 'un.'}
+          </td>
+          <td class="py-3 px-3 text-right bg-emerald-50/30 ${costoMesClass}">
+            ${fmt(it.costoMes || 0)}
+          </td>
+          <td class="py-3 px-3 text-right bg-purple-50/30 ${usadoTotalClass}">
+            ${(it.usadoAcumulado || 0).toLocaleString('es-CL')} ${it.unit || 'un.'}
+          </td>
+          <td class="py-3 px-3 text-right bg-amber-50/30 ${costoTotalClass}">
+            ${fmt(it.costoAcumulado || 0)}
+          </td>
+        </tr>
+      `;
+    }).join('');
+  }
+
   // --- GESTIÓN DE COMPRAS DE INSUMOS (SPEC 002) ---
   let currentPurchaseItems = [];
 
@@ -4759,7 +4939,12 @@
     abrirModalLimpiarPruebas,
     confirmarLimpiarPruebas,
     // Spec 031: Poner stock a cero en todo el inventario
-    confirmarPonerStockCero
+    confirmarPonerStockCero,
+    // Spec 038: Sub-vista de Material Usado en Inventario
+    cambiarSubVistaInventario,
+    renderInventoryUsage,
+    filtrarMaterialUsado,
+    seleccionarMesActualUso
   };
 
   if (typeof module !== 'undefined' && module.exports) {

@@ -650,6 +650,173 @@
     return proveedores[0] || null;
   }
 
+  /**
+   * Spec 038 — Calcula el consumo de materiales de inventario (al mes y acumulado)
+   * a partir de los pedidos del taller.
+   */
+  function calcularConsumoMateriales(pedidos = [], inventario = [], mesFiltro = '') {
+    if (!Array.isArray(pedidos)) pedidos = [];
+    if (!Array.isArray(inventario)) inventario = [];
+
+    const mesConsultado = mesFiltro ? String(mesFiltro).trim().slice(0, 7) : new Date().toISOString().slice(0, 7);
+
+    // Mapeo acumulador por clave de artículo o insumo
+    const consumosMap = new Map();
+
+    // 1. Inicializar mapa con ítems del inventario actual
+    inventario.forEach(it => {
+      consumosMap.set(it.id, {
+        id: it.id,
+        code: it.code || it.id,
+        name: it.name,
+        category: it.category || 'Insumos',
+        garmentType: it.garmentType || '',
+        color: it.color || '',
+        size: it.size || '',
+        unit: it.unit || 'un.',
+        unitCost: Number(it.unitCost) || 0,
+        currentStock: Number(it.currentStock) || 0,
+        usadoMes: 0,
+        costoMes: 0,
+        usadoAcumulado: 0,
+        costoAcumulado: 0
+      });
+    });
+
+    // 2. Procesar pedidos (excluyendo cancelados)
+    const pedidosValidos = pedidos.filter(p => p && p.status !== 'Cancelado');
+
+    pedidosValidos.forEach(p => {
+      const fecha = (p.dates?.deliveryDate || p.dates?.createdAt || p.date || p.createdAt || '').toString();
+      const mesPedido = fecha.length >= 7 ? fecha.slice(0, 7) : '';
+      const esMesConsultado = mesPedido === mesConsultado;
+
+      const items = Array.isArray(p.items) ? p.items : [];
+      items.forEach(it => {
+        const qty = Math.max(0, Number(it.quantity) || 0);
+        if (qty <= 0) return;
+
+        // A. Buscar la prenda en el inventario
+        const prendaBuscada = normalizarTexto(it.garmentType || '');
+        const colorBuscado = normalizarTexto(it.color || '');
+        const tallaBuscada = normalizarTexto(it.size || '');
+
+        let invItem = inventario.find(inv => {
+          const matchPrenda = normalizarTexto(inv.garmentType || '') === prendaBuscada || normalizarTexto(inv.name || '').includes(prendaBuscada);
+          const matchColor = normalizarTexto(inv.color || '') === colorBuscado || normalizarTexto(inv.name || '').includes(colorBuscado);
+          const matchTalla = normalizarTexto(inv.size || '') === tallaBuscada || normalizarTexto(inv.name || '').includes(tallaBuscada);
+          return matchPrenda && matchColor && matchTalla;
+        });
+
+        const keyPrenda = invItem ? invItem.id : `TEMP-PRENDA-${prendaBuscada}-${colorBuscado}-${tallaBuscada}`;
+        if (!consumosMap.has(keyPrenda)) {
+          let defaultCost = 2800;
+          if (prendaBuscada.includes('poleron')) defaultCost = 11000;
+          else if (prendaBuscada.includes('buzo')) defaultCost = 12000;
+          else if (prendaBuscada.includes('gorra')) defaultCost = 3500;
+
+          consumosMap.set(keyPrenda, {
+            id: keyPrenda,
+            code: invItem ? invItem.code : 'S/C',
+            name: `${it.garmentType || 'Prenda'} ${it.color || ''} Talla ${it.size || ''}`.trim(),
+            category: 'Prendas Lisas',
+            garmentType: it.garmentType || 'Polera',
+            color: it.color || '',
+            size: it.size || '',
+            unit: 'un.',
+            unitCost: defaultCost,
+            currentStock: invItem ? Number(invItem.currentStock) || 0 : 0,
+            usadoMes: 0,
+            costoMes: 0,
+            usadoAcumulado: 0,
+            costoAcumulado: 0
+          });
+        }
+
+        const registroPrenda = consumosMap.get(keyPrenda);
+        registroPrenda.usadoAcumulado += qty;
+        registroPrenda.costoAcumulado += Math.round(qty * registroPrenda.unitCost);
+
+        if (esMesConsultado) {
+          registroPrenda.usadoMes += qty;
+          registroPrenda.costoMes += Math.round(qty * registroPrenda.unitCost);
+        }
+
+        // B. Insumos de Estampado si aplica
+        const opEstampado = normalizarOpcionEstampado(it.printLocation || 'Adelante');
+        if (opEstampado.id !== 'Ninguno' && opEstampado.costoCompra > 0) {
+          const tecnica = it.technique || 'DTF';
+          const itemInvEstampado = inventario.find(inv => {
+            const n = normalizarTexto(inv.name || '');
+            const c = normalizarTexto(inv.category || '');
+            const matchTec = n.includes(normalizarTexto(tecnica)) || c.includes(normalizarTexto(tecnica));
+            const matchUbi = n.includes(normalizarTexto(opEstampado.nombre));
+            return (inv.garmentType === 'Estampado' || c.includes('estampado') || c.includes('dtf')) && matchTec && matchUbi;
+          });
+
+          const keyEstampado = itemInvEstampado ? itemInvEstampado.id : `TEMP-EST-${tecnica}-${opEstampado.nombre}`;
+          if (!consumosMap.has(keyEstampado)) {
+            consumosMap.set(keyEstampado, {
+              id: keyEstampado,
+              code: itemInvEstampado ? itemInvEstampado.code : 'EST-DTF',
+              name: `Estampado ${tecnica} - ${opEstampado.nombre}`,
+              category: 'Insumos DTF',
+              garmentType: 'Estampado',
+              color: 'Full Color',
+              size: opEstampado.nombre,
+              unit: 'un.',
+              unitCost: opEstampado.costoCompra,
+              currentStock: itemInvEstampado ? Number(itemInvEstampado.currentStock) || 0 : 0,
+              usadoMes: 0,
+              costoMes: 0,
+              usadoAcumulado: 0,
+              costoAcumulado: 0
+            });
+          }
+
+          const registroEstampado = consumosMap.get(keyEstampado);
+          registroEstampado.usadoAcumulado += qty;
+          registroEstampado.costoAcumulado += Math.round(qty * registroEstampado.unitCost);
+
+          if (esMesConsultado) {
+            registroEstampado.usadoMes += qty;
+            registroEstampado.costoMes += Math.round(qty * registroEstampado.unitCost);
+          }
+        }
+      });
+    });
+
+    // 3. Filtrar únicamente los artículos que tuvieron consumo (acumulado > 0)
+    const itemsConsumo = Array.from(consumosMap.values())
+      .filter(it => it.usadoAcumulado > 0 || it.usadoMes > 0)
+      .sort((a, b) => b.costoAcumulado - a.costoAcumulado);
+
+    // 4. Totales consolidados
+    let unidadesMes = 0;
+    let costoMes = 0;
+    let unidadesAcumulado = 0;
+    let costoAcumulado = 0;
+
+    itemsConsumo.forEach(it => {
+      unidadesMes += it.usadoMes;
+      costoMes += it.costoMes;
+      unidadesAcumulado += it.usadoAcumulado;
+      costoAcumulado += it.costoAcumulado;
+    });
+
+    return {
+      mesConsultado,
+      resumen: {
+        unidadesMes,
+        costoMes,
+        unidadesAcumulado,
+        costoAcumulado,
+        totalArticulos: itemsConsumo.length
+      },
+      items: itemsConsumo
+    };
+  }
+
   const modulo = {
     TASA_IVA_CHILE,
     evaluarEstadoStock,
@@ -678,7 +845,9 @@
     clasificarItemCompra,
     esCompraMixta,
     separarItemsCompra,
-    resolverProveedorParaCategoria
+    resolverProveedorParaCategoria,
+    // Spec 038: Consumo de Materiales al Mes y Acumulado
+    calcularConsumoMateriales
   };
 
   if (typeof module !== 'undefined' && module.exports) {

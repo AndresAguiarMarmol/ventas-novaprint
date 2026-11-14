@@ -138,6 +138,15 @@ Registro de todo lo que debe preservarse entre sesiones de trabajo: arquitectura
   - **Spec 032 (Implementada):** Respeto a la Eliminación Definitiva del Pedido "BRS Kinder B" (Prevención de Resurrección Automática).
   - **Spec 033 (Implementada):** Corrección de "storage is not defined" en renderPurchasesTable y Transferencias Contables.
   - **Spec 034 (Implementada):** Edición Interactiva de Cantidad y Costo al Separar Compra en 2 Facturas.
+  - **Spec 035 (Implementada):** CRUD Completo y Acción "Duplicar" en el Libro Diario de Movimientos Contables.
+  - **Spec 036 (Implementada):** Resaltado en Recuadro Verde del Menú Horizontal de Contabilidad.
+  - **Spec 037 (Implementada):** Preservación de Checkboxes (Desc. Volumen, IVA, Delivery) al Avanzar o Modificar Estado del Pedido.
+  - **Spec 038 (Implementada):** Vista de Material de Inventario Usado (al mes y acumulado) en Barra Horizontal de Producción.
+- **Vista de Material de Inventario Usado al Mes y Acumulado (Spec 038):**
+  - **Sub-navegación Horizontal en `#view-inventory` (`index.html`):** Contenedor `#inv-subnav-container` con dos botones de sub-navegación: `📦 Catálogo & Stock Actual` (`#btn-inv-sub-stock`) y `📉 Material Usado / Consumo` (`#btn-inv-sub-usage`). Permite conmutar limpiamente entre el stock físico de bodega (`#inv-subview-stock`) y la vista de análisis de consumo (`#inv-subview-usage`).
+  - **Cálculo Consolidado de Consumos (`production.calcularConsumoMateriales` en `production.js`):** Función pura que procesa los pedidos no cancelados (`status !== 'Cancelado'`). Asocia prendas lisas con el inventario físico mediante coincidencia de tipo de prenda, color y talla (o genera clave unificada si no está en catálogo). Registra además los consumos de insumos de estampado (DTF, bordado, serigrafía) cuando `printLocation !== 'Ninguno'`. Para cada artículo calcula unidades usadas y costo valorizado tanto para el mes consultado (`usadoMes`, `costoMes`) como para el histórico total (`usadoAcumulado`, `costoAcumulado`).
+  - **Métricas e Interfaz Reactiva (`ui.js`):** 4 tarjetas de métricas en `#inv-subview-usage`: Unidades Usadas Mes (`#inv-usage-metric-units-month`), Costo Mes (`#inv-usage-metric-cost-month`), Total Usado Acumulado (`#inv-usage-metric-units-total`) y Costo Total Acumulado (`#inv-usage-metric-cost-total`). Barra de control con buscador textual (`#inv-usage-search-input`), selector de mes (`#inv-usage-filter-month`), botón "Mes Actual" (`#btn-inv-usage-current-month`) y tabla con columnas de código, nombre, categoría, stock en bodega, consumo mensual y acumulado.
+  - **Sincronización Automática (`main.js`):** `refrescarInventario()` invoca `NovaprintUI.filtrarMaterialUsado()` para mantener reactiva la vista de consumos en sincronía con cualquier cambio de pedidos o stock.
 - **Corrección y Optimización de Filtros en Libro Diario (Spec 028):**
   - **Resolución Determinística de Cuentas (`asientoAfectaCuenta` en `accounting.js`):** Mapeo canónico de categorías operacionales de gasto a sus códigos contables oficiales (`5201 Arriendo`, `5202 Electricidad`, `5203 Mantenimiento`, `5204 Fletes`, `5205 Mermas`, `5206 Otros Gastos`). Vinculación contable automática para cuentas de impuestos `1104 Crédito Fiscal IVA` (compras con IVA) y `2102 Débito Fiscal IVA` (ventas con IVA), `4103 Ingresos por Despacho y Flete` (pedidos con delivery), `1103 Inventario` (compras de insumos textiles y DTF), `4101 Ventas de Prendas`, `1101 Caja y Bancos` y `1102 Cuentas por Cobrar`.
   - **Normalización Resiliente de Fechas (`normalizarMesTransaccion`):** Extracción determinística de `YYYY-MM` para fechas ISO (`2026-11-10T...`), fechas simples (`2026-11-10`) y formatos regionales, garantizando coincidencia cronológica exacta.
@@ -245,6 +254,20 @@ Registro de todo lo que debe preservarse entre sesiones de trabajo: arquitectura
 ---
 
 ## 3. Historial de cambios
+
+### 2026-11-14 (Vista de Material de Inventario Usado al Mes y Acumulado — Spec 038)
+- **Cálculo de Consumo de Materiales (`assets/js/production.js`):**
+  - Implementación de `calcularConsumoMateriales(pedidos, inventario, mesFiltro)` que computa reactivamente unidades usadas y costo monetario de insumos (prendas textiles lisas e insumos de estampado) a partir de pedidos válidos del taller (`status !== 'Cancelado'`).
+  - Desglose dual: consumo del mes seleccionado (`usadoMes`, `costoMes`) y consumo histórico acumulado (`usadoAcumulado`, `costoAcumulado`).
+- **Estructura HTML de Sub-Navegación y Vistas (`index.html`):**
+  - Incorporación de la barra horizontal de sub-navegación `#inv-subnav-container` con botones `📦 Catálogo & Stock Actual` (`#btn-inv-sub-stock`) y `📉 Material Usado / Consumo` (`#btn-inv-sub-usage`).
+  - Creación de `#inv-subview-usage` con 4 tarjetas de métricas, barra de filtros con selector de mes y búsqueda de texto, y tabla detallada con stock actual y consumos.
+- **Controladores de Interfaz (`assets/js/ui.js`):**
+  - Funciones `cambiarSubVistaInventario`, `renderInventoryUsage`, `filtrarMaterialUsado` y `seleccionarMesActualUso` exportadas en `NovaprintUI`.
+- **Integración y Reactividad (`assets/js/main.js`):**
+  - `refrescarInventario()` actualiza reactivamente la vista de consumo al modificar o agregar pedidos o existencias. Inicialización de mes actual en `#inv-usage-filter-month`.
+- **Pruebas Automatizadas (`tests/inventory_material_usage.test.js`):**
+  - 7 pruebas unitarias nuevas cubriendo cálculo de consumo, insumos de estampado, alternancia de sub-vistas, renderizado de métricas y tabla, estado vacío y filtros. 300 pruebas unitarias totales pasando con 0 regresiones.
 
 ### 2026-11-11 (Preservación de Checkboxes al Avanzar o Modificar Estado del Pedido — Spec 037)
 - **Módulo de Ventas (`assets/js/sales.js`):**

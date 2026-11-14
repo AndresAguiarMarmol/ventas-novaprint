@@ -293,6 +293,12 @@
       });
     }
 
+    // Spec 038: Inicializar mes actual en el selector de material usado
+    const invUsageMonthInput = document.getElementById('inv-usage-filter-month');
+    if (invUsageMonthInput && !invUsageMonthInput.value) {
+      invUsageMonthInput.value = new Date().toISOString().slice(0, 7);
+    }
+
     // Buscador de proveedores
     const supSearchInput = document.getElementById('suppliers-search-input');
     if (supSearchInput) {
@@ -792,6 +798,11 @@
     });
 
     ui.renderInventoryTable(filtrados);
+
+    // Spec 038: Refrescar consumo de materiales si la función está disponible
+    if (typeof ui.filtrarMaterialUsado === 'function') {
+      ui.filtrarMaterialUsado();
+    }
   }
 
   function refrescarProveedores() {
