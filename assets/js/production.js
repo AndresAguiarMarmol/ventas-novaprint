@@ -684,7 +684,16 @@
     });
 
     // 2. Procesar pedidos (excluyendo cancelados)
-    const pedidosValidos = pedidos.filter(p => p && p.status !== 'Cancelado');
+    const pedidosValidos = pedidos
+      .filter(p => p && p.status !== 'Cancelado')
+      .sort((a, b) => {
+        const fechaA = (a.dates?.deliveryDate || a.dates?.createdAt || a.date || a.createdAt || '').toString();
+        const fechaB = (b.dates?.deliveryDate || b.dates?.createdAt || b.date || b.createdAt || '').toString();
+        if (fechaB !== fechaA) return fechaB.localeCompare(fechaA);
+        return (b.id || '').localeCompare(a.id || '');
+      });
+
+    const consumoPorPedido = [];
 
     pedidosValidos.forEach(p => {
       const fecha = (p.dates?.deliveryDate || p.dates?.createdAt || p.date || p.createdAt || '').toString();
@@ -692,6 +701,10 @@
       const esMesConsultado = mesPedido === mesConsultado;
 
       const items = Array.isArray(p.items) ? p.items : [];
+      const materialesPedido = [];
+      let totalUnidadesPedido = 0;
+      let costoTotalMaterialesPedido = 0;
+
       items.forEach(it => {
         const qty = Math.max(0, Number(it.quantity) || 0);
         if (qty <= 0) return;
@@ -742,6 +755,25 @@
           registroPrenda.costoMes += Math.round(qty * registroPrenda.unitCost);
         }
 
+        const costoSubtotalPrenda = Math.round(qty * registroPrenda.unitCost);
+        totalUnidadesPedido += qty;
+        costoTotalMaterialesPedido += costoSubtotalPrenda;
+
+        materialesPedido.push({
+          id: registroPrenda.id,
+          code: registroPrenda.code,
+          name: registroPrenda.name,
+          category: registroPrenda.category,
+          garmentType: registroPrenda.garmentType,
+          color: it.color || registroPrenda.color,
+          size: it.size || registroPrenda.size,
+          unit: registroPrenda.unit,
+          unitCost: registroPrenda.unitCost,
+          quantity: qty,
+          totalCost: costoSubtotalPrenda,
+          tipo: 'prenda'
+        });
+
         // B. Insumos de Estampado si aplica
         const opEstampado = normalizarOpcionEstampado(it.printLocation || 'Adelante');
         if (opEstampado.id !== 'Ninguno' && opEstampado.costoCompra > 0) {
@@ -782,8 +814,42 @@
             registroEstampado.usadoMes += qty;
             registroEstampado.costoMes += Math.round(qty * registroEstampado.unitCost);
           }
+
+          const costoSubtotalEstampado = Math.round(qty * registroEstampado.unitCost);
+          totalUnidadesPedido += qty;
+          costoTotalMaterialesPedido += costoSubtotalEstampado;
+
+          materialesPedido.push({
+            id: registroEstampado.id,
+            code: registroEstampado.code,
+            name: registroEstampado.name,
+            category: registroEstampado.category,
+            garmentType: registroEstampado.garmentType,
+            color: 'Full Color',
+            size: opEstampado.nombre,
+            unit: registroEstampado.unit,
+            unitCost: registroEstampado.unitCost,
+            quantity: qty,
+            totalCost: costoSubtotalEstampado,
+            tipo: 'estampado'
+          });
         }
       });
+
+      if (materialesPedido.length > 0) {
+        consumoPorPedido.push({
+          pedidoId: p.id,
+          clienteNombre: p.clientName || 'Cliente General',
+          clienteTelefono: p.clientPhone || '',
+          fecha,
+          mesPedido,
+          esMesConsultado,
+          status: p.status || 'Confirmado',
+          totalUnidades: totalUnidadesPedido,
+          costoTotalMateriales: costoTotalMaterialesPedido,
+          materiales: materialesPedido
+        });
+      }
     });
 
     // 3. Filtrar únicamente los artículos que tuvieron consumo (acumulado > 0)
@@ -811,9 +877,12 @@
         costoMes,
         unidadesAcumulado,
         costoAcumulado,
-        totalArticulos: itemsConsumo.length
+        totalArticulos: itemsConsumo.length,
+        totalPedidosMes: consumoPorPedido.filter(p => p.esMesConsultado).length,
+        totalPedidosAcumulado: consumoPorPedido.length
       },
-      items: itemsConsumo
+      items: itemsConsumo,
+      pedidos: consumoPorPedido
     };
   }
 

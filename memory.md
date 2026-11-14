@@ -142,6 +142,12 @@ Registro de todo lo que debe preservarse entre sesiones de trabajo: arquitectura
   - **Spec 036 (Implementada):** Resaltado en Recuadro Verde del Menú Horizontal de Contabilidad.
   - **Spec 037 (Implementada):** Preservación de Checkboxes (Desc. Volumen, IVA, Delivery) al Avanzar o Modificar Estado del Pedido.
   - **Spec 038 (Implementada):** Vista de Material de Inventario Usado (al mes y acumulado) en Barra Horizontal de Producción.
+  - **Spec 039 (Implementada):** Reporte de Material Usado / Consumo Ordenado por Pedido con Desglose de Insumos y Conmutador de Vista.
+- **Reporte de Material Usado Ordenado por Pedido (Spec 039):**
+  - **Estructuración del Consumo por Pedido (`production.js`):** `calcularConsumoMateriales` retorna la propiedad `pedidos`, ordenando descendentemente las órdenes válidas (`status !== 'Cancelado'`). Cada orden incluye N° de Pedido (`pedidoId`), Cliente (`clienteNombre`), teléfono, fecha, estado, total de unidades y costo monetario de reposición de materiales (`costoTotalMateriales`), junto a la lista `materiales` de prendas lisas e insumos de estampado consumidos.
+  - **Presentación Visual con Cabecera y Filas Hijas (`ui.js` & `index.html`):** En `#inv-subview-usage`, la modalidad predeterminada "📋 Por Pedido" agrupa visualmente las transacciones: una fila cabecera destacada por orden (N° Pedido con badge, Cliente, Fecha, Estado, Total Unidades y Costo Total del Pedido) y filas hijas con sangría para cada insumo consumido (código con `↳`, descripción, categoría, costo unitario, cantidad y subtotal).
+  - **Conmutador de Vista Opcional:** En la barra de filtros se integran los botones `[📋 Por Pedido]` (activo por defecto) y `[📦 Por Material]` (`NovaprintUI.cambiarModoVistaUso`), permitiendo alternar instantáneamente entre la vista cronológica por pedido y el catálogo consolidado por material de la Spec 038.
+  - **Filtro de Mes Flexible y Botón "Todos":** Selector de mes interactivo con botón `[Mes Actual]` y botón `[Todos]` (`NovaprintUI.limpiarFiltroMesUso`), permitiendo auditar el consumo mensual o el acumulado histórico completo de pedidos. Buscador en vivo por pedido, cliente o material.
 - **Vista de Material de Inventario Usado al Mes y Acumulado (Spec 038):**
   - **Sub-navegación Horizontal en `#view-inventory` (`index.html`):** Contenedor `#inv-subnav-container` con dos botones de sub-navegación: `📦 Catálogo & Stock Actual` (`#btn-inv-sub-stock`) y `📉 Material Usado / Consumo` (`#btn-inv-sub-usage`). Permite conmutar limpiamente entre el stock físico de bodega (`#inv-subview-stock`) y la vista de análisis de consumo (`#inv-subview-usage`).
   - **Cálculo Consolidado de Consumos (`production.calcularConsumoMateriales` en `production.js`):** Función pura que procesa los pedidos no cancelados (`status !== 'Cancelado'`). Asocia prendas lisas con el inventario físico mediante coincidencia de tipo de prenda, color y talla (o genera clave unificada si no está en catálogo). Registra además los consumos de insumos de estampado (DTF, bordado, serigrafía) cuando `printLocation !== 'Ninguno'`. Para cada artículo calcula unidades usadas y costo valorizado tanto para el mes consultado (`usadoMes`, `costoMes`) como para el histórico total (`usadoAcumulado`, `costoAcumulado`).
@@ -254,6 +260,16 @@ Registro de todo lo que debe preservarse entre sesiones de trabajo: arquitectura
 ---
 
 ## 3. Historial de cambios
+
+### 2026-11-14 (Reporte de Material Usado / Consumo Ordenado por Pedido — Spec 039)
+- **Motor de Consumo Textil y DTF (`assets/js/production.js`):**
+  - Se extendió `calcularConsumoMateriales` para retornar el arreglo `pedidos` con todas las órdenes válidas ordenadas descendentemente por fecha/correlativo, computando `totalUnidades`, `costoTotalMateriales` y el desglose de prendas e insumos de estampado para cada orden individual.
+- **Interfaz de Usuario y Conmutador de Vista (`assets/js/ui.js` & `index.html`):**
+  - Implementación de `cambiarModoVistaUso('order' | 'material')` y `limpiarFiltroMesUso()`, exportadas en `NovaprintUI`.
+  - En modo "📋 Por Pedido" (predeterminado), `#inv-usage-table-body` genera filas de cabecera por cada orden con su N° de Pedido, cliente, fecha, estado, unidades y costo total de materiales, seguidas por filas hijas desglosando cada insumo utilizado.
+  - Conmutador en la barra de filtros con botones `[📋 Por Pedido]` y `[📦 Por Material]`, y botón `[Todos]` para ver el histórico acumulado.
+- **Pruebas Automatizadas (`tests/inventory_material_usage.test.js`):**
+  - 4 pruebas unitarias adicionales para Spec 039 verificando generación de pedidos, renderizado de cabecera y filas hijas, alternancia de modos y reseteo de mes. 304 pruebas totales en 31 suites pasando con 0 regresiones.
 
 ### 2026-11-14 (Vista de Material de Inventario Usado al Mes y Acumulado — Spec 038)
 - **Cálculo de Consumo de Materiales (`assets/js/production.js`):**

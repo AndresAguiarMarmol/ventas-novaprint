@@ -455,26 +455,41 @@
           </div>
         </div>
 
-        <!-- Barra de Filtros de Material Usado -->
+        <!-- Barra de Filtros de Material Usado (Spec 038 & Spec 039) -->
         <div class="bg-white p-4 rounded-xl border border-gray-200 shadow-xs flex flex-col md:flex-row gap-3 items-center justify-between">
-          <div class="flex-1 flex flex-col sm:flex-row gap-2 w-full">
-            <div class="relative flex-1">
-              <input id="inv-usage-search-input" type="text" placeholder="Buscar material por código, tipo o color..." class="w-full pl-9 pr-3 py-2 text-xs sm:text-sm bg-gray-50 border border-gray-300 rounded-lg focus:outline-none focus:bg-white" oninput="NovaprintUI.filtrarMaterialUsado()">
+          <div class="flex-1 flex flex-col sm:flex-row gap-2 w-full items-center">
+            
+            <!-- Conmutador de Modo: Por Pedido vs Por Material (Spec 039) -->
+            <div class="inline-flex rounded-lg border border-gray-200 p-0.5 bg-gray-100 shrink-0">
+              <button id="btn-inv-usage-mode-order" type="button" class="px-3 py-1.5 rounded-md text-xs font-bold bg-white text-blue-700 shadow-xs transition cursor-pointer" onclick="NovaprintUI.cambiarModoVistaUso('order')">
+                📋 Por Pedido
+              </button>
+              <button id="btn-inv-usage-mode-material" type="button" class="px-3 py-1.5 rounded-md text-xs font-bold text-gray-600 hover:text-gray-900 transition cursor-pointer" onclick="NovaprintUI.cambiarModoVistaUso('material')">
+                📦 Por Material
+              </button>
+            </div>
+
+            <!-- Buscador en tiempo real -->
+            <div class="relative flex-1 w-full">
+              <input id="inv-usage-search-input" type="text" placeholder="Buscar por N° pedido, cliente o material..." class="w-full pl-9 pr-3 py-2 text-xs sm:text-sm bg-gray-50 border border-gray-300 rounded-lg focus:outline-none focus:bg-white" oninput="NovaprintUI.filtrarMaterialUsado()">
               <span class="absolute left-3 top-2.5 text-gray-400 text-xs">🔍</span>
             </div>
 
-            <!-- Selector de Mes -->
-            <div class="flex items-center gap-1.5 bg-gray-50 border border-gray-300 rounded-lg px-2.5 py-1">
+            <!-- Selector de Mes y Acciones Rápidas -->
+            <div class="flex items-center gap-1.5 bg-gray-50 border border-gray-300 rounded-lg px-2.5 py-1 shrink-0">
               <span class="text-xs text-gray-500 font-medium">Mes:</span>
               <input id="inv-usage-filter-month" type="month" class="bg-transparent border-0 text-xs font-bold text-gray-800 focus:outline-none cursor-pointer" onchange="NovaprintUI.filtrarMaterialUsado()">
-              <button id="btn-inv-usage-current-month" type="button" class="text-[11px] font-bold text-blue-600 hover:text-blue-800 px-1.5 py-0.5 rounded hover:bg-blue-50 transition cursor-pointer" onclick="NovaprintUI.seleccionarMesActualUso()">
+              <button id="btn-inv-usage-current-month" type="button" class="text-[11px] font-bold text-blue-600 hover:text-blue-800 px-1.5 py-0.5 rounded hover:bg-blue-50 transition cursor-pointer" onclick="NovaprintUI.seleccionarMesActualUso()" title="Ver consumo del mes en curso">
                 Mes Actual
+              </button>
+              <button id="btn-inv-usage-all-months" type="button" class="text-[11px] font-bold text-gray-600 hover:text-gray-800 px-1.5 py-0.5 rounded hover:bg-gray-200 transition cursor-pointer" onclick="NovaprintUI.limpiarFiltroMesUso()" title="Ver historial acumulado de todos los pedidos">
+                Todos
               </button>
             </div>
           </div>
 
-          <div class="text-xs text-gray-500 font-semibold">
-            <span>Mostrando: </span><span id="inv-usage-items-count" class="font-bold text-gray-900">0</span> materiales con consumo
+          <div class="text-xs text-gray-500 font-semibold shrink-0">
+            <span>Mostrando: </span><span id="inv-usage-items-count" class="font-bold text-gray-900">0</span> <span id="inv-usage-items-label">pedidos con consumo</span>
           </div>
         </div>
 
@@ -482,16 +497,14 @@
         <div class="bg-white rounded-xl border border-gray-200 shadow-xs overflow-hidden">
           <div class="overflow-x-auto">
             <table class="w-full text-left border-collapse">
-              <thead>
+              <thead id="inv-usage-table-head">
                 <tr class="bg-gray-50 border-b border-gray-200 text-gray-600 uppercase text-[11px] font-bold tracking-wider">
-                  <th class="py-3 px-3">Código</th>
-                  <th class="py-3 px-3">Material / Prenda</th>
+                  <th class="py-3 px-3">N° Pedido / Material</th>
+                  <th class="py-3 px-3">Detalle / Cliente</th>
                   <th class="py-3 px-3">Categoría</th>
-                  <th class="py-3 px-3 text-right">Stock Bodega</th>
-                  <th class="py-3 px-3 text-right text-blue-700 bg-blue-50/50">Usado en el Mes</th>
-                  <th class="py-3 px-3 text-right text-emerald-700 bg-emerald-50/50">Costo Mes ($)</th>
-                  <th class="py-3 px-3 text-right text-purple-700 bg-purple-50/50">Total Acumulado</th>
-                  <th class="py-3 px-3 text-right text-amber-700 bg-amber-50/50">Costo Acumulado ($)</th>
+                  <th class="py-3 px-3 text-right">Costo Unit. ($)</th>
+                  <th class="py-3 px-3 text-right text-blue-700 bg-blue-50/50">Cantidad Usada</th>
+                  <th class="py-3 px-3 text-right text-emerald-700 bg-emerald-50/50">Subtotal Costo ($)</th>
                 </tr>
               </thead>
               <tbody id="inv-usage-table-body" class="divide-y divide-gray-100 text-xs"></tbody>

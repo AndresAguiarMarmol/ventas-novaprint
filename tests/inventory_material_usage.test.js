@@ -61,7 +61,12 @@ function createMinimalDOM() {
   makeEl('inv-usage-search-input', 'input');
   makeEl('inv-usage-filter-month', 'input');
   makeEl('btn-inv-usage-current-month', 'button');
+  makeEl('btn-inv-usage-all-months', 'button');
+  makeEl('btn-inv-usage-mode-order', 'button');
+  makeEl('btn-inv-usage-mode-material', 'button');
   makeEl('inv-usage-items-count', 'span');
+  makeEl('inv-usage-items-label', 'span');
+  makeEl('inv-usage-table-head', 'thead');
   makeEl('inv-usage-table-body', 'tbody');
 
   // Elementos estándar de inventario para evitar errores en refrescarInventario
@@ -378,6 +383,126 @@ describe('Spec 038 — Vista de Material Usado en Inventario (al mes y acumulado
       ui.seleccionarMesActualUso();
 
       assert.strictEqual(dom.elements['inv-usage-filter-month'].value, mesActualEsperado);
+    });
+
+    // Spec 039: Reporte Ordenado por Pedido
+    describe('Reporte Ordenado por Pedido (Spec 039)', () => {
+      it('calcularConsumoMateriales debe generar la lista de pedidos ordenada con sus materiales', () => {
+        const inventario = [
+          {
+            id: 'INV-POL-AZU',
+            code: 'POL-AZU-M',
+            name: 'Polera Azul Algodón M',
+            category: 'Prendas Lisas',
+            garmentType: 'Polera',
+            color: 'Azul',
+            size: 'M',
+            unit: 'un.',
+            unitCost: 2800,
+            currentStock: 20
+          }
+        ];
+
+        const pedidos = [
+          {
+            id: 'PED-001',
+            clientName: 'Colegio San Agustín',
+            status: 'Confirmado',
+            dates: { deliveryDate: '2026-11-10' },
+            items: [
+              { garmentType: 'Polera', color: 'Azul', size: 'M', quantity: 15, printLocation: 'Ninguno' }
+            ]
+          },
+          {
+            id: 'PED-002',
+            clientName: 'Club Deportivo',
+            status: 'En producción',
+            dates: { deliveryDate: '2026-11-20' },
+            items: [
+              { garmentType: 'Polera', color: 'Azul', size: 'M', quantity: 25, printLocation: 'Adelante', technique: 'DTF' }
+            ]
+          }
+        ];
+
+        const resultado = production.calcularConsumoMateriales(pedidos, inventario, '2026-11');
+
+        assert.ok(Array.isArray(resultado.pedidos), 'Debe incluir el arreglo pedidos');
+        assert.strictEqual(resultado.pedidos.length, 2);
+        // Debe estar ordenado de forma descendente por fecha (PED-002 primero: 2026-11-20 > 2026-11-10)
+        assert.strictEqual(resultado.pedidos[0].pedidoId, 'PED-002');
+        assert.strictEqual(resultado.pedidos[0].clienteNombre, 'Club Deportivo');
+        assert.strictEqual(resultado.pedidos[0].status, 'En producción');
+        // PED-002 tiene 25 prendas + 25 estampados = 50 unidades de materiales
+        assert.strictEqual(resultado.pedidos[0].totalUnidades, 50);
+        assert.strictEqual(resultado.pedidos[0].materiales.length, 2);
+
+        assert.strictEqual(resultado.pedidos[1].pedidoId, 'PED-001');
+        assert.strictEqual(resultado.pedidos[1].clienteNombre, 'Colegio San Agustín');
+        assert.strictEqual(resultado.pedidos[1].totalUnidades, 15);
+      });
+
+      it('renderInventoryUsage en modo por pedido debe renderizar cabecera de orden y filas de materiales', () => {
+        const datosPrueba = {
+          mesConsultado: '2026-11',
+          mesFiltroActivo: '2026-11',
+          resumen: {
+            unidadesMes: 15,
+            costoMes: 42000,
+            unidadesAcumulado: 15,
+            costoAcumulado: 42000,
+            totalArticulos: 1
+          },
+          pedidos: [
+            {
+              pedidoId: 'NP-202611-001',
+              clienteNombre: 'Cliente VIP',
+              clienteTelefono: '+56912345678',
+              fecha: '2026-11-15',
+              status: 'En producción',
+              totalUnidades: 15,
+              costoTotalMateriales: 42000,
+              materiales: [
+                {
+                  code: 'POL-NEG-L',
+                  name: 'Polera Negra L',
+                  category: 'Prendas Lisas',
+                  unit: 'un.',
+                  unitCost: 2800,
+                  quantity: 15,
+                  totalCost: 42000,
+                  tipo: 'prenda'
+                }
+              ]
+            }
+          ]
+        };
+
+        ui.cambiarModoVistaUso('order');
+        ui.renderInventoryUsage(datosPrueba);
+
+        const tbodyHtml = dom.elements['inv-usage-table-body'].innerHTML;
+        assert.ok(tbodyHtml.includes('NP-202611-001'), 'Debe figurar el N° de Pedido en la cabecera');
+        assert.ok(tbodyHtml.includes('Cliente VIP'), 'Debe figurar el nombre del cliente');
+        assert.ok(tbodyHtml.includes('En producción'), 'Debe figurar el estado del pedido');
+        assert.ok(tbodyHtml.includes('POL-NEG-L'), 'Debe figurar el código de material en la fila de detalle');
+        assert.ok(tbodyHtml.includes('42.000'), 'Debe figurar el subtotal del pedido');
+      });
+
+      it('cambiarModoVistaUso debe alternar entre vista por pedido y vista por material', () => {
+        ui.cambiarModoVistaUso('material');
+        assert.ok(dom.elements['btn-inv-usage-mode-material'].className.includes('bg-white text-blue-700'));
+        assert.ok(dom.elements['inv-usage-table-head'].innerHTML.includes('Stock Bodega'));
+
+        ui.cambiarModoVistaUso('order');
+        assert.ok(dom.elements['btn-inv-usage-mode-order'].className.includes('bg-white text-blue-700'));
+        assert.ok(dom.elements['inv-usage-table-head'].innerHTML.includes('N° Pedido / Material'));
+      });
+
+      it('limpiarFiltroMesUso debe vaciar el input de mes para ver el histórico acumulado', () => {
+        dom.elements['inv-usage-filter-month'].value = '2026-11';
+        ui.limpiarFiltroMesUso();
+        assert.strictEqual(dom.elements['inv-usage-filter-month'].value, '');
+      });
     });
   });
 });

@@ -1870,8 +1870,9 @@
     }
   }
 
-  // --- SUB-VISTA DE CONSUMO DE MATERIALES (SPEC 038) ---
+  // --- SUB-VISTA DE CONSUMO DE MATERIALES (SPEC 038 & SPEC 039) ---
   let currentInventorySubView = 'stock'; // 'stock' | 'usage'
+  let currentUsageViewMode = 'order'; // 'order' (por Pedido) | 'material' (por Material)
 
   function cambiarSubVistaInventario(subview = 'stock') {
     currentInventorySubView = subview;
@@ -1905,11 +1906,76 @@
     }
   }
 
+  function cambiarModoVistaUso(modo = 'order') {
+    currentUsageViewMode = modo;
+    if (typeof document === 'undefined') return;
+
+    const btnOrder = document.getElementById('btn-inv-usage-mode-order');
+    const btnMaterial = document.getElementById('btn-inv-usage-mode-material');
+    const tableHead = document.getElementById('inv-usage-table-head');
+    const labelCount = document.getElementById('inv-usage-items-label');
+
+    if (modo === 'material') {
+      if (btnOrder) {
+        btnOrder.className = 'px-3 py-1.5 rounded-md text-xs font-bold text-gray-600 hover:text-gray-900 transition cursor-pointer';
+      }
+      if (btnMaterial) {
+        btnMaterial.className = 'px-3 py-1.5 rounded-md text-xs font-bold bg-white text-blue-700 shadow-xs transition cursor-pointer';
+      }
+      if (labelCount) labelCount.textContent = 'materiales con consumo';
+      if (tableHead) {
+        tableHead.innerHTML = `
+          <tr class="bg-gray-50 border-b border-gray-200 text-gray-600 uppercase text-[11px] font-bold tracking-wider">
+            <th class="py-3 px-3">Código</th>
+            <th class="py-3 px-3">Material / Prenda</th>
+            <th class="py-3 px-3">Categoría</th>
+            <th class="py-3 px-3 text-right">Stock Bodega</th>
+            <th class="py-3 px-3 text-right text-blue-700 bg-blue-50/50">Usado en el Mes</th>
+            <th class="py-3 px-3 text-right text-emerald-700 bg-emerald-50/50">Costo Mes ($)</th>
+            <th class="py-3 px-3 text-right text-purple-700 bg-purple-50/50">Total Acumulado</th>
+            <th class="py-3 px-3 text-right text-amber-700 bg-amber-50/50">Costo Acumulado ($)</th>
+          </tr>
+        `;
+      }
+    } else {
+      if (btnOrder) {
+        btnOrder.className = 'px-3 py-1.5 rounded-md text-xs font-bold bg-white text-blue-700 shadow-xs transition cursor-pointer';
+      }
+      if (btnMaterial) {
+        btnMaterial.className = 'px-3 py-1.5 rounded-md text-xs font-bold text-gray-600 hover:text-gray-900 transition cursor-pointer';
+      }
+      if (labelCount) labelCount.textContent = 'pedidos con consumo';
+      if (tableHead) {
+        tableHead.innerHTML = `
+          <tr class="bg-gray-50 border-b border-gray-200 text-gray-600 uppercase text-[11px] font-bold tracking-wider">
+            <th class="py-3 px-3">N° Pedido / Material</th>
+            <th class="py-3 px-3">Detalle / Cliente</th>
+            <th class="py-3 px-3">Categoría</th>
+            <th class="py-3 px-3 text-right">Costo Unit. ($)</th>
+            <th class="py-3 px-3 text-right text-blue-700 bg-blue-50/50">Cantidad Usada</th>
+            <th class="py-3 px-3 text-right text-emerald-700 bg-emerald-50/50">Subtotal Costo ($)</th>
+          </tr>
+        `;
+      }
+    }
+
+    filtrarMaterialUsado();
+  }
+
   function seleccionarMesActualUso() {
     if (typeof document === 'undefined') return;
     const monthInput = document.getElementById('inv-usage-filter-month');
     if (monthInput) {
       monthInput.value = new Date().toISOString().slice(0, 7);
+      filtrarMaterialUsado();
+    }
+  }
+
+  function limpiarFiltroMesUso() {
+    if (typeof document === 'undefined') return;
+    const monthInput = document.getElementById('inv-usage-filter-month');
+    if (monthInput) {
+      monthInput.value = '';
       filtrarMaterialUsado();
     }
   }
@@ -1922,23 +1988,43 @@
     if (!storage || !prod || typeof prod.calcularConsumoMateriales !== 'function') return;
 
     const monthInput = document.getElementById('inv-usage-filter-month');
-    const mesFiltro = (monthInput && monthInput.value) ? monthInput.value : new Date().toISOString().slice(0, 7);
-
-    if (monthInput && !monthInput.value) {
-      monthInput.value = mesFiltro;
-    }
+    const mesFiltro = monthInput ? monthInput.value.trim() : '';
 
     const pedidos = typeof storage.getOrders === 'function' ? storage.getOrders() : [];
     const inventario = typeof storage.getInventory === 'function' ? storage.getInventory() : [];
 
-    const consumoData = prod.calcularConsumoMateriales(pedidos, inventario, mesFiltro);
+    // Si mesFiltro tiene valor lo usamos, si no usamos mes corriente para las métricas mensuales
+    const mesReferencia = mesFiltro || new Date().toISOString().slice(0, 7);
+    const consumoData = prod.calcularConsumoMateriales(pedidos, inventario, mesReferencia);
 
-    // Búsqueda por texto (código, nombre, categoría, color)
+    // Filtrar pedidos según mesFiltro si el usuario especificó un mes
+    let pedidosFiltrados = Array.isArray(consumoData.pedidos) ? [...consumoData.pedidos] : [];
+    if (mesFiltro) {
+      pedidosFiltrados = pedidosFiltrados.filter(p => p.mesPedido === mesFiltro);
+    }
+
+    // Filtrar ítems de material
+    let itemsFiltrados = Array.isArray(consumoData.items) ? [...consumoData.items] : [];
+
+    // Búsqueda por texto (código, nombre, categoría, color, cliente, pedidoId)
     const searchInput = document.getElementById('inv-usage-search-input');
     const query = searchInput ? searchInput.value.trim().toLowerCase() : '';
 
-    if (query && Array.isArray(consumoData.items)) {
-      consumoData.items = consumoData.items.filter(it => {
+    if (query) {
+      pedidosFiltrados = pedidosFiltrados.filter(p => {
+        const idMatch = (p.pedidoId || '').toLowerCase().includes(query);
+        const cliMatch = (p.clienteNombre || '').toLowerCase().includes(query);
+        const statusMatch = (p.status || '').toLowerCase().includes(query);
+        const matMatch = (p.materiales || []).some(m =>
+          (m.code || '').toLowerCase().includes(query) ||
+          (m.name || '').toLowerCase().includes(query) ||
+          (m.category || '').toLowerCase().includes(query) ||
+          (m.color || '').toLowerCase().includes(query)
+        );
+        return idMatch || cliMatch || statusMatch || matMatch;
+      });
+
+      itemsFiltrados = itemsFiltrados.filter(it => {
         const cod = (it.code || '').toLowerCase();
         const nom = (it.name || '').toLowerCase();
         const cat = (it.category || '').toLowerCase();
@@ -1946,6 +2032,10 @@
         return cod.includes(query) || nom.includes(query) || cat.includes(query) || col.includes(query);
       });
     }
+
+    consumoData.pedidosFiltrados = pedidosFiltrados;
+    consumoData.items = itemsFiltrados;
+    consumoData.mesFiltroActivo = mesFiltro;
 
     renderInventoryUsage(consumoData);
   }
@@ -1975,79 +2065,163 @@
     const elCostTotal = document.getElementById('inv-usage-metric-cost-total');
     const elMonthLabel = document.getElementById('inv-usage-metric-month-label');
     const elCount = document.getElementById('inv-usage-items-count');
+    const elLabel = document.getElementById('inv-usage-items-label');
     const tableBody = document.getElementById('inv-usage-table-body');
 
     if (elUnitsMonth) elUnitsMonth.textContent = `${(resumen.unidadesMes || 0).toLocaleString('es-CL')} un.`;
     if (elCostMonth) elCostMonth.textContent = fmt(resumen.costoMes || 0);
     if (elUnitsTotal) elUnitsTotal.textContent = `${(resumen.unidadesAcumulado || 0).toLocaleString('es-CL')} un.`;
     if (elCostTotal) elCostTotal.textContent = fmt(resumen.costoAcumulado || 0);
-    if (elMonthLabel && consumoData.mesConsultado) {
-      elMonthLabel.textContent = `Período: ${consumoData.mesConsultado}`;
+    if (elMonthLabel) {
+      if (consumoData.mesFiltroActivo) {
+        elMonthLabel.textContent = `Período: ${consumoData.mesFiltroActivo}`;
+      } else {
+        elMonthLabel.textContent = 'Historial Acumulado (Todos)';
+      }
     }
-
-    const items = Array.isArray(consumoData.items) ? consumoData.items : [];
-    if (elCount) elCount.textContent = String(items.length);
 
     if (!tableBody) return;
 
-    if (items.length === 0) {
-      tableBody.innerHTML = `
-        <tr>
-          <td colspan="8" class="text-center py-8 text-gray-400">
-            <div class="flex flex-col items-center justify-center">
-              <span class="text-3xl mb-2">📦</span>
-              <p class="font-medium text-sm">No se registra material usado en el período seleccionado.</p>
-              <p class="text-xs text-gray-400 mt-1">Los consumos se calculan automáticamente a partir de los pedidos del taller.</p>
-            </div>
-          </td>
-        </tr>
-      `;
-      return;
+    // RENDERIZADO POR MODO: 'material' vs 'order'
+    const hasPedidos = Array.isArray(consumoData.pedidosFiltrados) || Array.isArray(consumoData.pedidos);
+    const esModoMaterial = currentUsageViewMode === 'material' || (!hasPedidos && Array.isArray(consumoData.items) && consumoData.items.length > 0);
+
+    if (esModoMaterial) {
+      const items = Array.isArray(consumoData.items) ? consumoData.items : [];
+      if (elCount) elCount.textContent = String(items.length);
+      if (elLabel) elLabel.textContent = 'materiales con consumo';
+
+      if (items.length === 0) {
+        tableBody.innerHTML = `
+          <tr>
+            <td colspan="8" class="text-center py-8 text-gray-400">
+              <div class="flex flex-col items-center justify-center">
+                <span class="text-3xl mb-2">📦</span>
+                <p class="font-medium text-sm">No se registra material usado en el período seleccionado.</p>
+                <p class="text-xs text-gray-400 mt-1">Los consumos se calculan automáticamente a partir de los pedidos del taller.</p>
+              </div>
+            </td>
+          </tr>
+        `;
+        return;
+      }
+
+      tableBody.innerHTML = items.map(it => {
+        const codeStr = it.code || 'S/C';
+        const nameStr = it.name || 'Sin especificar';
+        const catBadge = it.category || 'General';
+        const stockStr = `${(Number(it.currentStock) || 0).toLocaleString('es-CL')} ${it.unit || 'un.'}`;
+        const detalles = [
+          it.color ? `Color: ${it.color}` : null,
+          it.size ? `Talla: ${it.size}` : null
+        ].filter(Boolean).join(' • ');
+
+        const usadoMesClass = it.usadoMes > 0 ? 'text-blue-700 font-black' : 'text-gray-400 font-semibold';
+        const costoMesClass = it.costoMes > 0 ? 'text-emerald-700 font-bold' : 'text-gray-400 font-semibold';
+        const usadoTotalClass = it.usadoAcumulado > 0 ? 'text-purple-700 font-black' : 'text-gray-400 font-semibold';
+        const costoTotalClass = it.costoAcumulado > 0 ? 'text-amber-700 font-bold' : 'text-gray-400 font-semibold';
+
+        return `
+          <tr class="hover:bg-gray-50/80 transition">
+            <td class="py-3 px-3 font-mono font-bold text-gray-600">${codeStr}</td>
+            <td class="py-3 px-3">
+              <div class="font-bold text-gray-900">${nameStr}</div>
+              ${detalles ? `<div class="text-[11px] text-gray-500">${detalles}</div>` : ''}
+            </td>
+            <td class="py-3 px-3">
+              <span class="inline-block px-2 py-0.5 rounded text-[11px] font-semibold bg-gray-100 text-gray-700 border border-gray-200">
+                ${catBadge}
+              </span>
+            </td>
+            <td class="py-3 px-3 text-right font-semibold text-gray-700">${stockStr}</td>
+            <td class="py-3 px-3 text-right bg-blue-50/30 ${usadoMesClass}">
+              ${(it.usadoMes || 0).toLocaleString('es-CL')} ${it.unit || 'un.'}
+            </td>
+            <td class="py-3 px-3 text-right bg-emerald-50/30 ${costoMesClass}">
+              ${fmt(it.costoMes || 0)}
+            </td>
+            <td class="py-3 px-3 text-right bg-purple-50/30 ${usadoTotalClass}">
+              ${(it.usadoAcumulado || 0).toLocaleString('es-CL')} ${it.unit || 'un.'}
+            </td>
+            <td class="py-3 px-3 text-right bg-amber-50/30 ${costoTotalClass}">
+              ${fmt(it.costoAcumulado || 0)}
+            </td>
+          </tr>
+        `;
+      }).join('');
+    } else {
+      // MODO PREDETERMINADO: 'order' (ORDENADO POR PEDIDO)
+      const pedidos = Array.isArray(consumoData.pedidosFiltrados) ? consumoData.pedidosFiltrados : (Array.isArray(consumoData.pedidos) ? consumoData.pedidos : []);
+      if (elCount) elCount.textContent = String(pedidos.length);
+      if (elLabel) elLabel.textContent = 'pedidos con consumo';
+
+      if (pedidos.length === 0) {
+        tableBody.innerHTML = `
+          <tr>
+            <td colspan="6" class="text-center py-8 text-gray-400">
+              <div class="flex flex-col items-center justify-center">
+                <span class="text-3xl mb-2">📋</span>
+                <p class="font-medium text-sm">No se registra material usado en los pedidos del período seleccionado.</p>
+                <p class="text-xs text-gray-400 mt-1">Los consumos se calculan automáticamente a partir de los pedidos del taller.</p>
+              </div>
+            </td>
+          </tr>
+        `;
+        return;
+      }
+
+      tableBody.innerHTML = pedidos.map(p => {
+        const badgeEstado = getStatusBadgeClass(p.status);
+        const headerRow = `
+          <tr class="bg-gray-100/90 font-bold border-t-2 border-gray-200">
+            <td class="py-2.5 px-3">
+              <span class="font-mono text-blue-700 bg-blue-50 px-2 py-0.5 rounded border border-blue-200 text-xs font-bold">${p.pedidoId}</span>
+            </td>
+            <td class="py-2.5 px-3">
+              <div class="text-gray-900 font-bold">${p.clienteNombre}</div>
+              <div class="text-[11px] text-gray-500 font-normal">📅 Entrega: ${p.fecha || 'Sin fecha'}${p.clienteTelefono ? ' • Tel: ' + p.clienteTelefono : ''}</div>
+            </td>
+            <td class="py-2.5 px-3">
+              <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-semibold border ${badgeEstado}">
+                ${p.status}
+              </span>
+            </td>
+            <td class="py-2.5 px-3 text-right text-gray-500 text-[11px] font-semibold uppercase">Total Pedido:</td>
+            <td class="py-2.5 px-3 text-right text-blue-800 font-black bg-blue-50/50">${(p.totalUnidades || 0).toLocaleString('es-CL')} un.</td>
+            <td class="py-2.5 px-3 text-right text-emerald-800 font-black bg-emerald-50/50">${fmt(p.costoTotalMateriales || 0)}</td>
+          </tr>
+        `;
+
+        const materialRows = (p.materiales || []).map(m => {
+          const detalles = [
+            m.color ? `Color: ${m.color}` : null,
+            m.size ? `Talla: ${m.size}` : null
+          ].filter(Boolean).join(' • ');
+
+          return `
+            <tr class="hover:bg-blue-50/30 text-xs transition border-b border-gray-100">
+              <td class="py-2 px-3 pl-6 font-mono text-gray-600 font-semibold">
+                <span class="text-gray-400 mr-1.5 font-bold">↳</span>${m.code || 'S/C'}
+              </td>
+              <td class="py-2 px-3">
+                <div class="font-semibold text-gray-800">${m.name}</div>
+                ${detalles ? `<div class="text-[11px] text-gray-500">${detalles}</div>` : ''}
+              </td>
+              <td class="py-2 px-3">
+                <span class="inline-block px-2 py-0.5 rounded text-[10px] font-medium bg-gray-100 text-gray-700 border border-gray-200">
+                  ${m.category}
+                </span>
+              </td>
+              <td class="py-2 px-3 text-right text-gray-600 font-medium">${fmt(m.unitCost || 0)}</td>
+              <td class="py-2 px-3 text-right font-bold text-blue-700 bg-blue-50/20">${(m.quantity || 0).toLocaleString('es-CL')} ${m.unit || 'un.'}</td>
+              <td class="py-2 px-3 text-right font-bold text-emerald-700 bg-emerald-50/20">${fmt(m.totalCost || 0)}</td>
+            </tr>
+          `;
+        }).join('');
+
+        return headerRow + materialRows;
+      }).join('');
     }
-
-    tableBody.innerHTML = items.map(it => {
-      const codeStr = it.code || 'S/C';
-      const nameStr = it.name || 'Sin especificar';
-      const catBadge = it.category || 'General';
-      const stockStr = `${(Number(it.currentStock) || 0).toLocaleString('es-CL')} ${it.unit || 'un.'}`;
-      const detalles = [
-        it.color ? `Color: ${it.color}` : null,
-        it.size ? `Talla: ${it.size}` : null
-      ].filter(Boolean).join(' • ');
-
-      const usadoMesClass = it.usadoMes > 0 ? 'text-blue-700 font-black' : 'text-gray-400 font-semibold';
-      const costoMesClass = it.costoMes > 0 ? 'text-emerald-700 font-bold' : 'text-gray-400 font-semibold';
-      const usadoTotalClass = it.usadoAcumulado > 0 ? 'text-purple-700 font-black' : 'text-gray-400 font-semibold';
-      const costoTotalClass = it.costoAcumulado > 0 ? 'text-amber-700 font-bold' : 'text-gray-400 font-semibold';
-
-      return `
-        <tr class="hover:bg-gray-50/80 transition">
-          <td class="py-3 px-3 font-mono font-bold text-gray-600">${codeStr}</td>
-          <td class="py-3 px-3">
-            <div class="font-bold text-gray-900">${nameStr}</div>
-            ${detalles ? `<div class="text-[11px] text-gray-500">${detalles}</div>` : ''}
-          </td>
-          <td class="py-3 px-3">
-            <span class="inline-block px-2 py-0.5 rounded text-[11px] font-semibold bg-gray-100 text-gray-700 border border-gray-200">
-              ${catBadge}
-            </span>
-          </td>
-          <td class="py-3 px-3 text-right font-semibold text-gray-700">${stockStr}</td>
-          <td class="py-3 px-3 text-right bg-blue-50/30 ${usadoMesClass}">
-            ${(it.usadoMes || 0).toLocaleString('es-CL')} ${it.unit || 'un.'}
-          </td>
-          <td class="py-3 px-3 text-right bg-emerald-50/30 ${costoMesClass}">
-            ${fmt(it.costoMes || 0)}
-          </td>
-          <td class="py-3 px-3 text-right bg-purple-50/30 ${usadoTotalClass}">
-            ${(it.usadoAcumulado || 0).toLocaleString('es-CL')} ${it.unit || 'un.'}
-          </td>
-          <td class="py-3 px-3 text-right bg-amber-50/30 ${costoTotalClass}">
-            ${fmt(it.costoAcumulado || 0)}
-          </td>
-        </tr>
-      `;
-    }).join('');
   }
 
   // --- GESTIÓN DE COMPRAS DE INSUMOS (SPEC 002) ---
@@ -4944,7 +5118,10 @@
     cambiarSubVistaInventario,
     renderInventoryUsage,
     filtrarMaterialUsado,
-    seleccionarMesActualUso
+    seleccionarMesActualUso,
+    // Spec 039: Reporte de Material Usado Ordenado por Pedido
+    cambiarModoVistaUso,
+    limpiarFiltroMesUso
   };
 
   if (typeof module !== 'undefined' && module.exports) {
