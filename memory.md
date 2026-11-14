@@ -23,6 +23,16 @@ Registro de todo lo que debe preservarse entre sesiones de trabajo: arquitectura
 
 ## 2. Decisiones vigentes
 
+- **Enlace de Categoría de Gastos de Taller con Cuentas del Plan de Cuentas (Spec 040):**
+  - **Poblado Dinámico desde `storage.getAccounts()`:** El `<select id="expense-category-select">` en el modal `#dialog-expense` ya no utiliza opciones estáticas fijas en HTML, sino que se puebla dinámicamente mediante `NovaprintUI.poblarSelectorCategoriasGasto()` al abrir el diálogo (`abrirModalNuevoGasto`, `editarGasto`, `duplicarGasto`) y al invocar `refrescarContabilidad()`.
+  - **Cuentas de Egreso y Gastos:** Filtra automáticamente todas las cuentas del catálogo contable donde `tipo === 'Egreso'` o cuyo código comience con `5` (incluyendo cuentas del sistema 5201-5206 y cualquier cuenta de egreso personalizada creada por el usuario en el Plan de Cuentas).
+  - **Formato Visual y Metadatos en Opciones:** Cada opción presenta la etiqueta `[Código] — [Nombre]` (ej. `5201 — Arriendo de Taller`) y almacena los atributos `data-code="[codigo]"` y `data-id="[id]"`.
+  - **Persistencia Completa en `storage.saveExpense`:** Al registrar o editar un gasto, `guardarGastoDesdeFormulario` persiste `category` (nombre canónico), `accountCode`, `accountId` y `accountName`, garantizando trazabilidad contable total y retrocompatibilidad con gastos preexistentes.
+  - **Imputación Directa en Libro Diario y Libro Mayor (`accounting.js`):**
+    - `generarLibroDiario` asigna directamente `accountCode` y `accountId` en el asiento de gasto generado.
+    - `asientoAfectaCuenta` vincula directamente el asiento por `accountCode` o `accountId` tanto si se consulta por código, id o pasando el objeto cuenta.
+    - `calcularSaldosPlanCuentas` debita el importe del gasto directamente sobre el saldo de la cuenta específica correspondiente, reflejándose en tiempo real en la columna "Saldo Actual" del Plan de Cuentas.
+
 - **Preservación de Checkboxes (Desc. Volumen, IVA, Delivery) al Avanzar o Modificar Estado (Spec 037):**
   - **Atributo Explícito `applyDiscount` en `totals` (`sales.js`):** La función `calcularTotalesPedido` exporta e incluye siempre `applyDiscount: Boolean(aplicarDescuentoVolumen)` junto a `applyIva` y `applyDelivery`.
   - **Restauración Fiel en Formularios (`ui.js`):** En `editarPedido` y `duplicarPedido`, el checkbox `#form-apply-discount` se restaura explícitamente desde `pedido.totals.applyDiscount` (con retrocompatibilidad que deduce `volumeDiscountAmount > 0`), asegurando que la decisión del vendedor sobre otorgar o no descuento por volumen nunca sea pisada o reiniciada a `true` al editar o modificar el estado del pedido desde el diálogo.
@@ -260,6 +270,20 @@ Registro de todo lo que debe preservarse entre sesiones de trabajo: arquitectura
 ---
 
 ## 3. Historial de cambios
+
+### 2026-11-14 (Enlace de Categoría de Gastos con Cuentas del Plan de Cuentas — Spec 040)
+- **Interfaz y Poblado Dinámico de Gastos (`assets/js/ui.js` & `index.html`):**
+  - Implementación de `poblarSelectorCategoriasGasto(categoriaSeleccionada)` que consulta las cuentas contables de `storage.getAccounts()` (filtrando grupo 5 / Egresos) y puebla reactivamente `<select id="expense-category-select">` con el formato `[Código] — [Nombre]` y atributos `data-code` y `data-id`.
+  - Integración en `abrirModalNuevoGasto`, `editarGasto`, `duplicarGasto` y en `refrescarContabilidad()` (`main.js`).
+  - Actualización de `guardarGastoDesdeFormulario` para persistir `accountCode`, `accountId` y `accountName` junto con `category`.
+  - Exportación de `poblarSelectorCategoriasGasto` en `NovaprintUI`.
+- **Motor Contable y Saldos de Mayor (`assets/js/accounting.js`):**
+  - Enriquecimiento de asientos de gasto en `generarLibroDiario` incorporando `accountCode` y `accountId`.
+  - Actualización de `asientoAfectaCuenta` y `calcularSaldosPlanCuentas` para imputar el gasto directamente a la cuenta contable enlazada mediante su código o ID, con soporte dual para identificadores string y objetos de cuenta.
+- **Pruebas Automatizadas (`tests/expense_accounts_link.test.js`):**
+  - 9 pruebas unitarias nuevas cubriendo: poblado dinámico de cuentas oficiales y personalizadas, apertura de modal, persistencia y precarga en edición y duplicación, imputación en Libro Diario, vinculación en `asientoAfectaCuenta` y saldos en Plan de Cuentas.
+  - Suite global completa: 32 suites, 313 pruebas pasando con 0 fallos y 0 regresiones.
+- **Metodología SDD:** Especificación formal en `specs/040-enlace-categoria-gastos-plan-cuentas/` (`spec.md`, `plan.md`, `tasks.md`).
 
 ### 2026-11-14 (Reporte de Material Usado / Consumo Ordenado por Pedido — Spec 039)
 - **Motor de Consumo Textil y DTF (`assets/js/production.js`):**

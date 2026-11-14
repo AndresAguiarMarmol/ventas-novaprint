@@ -863,6 +863,11 @@
     const transferencias = storage.getTransfers ? storage.getTransfers() : [];
 
     ui.renderAccountingModule(pedidos, compras, inventario, gastos, settings, transferencias);
+
+    // Spec 040: Refrescar selector de categorías de gastos con el Plan de Cuentas vigente
+    if (typeof ui.poblarSelectorCategoriasGasto === 'function') {
+      ui.poblarSelectorCategoriasGasto();
+    }
   }
 
   function refrescarDatos() {

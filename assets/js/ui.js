@@ -4165,10 +4165,70 @@
     }
   }
 
+  // --- ENLACE DE CATEGORÍA DE GASTOS CON PLAN DE CUENTAS (SPEC 040) ---
+  function poblarSelectorCategoriasGasto(categoriaSeleccionada = '') {
+    if (typeof document === 'undefined') return;
+    const catSelect = document.getElementById('expense-category-select');
+    if (!catSelect) return;
+
+    const storage = global.NovaprintStorage;
+    const accounts = storage && typeof storage.getAccounts === 'function' ? storage.getAccounts() : [];
+
+    // Filtrar cuentas activas de egresos / gastos (tipo 'Egreso' o 'Gasto', o código 5xxx)
+    const expenseAccounts = accounts.filter(a => {
+      if (!a || a.activo === false) return false;
+      const tipo = (a.tipo || '').toString().toLowerCase();
+      const codigo = (a.codigo || '').toString().trim();
+      return tipo.includes('egreso') || tipo.includes('gasto') || codigo.startsWith('5');
+    }).sort((a, b) => (a.codigo || '').localeCompare(b.codigo || ''));
+
+    if (expenseAccounts.length === 0) {
+      const accounting = global.NovaprintAccounting;
+      const defaults = accounting && accounting.CATEGORIAS_GASTO ? accounting.CATEGORIAS_GASTO : [];
+      catSelect.innerHTML = defaults.map(c => `<option value="${c.valor}" data-code="${c.codigo || ''}">${c.codigo ? c.codigo + ' — ' : ''}${c.label || c.valor}</option>`).join('');
+      if (categoriaSeleccionada) catSelect.value = categoriaSeleccionada;
+      return;
+    }
+
+    catSelect.innerHTML = expenseAccounts.map(a => {
+      const codeStr = a.codigo ? `${a.codigo} — ` : '';
+      return `<option value="${a.nombre}" data-code="${a.codigo || ''}" data-id="${a.id || ''}">${codeStr}${a.nombre}</option>`;
+    }).join('');
+
+    if (categoriaSeleccionada) {
+      const valStr = categoriaSeleccionada.toString().trim();
+      const valLower = valStr.toLowerCase();
+
+      let match = null;
+      if (catSelect.options && catSelect.options.length > 0) {
+        match = Array.from(catSelect.options).find(opt => {
+          const optVal = (opt.value || '').toLowerCase();
+          const optCode = (opt.getAttribute && opt.getAttribute('data-code') || '').toLowerCase();
+          const optText = (opt.textContent || '').toLowerCase();
+          return optVal === valLower || optCode === valLower || optText.includes(valLower) || valLower.includes(optVal);
+        });
+      }
+
+      if (match) {
+        catSelect.value = match.value;
+      } else {
+        if (typeof document.createElement === 'function') {
+          const opt = document.createElement('option');
+          opt.value = valStr;
+          opt.textContent = valStr;
+          catSelect.appendChild(opt);
+        }
+        catSelect.value = valStr;
+      }
+    }
+  }
+
   function abrirModalNuevoGasto() {
     if (typeof document === 'undefined') return;
     const form = document.getElementById('form-expense');
     if (form) form.reset();
+
+    poblarSelectorCategoriasGasto();
 
     const idInput = document.getElementById('expense-id-hidden');
     if (idInput) idInput.value = '';
@@ -4201,6 +4261,8 @@
     const form = document.getElementById('form-expense');
     if (form) form.reset();
 
+    poblarSelectorCategoriasGasto(g.category || g.accountName || g.accountCode);
+
     const idInput = document.getElementById('expense-id-hidden');
     if (idInput) idInput.value = g.id;
 
@@ -4208,7 +4270,7 @@
     if (dateInput) dateInput.value = g.date || new Date().toISOString().split('T')[0];
 
     const catInput = document.getElementById('expense-category-select');
-    if (catInput) catInput.value = g.category || 'Otros Gastos';
+    if (catInput && g.category) catInput.value = g.category;
 
     const descInput = document.getElementById('expense-desc-input');
     if (descInput) descInput.value = g.description || '';
@@ -4245,6 +4307,8 @@
     const form = document.getElementById('form-expense');
     if (form) form.reset();
 
+    poblarSelectorCategoriasGasto(g.category || g.accountName || g.accountCode);
+
     const idInput = document.getElementById('expense-id-hidden');
     if (idInput) idInput.value = ''; // Limpiar ID para generar un nuevo gasto
 
@@ -4252,7 +4316,7 @@
     if (dateInput) dateInput.value = new Date().toISOString().split('T')[0];
 
     const catInput = document.getElementById('expense-category-select');
-    if (catInput) catInput.value = g.category || 'Otros Gastos';
+    if (catInput && g.category) catInput.value = g.category;
 
     const descInput = document.getElementById('expense-desc-input');
     if (descInput) descInput.value = g.description ? `${g.description} (Copia)` : 'Gasto (Copia)';
@@ -4294,6 +4358,15 @@
     const id = idInput ? idInput.value.trim() : '';
     const date = dateInput && dateInput.value ? dateInput.value : new Date().toISOString().split('T')[0];
     const category = catInput ? catInput.value : 'Otros Gastos';
+
+    let accountCode = null;
+    let accountId = null;
+    if (catInput && catInput.selectedIndex >= 0 && catInput.options && catInput.options[catInput.selectedIndex]) {
+      const selectedOpt = catInput.options[catInput.selectedIndex];
+      accountCode = typeof selectedOpt.getAttribute === 'function' ? selectedOpt.getAttribute('data-code') : (selectedOpt['data-code'] || null);
+      accountId = typeof selectedOpt.getAttribute === 'function' ? selectedOpt.getAttribute('data-id') : (selectedOpt['data-id'] || null);
+    }
+
     const description = descInput ? descInput.value.trim() : '';
     const amount = Number(amountInput ? amountInput.value : 0);
     const paymentMethod = methodInput ? methodInput.value : 'Transferencia / Banco';
@@ -4319,6 +4392,9 @@
       id: id || undefined,
       date,
       category,
+      accountCode,
+      accountId,
+      accountName: category,
       description,
       amount,
       paymentMethod,
@@ -5121,7 +5197,9 @@
     seleccionarMesActualUso,
     // Spec 039: Reporte de Material Usado Ordenado por Pedido
     cambiarModoVistaUso,
-    limpiarFiltroMesUso
+    limpiarFiltroMesUso,
+    // Spec 040: Enlace de Categoría de Gastos con Plan de Cuentas
+    poblarSelectorCategoriasGasto
   };
 
   if (typeof module !== 'undefined' && module.exports) {

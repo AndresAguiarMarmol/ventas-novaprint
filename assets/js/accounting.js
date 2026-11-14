@@ -703,8 +703,12 @@
         debe: monto,
         cuentaHaber: CUENTAS_CONTABLES.CAJA_BANCOS.nombre,
         haber: monto,
+        accountCode: g.accountCode || null,
+        accountId: g.accountId || null,
         detalle: {
           categoria: g.category,
+          accountCode: g.accountCode || null,
+          accountId: g.accountId || null,
           notas: g.notes
         }
       });
@@ -800,6 +804,8 @@
         // Verificar si este asiento afecta a esta cuenta al Debe
         let esDebe = false;
         if (a.detalle && (a.detalle.destinoId === id || (a.detalle.destinoCodigo && a.detalle.destinoCodigo.toString().trim() === codigo))) {
+          esDebe = true;
+        } else if (a.tipo === 'Gasto' && (a.accountCode === codigo || a.accountId === id || (a.detalle && (a.detalle.accountCode === codigo || a.detalle.accountId === id)))) {
           esDebe = true;
         } else if (a.cuentaDebe) {
           const cDebeNorm = a.cuentaDebe.toLowerCase().trim();
@@ -915,21 +921,29 @@
   function asientoAfectaCuenta(asiento, cuentaIdentificador, catalogoCuentas = []) {
     if (!asiento || !cuentaIdentificador || cuentaIdentificador === 'todas') return true;
 
-    const term = cuentaIdentificador.toString().trim().toLowerCase();
-    if (!term || term === 'todas') return true;
-
-    // Buscar si corresponde a una cuenta registrada para obtener su código y nombre exacto
     let cuentaObj = null;
-    if (Array.isArray(catalogoCuentas)) {
-      cuentaObj = catalogoCuentas.find(acc =>
-        (acc.id && acc.id.toString().toLowerCase() === term) ||
-        (acc.codigo && acc.codigo.toString().trim().toLowerCase() === term) ||
-        (acc.nombre && acc.nombre.toString().trim().toLowerCase() === term)
-      );
+    let term = '';
+
+    if (typeof cuentaIdentificador === 'object' && cuentaIdentificador !== null) {
+      cuentaObj = cuentaIdentificador;
+      term = (cuentaObj.id || cuentaObj.codigo || cuentaObj.nombre || '').toString().trim().toLowerCase();
+    } else {
+      term = cuentaIdentificador.toString().trim().toLowerCase();
+      if (!term || term === 'todas') return true;
+
+      // Buscar si corresponde a una cuenta registrada para obtener su código y nombre exacto
+      if (Array.isArray(catalogoCuentas)) {
+        cuentaObj = catalogoCuentas.find(acc =>
+          (acc.id && acc.id.toString().toLowerCase() === term) ||
+          (acc.codigo && acc.codigo.toString().trim().toLowerCase() === term) ||
+          (acc.nombre && acc.nombre.toString().trim().toLowerCase() === term)
+        );
+      }
     }
 
     const codigo = cuentaObj ? (cuentaObj.codigo || '').toString().trim() : term;
     const nombre = cuentaObj ? (cuentaObj.nombre || '').toString().trim().toLowerCase() : term;
+    const cuentaId = cuentaObj ? (cuentaObj.id || '').toString().trim() : term;
 
     // 1. Coincidencia en cuentas directas (Debe / Haber)
     const cDebe = (asiento.cuentaDebe || '').toString().toLowerCase().trim();
@@ -961,9 +975,14 @@
       if (destNom && nombre && (destNom.includes(nombre) || (destNom.length >= 6 && nombre.includes(destNom)))) return true;
     }
 
-    // 3. Mapeo específico de Gastos Operacionales (Spec 028: 5201 - 5206)
+    // 3. Mapeo específico de Gastos Operacionales (Spec 028: 5201 - 5206 & Spec 040)
     if (asiento.tipo === 'Gasto') {
+      if (asiento.accountCode && codigo && asiento.accountCode.toString().trim() === codigo.toString().trim()) return true;
+      if (asiento.accountId && cuentaId && asiento.accountId.toString().trim() === cuentaId) return true;
+      if (asiento.detalle && asiento.detalle.accountCode && codigo && asiento.detalle.accountCode.toString().trim() === codigo.toString().trim()) return true;
+      if (asiento.detalle && asiento.detalle.accountId && cuentaId && asiento.detalle.accountId.toString().trim() === cuentaId) return true;
       const cat = (asiento.detalle?.categoria || asiento.cuentaDebe || '').toString().toLowerCase().trim();
+      if (nombre && cat.includes(nombre.toLowerCase())) return true;
       for (const [key, codeVal] of Object.entries(MAPA_CATEGORIAS_GASTO_CODIGOS)) {
         if (cat.includes(key) && codigo === codeVal) return true;
       }
