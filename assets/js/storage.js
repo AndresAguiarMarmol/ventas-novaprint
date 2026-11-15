@@ -253,6 +253,18 @@
       }
     } catch (_) {}
 
+    // Spec 041: Deducción o restitución automática de inventario según estado del pedido
+    const estadosDescuento = ['En producción', 'Listo para entrega', 'Entregado'];
+    if (estadosDescuento.includes(orderToSave.status) && !orderToSave.stockDeducted) {
+      descontarStockPorPedido(orderToSave.items || [], orderToSave.id);
+      orderToSave.stockDeducted = true;
+      orderToSave.stockDeductedAt = new Date().toISOString();
+    } else if (orderToSave.status === 'Cancelado' && orderToSave.stockDeducted) {
+      restituirStockPorPedido(orderToSave.items || [], orderToSave.id);
+      orderToSave.stockDeducted = false;
+      orderToSave.stockDeductedAt = null;
+    }
+
     setItem(STORAGE_KEYS.ORDERS, orders);
     return orderToSave;
   }
@@ -267,6 +279,19 @@
         if (!orders[idx].dates) orders[idx].dates = {};
         orders[idx].dates.deliveredAt = new Date().toISOString();
       }
+
+      // Spec 041: Descuento o restitución de inventario ante transiciones de estado
+      const estadosDescuento = ['En producción', 'Listo para entrega', 'Entregado'];
+      if (estadosDescuento.includes(newStatus) && !orders[idx].stockDeducted) {
+        descontarStockPorPedido(orders[idx].items || [], orders[idx].id);
+        orders[idx].stockDeducted = true;
+        orders[idx].stockDeductedAt = new Date().toISOString();
+      } else if (newStatus === 'Cancelado' && orders[idx].stockDeducted) {
+        restituirStockPorPedido(orders[idx].items || [], orders[idx].id);
+        orders[idx].stockDeducted = false;
+        orders[idx].stockDeductedAt = null;
+      }
+
       setItem(STORAGE_KEYS.ORDERS, orders);
       return orders[idx];
     }
@@ -737,16 +762,59 @@
     };
   }
 
-  // --- DESCUENTO DE STOCK POR PEDIDO (Spec 004) ---
-  function descontarStockPorPedido(itemsPedido = []) {
+  // --- DESCUENTO Y RESTITUCIÓN DE STOCK POR PEDIDO (Spec 004 & Spec 041) ---
+  function descontarStockPorPedido(itemsPedido = [], orderId = '') {
     const prod = global.NovaprintProduction || (typeof require !== 'undefined' ? require('./production.js') : null);
     if (!prod || typeof prod.descontarInventarioPorPedido !== 'function') {
       return { descontados: [], noEncontrados: itemsPedido, nuevoInventario: getInventory() };
     }
     const inventarioActual = getInventory();
-    const resultado = prod.descontarInventarioPorPedido(inventarioActual, itemsPedido);
+    const resultado = prod.descontarInventarioPorPedido(inventarioActual, itemsPedido, orderId);
     setItem(STORAGE_KEYS.INVENTORY, resultado.nuevoInventario);
     return resultado;
+  }
+
+  function restituirStockPorPedido(itemsPedido = [], orderId = '') {
+    const prod = global.NovaprintProduction || (typeof require !== 'undefined' ? require('./production.js') : null);
+    if (!prod || typeof prod.restituirInventarioPorPedido !== 'function') {
+      return { restituidos: [], noEncontrados: itemsPedido, nuevoInventario: getInventory() };
+    }
+    const inventarioActual = getInventory();
+    const resultado = prod.restituirInventarioPorPedido(inventarioActual, itemsPedido, orderId);
+    setItem(STORAGE_KEYS.INVENTORY, resultado.nuevoInventario);
+    return resultado;
+  }
+
+  /**
+   * Spec 041 — Reconciliación automática de inventario para pedidos terminados o en producción
+   * que aún no hayan tenido su descuento de existencias registrado (ej. NP-20261111-002).
+   */
+  function reconciliarDescuentosPedidosTerminados() {
+    const orders = getOrders();
+    const estadosDescuento = ['En producción', 'Listo para entrega', 'Entregado'];
+    let pedidosReconciliados = 0;
+    let itemsDescontados = 0;
+
+    orders.forEach(o => {
+      if (estadosDescuento.includes(o.status) && !o.stockDeducted) {
+        const res = descontarStockPorPedido(o.items || [], o.id);
+        o.stockDeducted = true;
+        o.stockDeductedAt = new Date().toISOString();
+        pedidosReconciliados++;
+        if (res && res.descontados) {
+          itemsDescontados += res.descontados.length;
+        }
+      }
+    });
+
+    if (pedidosReconciliados > 0) {
+      setItem(STORAGE_KEYS.ORDERS, orders);
+    }
+
+    return {
+      pedidosReconciliados,
+      itemsDescontados
+    };
   }
 
   // --- PROYECTOS / FABRICACIÓN (Spec 003) ---
@@ -1834,6 +1902,8 @@
     deletePurchase,
     separarCompraEnDos,
     descontarStockPorPedido,
+    restituirStockPorPedido,
+    reconciliarDescuentosPedidosTerminados,
     getProjects,
     getProjectById,
     saveProject,

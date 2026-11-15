@@ -74,6 +74,15 @@
       }
     }
 
+    // Spec 041: Reconciliación automática de descuento de inventario para pedidos concluidos o en taller
+    if (global.NovaprintStorage && typeof global.NovaprintStorage.reconciliarDescuentosPedidosTerminados === 'function') {
+      try {
+        global.NovaprintStorage.reconciliarDescuentosPedidosTerminados();
+      } catch (err) {
+        console.warn('Error en reconciliación de inventario para pedidos terminados:', err);
+      }
+    }
+
     // Aplicar tema guardado en configuración (Spec 010)
     if (global.NovaprintStorage) {
       const config = global.NovaprintStorage.getSettings();

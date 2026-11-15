@@ -23,6 +23,13 @@ Registro de todo lo que debe preservarse entre sesiones de trabajo: arquitectura
 
 ## 2. Decisiones vigentes
 
+- **Descuento Automático e Idempotente de Inventario al Culminar o Avanzar Pedido (Spec 041):**
+  - **Deducción de Existencias en Transición de Estados:** Al avanzar o modificar el estado de un pedido (`storage.updateOrderStatus`, `storage.saveOrder`, `NovaprintUI.cambiarEstado`, `NovaprintUI.seleccionarNuevoEstado`) a `'En producción'`, `'Listo para entrega'` o `'Entregado'`, el sistema deduce automáticamente las cantidades físicas de prendas del inventario de bodega (`novaprint_inventory`).
+  - **Idempotencia Estricta (`stockDeducted: true`):** El pedido registra los atributos `stockDeducted: true` y `stockDeductedAt: ISOString`. Si el pedido continúa avanzando (ej. de `'Listo para entrega'` a `'Entregado'`), el sistema no vuelve a restar stock, previniendo dobles deducciones.
+  - **Restitución por Cancelación:** Si un pedido que ya tenía `stockDeducted: true` pasa al estado `'Cancelado'`, el sistema restituye automáticamente las prendas a bodega (`restituirStockPorPedido`), registra la auditoría en `lastStockAdjustment` y desmarca `stockDeducted: false`.
+  - **Reconciliación Retroactiva en Arranque (`main.js:init()`):** Al cargar la aplicación, `storage.reconciliarDescuentosPedidosTerminados()` escanea pedidos concluidos que carezcan de la marca `stockDeducted` (incluyendo la orden real `NP-20261111-002`) y descuenta de inmediato sus existencias en bodega.
+  - **Enlace con Órdenes de Fabricación:** Cuando una orden de taller avanza a la etapa `'Terminado'` (`NovaprintUI.avanzarEtapaProyecto`), actualiza el pedido a `'Listo para entrega'` detonando automáticamente el descuento de inventario.
+
 - **Enlace de Categoría de Gastos de Taller con Cuentas del Plan de Cuentas (Spec 040):**
   - **Poblado Dinámico desde `storage.getAccounts()`:** El `<select id="expense-category-select">` en el modal `#dialog-expense` ya no utiliza opciones estáticas fijas en HTML, sino que se puebla dinámicamente mediante `NovaprintUI.poblarSelectorCategoriasGasto()` al abrir el diálogo (`abrirModalNuevoGasto`, `editarGasto`, `duplicarGasto`) y al invocar `refrescarContabilidad()`.
   - **Cuentas de Egreso y Gastos:** Filtra automáticamente todas las cuentas del catálogo contable donde `tipo === 'Egreso'` o cuyo código comience con `5` (incluyendo cuentas del sistema 5201-5206 y cualquier cuenta de egreso personalizada creada por el usuario en el Plan de Cuentas).
@@ -270,6 +277,22 @@ Registro de todo lo que debe preservarse entre sesiones de trabajo: arquitectura
 ---
 
 ## 3. Historial de cambios
+
+### 2026-11-15 (Descuento Automático e Idempotente de Inventario al Culminar o Avanzar Pedido — Spec 041)
+- **Motor de Producción y Bodega (`assets/js/production.js`):**
+  - Se extendió `descontarInventarioPorPedido(inventario, itemsPedido, orderId)` para actualizar `currentStock = Math.max(0, stock - qty)` y registrar la auditoría en `lastStockAdjustment` con motivo `"Consumo por Pedido [ID]"`.
+  - Implementación de `restituirInventarioPorPedido(inventario, itemsPedido, orderId)` para reintegrar existencias ante cancelación de pedidos.
+- **Capa de Persistencia y Reconciliación (`assets/js/storage.js`):**
+  - `updateOrderStatus` y `saveOrder` aplican el descuento de inventario automáticamente ante estados de taller o entrega (`'En producción'`, `'Listo para entrega'`, `'Entregado'`) garantizando idempotencia mediante la bandera `stockDeducted: true`.
+  - Restitución automática ante anulación o cancelación (`newStatus === 'Cancelado'`).
+  - Implementación de `reconciliarDescuentosPedidosTerminados()` expuesta en `storage`, que deduce retroactivamente las prendas de órdenes terminadas pendientes (resolviendo el caso de la orden `NP-20261111-002`).
+- **Interfaz y Orquestador (`assets/js/ui.js` & `assets/js/main.js`):**
+  - Ajuste en `enviarPedidoAFabricacion` para sincronizar `stockDeducted` evitando deducciones duplicadas.
+  - Llamada a `storage.reconciliarDescuentosPedidosTerminados()` en `main.js:init()`.
+- **Pruebas Automatizadas (`tests/inventory_order_deduction.test.js`):**
+  - 7 pruebas unitarias nuevas cubriendo descuento de existencias, restitución por cancelación, deducción automática en `updateOrderStatus`, idempotencia entre entregas, reconciliación de `NP-20261111-002` e integración con `avanzarEtapaProyecto`.
+  - Suite global completa: 33 suites, 320 pruebas unitarias pasando al 100% con 0 fallos.
+- **Metodología SDD:** Especificación formal en `specs/041-descuento-inventario-termino-pedido/` (`spec.md`, `plan.md`, `tasks.md`).
 
 ### 2026-11-14 (Enlace de Categoría de Gastos con Cuentas del Plan de Cuentas — Spec 040)
 - **Interfaz y Poblado Dinámico de Gastos (`assets/js/ui.js` & `index.html`):**

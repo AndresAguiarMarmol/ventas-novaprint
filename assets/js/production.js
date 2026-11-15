@@ -493,9 +493,9 @@
   }
 
   /**
-   * Spec 004 — Descuenta del inventario físico las prendas usadas en un pedido
+   * Spec 004 & Spec 041 — Descuenta del inventario físico las prendas usadas en un pedido
    */
-  function descontarInventarioPorPedido(inventario = [], itemsPedido = []) {
+  function descontarInventarioPorPedido(inventario = [], itemsPedido = [], orderId = '') {
     if (!Array.isArray(inventario)) inventario = [];
     if (!Array.isArray(itemsPedido)) itemsPedido = [];
 
@@ -521,6 +521,15 @@
         const nuevoStock = Math.max(0, stockAnterior - cantidad);
         const cantidadDescontada = stockAnterior - nuevoStock;
         invItem.currentStock = nuevoStock;
+        invItem.updatedAt = new Date().toISOString();
+        invItem.lastStockAdjustment = {
+          previousStock: stockAnterior,
+          newStock: nuevoStock,
+          delta: -cantidadDescontada,
+          date: new Date().toISOString(),
+          reason: orderId ? `Consumo por Pedido ${orderId}` : 'Consumo por Pedido',
+          notes: `Deducción de ${cantidadDescontada} un. para confección del pedido ${orderId || ''}`.trim()
+        };
         descontados.push({
           id: invItem.id,
           code: invItem.code,
@@ -537,6 +546,63 @@
     return {
       nuevoInventario,
       descontados,
+      noEncontrados
+    };
+  }
+
+  /**
+   * Spec 041 — Reintegra al inventario físico las prendas de un pedido cancelado
+   */
+  function restituirInventarioPorPedido(inventario = [], itemsPedido = [], orderId = '') {
+    if (!Array.isArray(inventario)) inventario = [];
+    if (!Array.isArray(itemsPedido)) itemsPedido = [];
+
+    const restituidos = [];
+    const noEncontrados = [];
+    const nuevoInventario = inventario.map(item => ({ ...item }));
+
+    itemsPedido.forEach(it => {
+      const prendaBuscada = normalizarTexto(it.garmentType);
+      const colorBuscado = normalizarTexto(it.color);
+      const tallaBuscada = normalizarTexto(it.size);
+      const cantidad = Math.max(0, Number(it.quantity) || 0);
+
+      const invItem = nuevoInventario.find(inv => {
+        const matchPrenda = normalizarTexto(inv.garmentType) === prendaBuscada || normalizarTexto(inv.name).includes(prendaBuscada);
+        const matchColor = normalizarTexto(inv.color) === colorBuscado || normalizarTexto(inv.name).includes(colorBuscado);
+        const matchTalla = normalizarTexto(inv.size) === tallaBuscada || normalizarTexto(inv.name).includes(tallaBuscada);
+        return matchPrenda && matchColor && matchTalla;
+      });
+
+      if (invItem) {
+        const stockAnterior = Math.max(0, Number(invItem.currentStock) || 0);
+        const nuevoStock = stockAnterior + cantidad;
+        invItem.currentStock = nuevoStock;
+        invItem.updatedAt = new Date().toISOString();
+        invItem.lastStockAdjustment = {
+          previousStock: stockAnterior,
+          newStock: nuevoStock,
+          delta: cantidad,
+          date: new Date().toISOString(),
+          reason: orderId ? `Restitución por Cancelación Pedido ${orderId}` : 'Restitución por Cancelación de Pedido',
+          notes: `Reintegro de ${cantidad} un. por anulación/cancelación del pedido ${orderId || ''}`.trim()
+        };
+        restituidos.push({
+          id: invItem.id,
+          code: invItem.code,
+          name: invItem.name,
+          stockAnterior,
+          cantidadRestituida: cantidad,
+          nuevoStock
+        });
+      } else {
+        noEncontrados.push(it);
+      }
+    });
+
+    return {
+      nuevoInventario,
+      restituidos,
       noEncontrados
     };
   }
@@ -902,10 +968,11 @@
     crearProyectoDesdePedido,
     filtrarProyectosFabricacion,
     generarIdFabricacion,
-    // Spec 004: Enlace Pedidos ➔ Inventario y Faltantes
+    // Spec 004 & Spec 041: Enlace Pedidos ➔ Inventario, Faltantes y Restitución
     verificarDisponibilidadPrenda,
     calcularFaltantesPedido,
     descontarInventarioPorPedido,
+    restituirInventarioPorPedido,
     // Spec 020: Opciones y Compra de Estampados
     OPCIONES_ESTAMPADO,
     normalizarOpcionEstampado,

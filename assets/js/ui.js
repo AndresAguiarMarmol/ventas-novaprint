@@ -13,6 +13,7 @@
    * Muestra notificaciones flotantes tipo Toast
    */
   function showToast(message, type = 'info') {
+    if (typeof document === 'undefined') return;
     const container = document.getElementById('toast-container');
     if (!container) return;
 
@@ -1242,7 +1243,9 @@
       const storage = global.NovaprintStorage;
       storage.deleteOrder(orderId);
       showToast(`Pedido ${orderId} eliminado.`, 'info');
-      global.NovaprintMain.refrescarDatos();
+      if (global.NovaprintMain && typeof global.NovaprintMain.refrescarDatos === 'function') {
+        global.NovaprintMain.refrescarDatos();
+      }
     }
   }
 
@@ -1298,7 +1301,9 @@
     if (confirm(`¿Eliminar al cliente "${c ? c.name : clientId}"?`)) {
       storage.deleteClient(clientId);
       showToast('Cliente eliminado.', 'info');
-      global.NovaprintMain.refrescarDatos();
+      if (global.NovaprintMain && typeof global.NovaprintMain.refrescarDatos === 'function') {
+        global.NovaprintMain.refrescarDatos();
+      }
     }
   }
 
@@ -1470,7 +1475,9 @@
     if (confirm(`¿Eliminar al proveedor "${p ? p.name : supplierId}"?`)) {
       storage.deleteSupplier(supplierId);
       showToast('Proveedor eliminado.', 'info');
-      global.NovaprintMain.refrescarDatos();
+      if (global.NovaprintMain && typeof global.NovaprintMain.refrescarDatos === 'function') {
+        global.NovaprintMain.refrescarDatos();
+      }
     }
   }
 
@@ -1670,7 +1677,9 @@
     if (confirm(`¿Eliminar el artículo "${it ? it.name : itemId}" del inventario?`)) {
       storage.deleteInventoryItem(itemId);
       showToast('Artículo eliminado del inventario.', 'info');
-      global.NovaprintMain.refrescarDatos();
+      if (global.NovaprintMain && typeof global.NovaprintMain.refrescarDatos === 'function') {
+        global.NovaprintMain.refrescarDatos();
+      }
     }
   }
 
@@ -1822,7 +1831,9 @@
     showToast(`Stock de "${updated.name}" actualizado a ${updated.currentStock} ${updated.unit || 'un.'}`, 'success');
 
     if (global.NovaprintMain && typeof global.NovaprintMain.refrescarDatos === 'function') {
-      global.NovaprintMain.refrescarDatos();
+      if (global.NovaprintMain && typeof global.NovaprintMain.refrescarDatos === 'function') {
+        global.NovaprintMain.refrescarDatos();
+      }
     }
   }
 
@@ -2490,7 +2501,9 @@
       if (deleted) {
         showToast(`Compra ${purchaseId} eliminada y stock revertido.`, 'info');
         if (global.NovaprintMain && typeof global.NovaprintMain.refrescarDatos === 'function') {
-          global.NovaprintMain.refrescarDatos();
+          if (global.NovaprintMain && typeof global.NovaprintMain.refrescarDatos === 'function') {
+        global.NovaprintMain.refrescarDatos();
+      }
         }
       } else {
         showToast('No se pudo eliminar la compra.', 'error');
@@ -2870,7 +2883,9 @@
       showToast(`Compra ${compraGuardada.id} registrada. ¡Stock de inventario incrementado!`, 'success');
     }
     if (global.NovaprintMain && typeof global.NovaprintMain.refrescarDatos === 'function') {
-      global.NovaprintMain.refrescarDatos();
+      if (global.NovaprintMain && typeof global.NovaprintMain.refrescarDatos === 'function') {
+        global.NovaprintMain.refrescarDatos();
+      }
     }
   }
 
@@ -3280,7 +3295,9 @@
     showToast(`¡Compra dividida con éxito! Factura Poleras: ${resultado.compraPoleras.id} | Factura DTF: ${resultado.compraDtf.id}`, 'success');
 
     if (global.NovaprintMain && typeof global.NovaprintMain.refrescarDatos === 'function') {
-      global.NovaprintMain.refrescarDatos();
+      if (global.NovaprintMain && typeof global.NovaprintMain.refrescarDatos === 'function') {
+        global.NovaprintMain.refrescarDatos();
+      }
     }
   }
 
@@ -3434,7 +3451,9 @@
         showToast(`Pedido ${prj.orderId} marcado como "Listo para entrega"`, 'success');
       }
 
-      global.NovaprintMain.refrescarDatos();
+      if (global.NovaprintMain && typeof global.NovaprintMain.refrescarDatos === 'function') {
+        global.NovaprintMain.refrescarDatos();
+      }
     }
   }
 
@@ -3455,23 +3474,28 @@
     const nuevoProyecto = prod.crearProyectoDesdePedido(pedido, 'Operador de Taller');
     storage.saveProject(nuevoProyecto);
 
-    // Spec 004: Descontar stock físico del inventario por las prendas del pedido
-    const resDescuento = storage.descontarStockPorPedido(pedido.items || []);
-    if (resDescuento && resDescuento.descontados && resDescuento.descontados.length > 0) {
-      const resumenDesc = resDescuento.descontados.map(d => `${d.cantidadDescontada}x ${d.name} (Quedan: ${d.nuevoStock})`).join(', ');
-      showToast(`📦 Inventario descontado: ${resumenDesc}`, 'info');
-    }
-
-    // Actualizar pedido a "En producción" si estaba en cotización/confirmado
+    // Spec 004 & Spec 041: Descontar stock físico del inventario y actualizar estado si aplica
     if (pedido.status === 'Cotización' || pedido.status === 'Confirmado') {
       storage.updateOrderStatus(orderId, 'En producción');
+      showToast(`📦 Inventario descontado para orden de taller`, 'info');
+    } else if (!pedido.stockDeducted) {
+      const resDescuento = storage.descontarStockPorPedido(pedido.items || [], pedido.id);
+      pedido.stockDeducted = true;
+      pedido.stockDeductedAt = new Date().toISOString();
+      storage.saveOrder(pedido);
+      if (resDescuento && resDescuento.descontados && resDescuento.descontados.length > 0) {
+        const resumenDesc = resDescuento.descontados.map(d => `${d.cantidadDescontada}x ${d.name} (Quedan: ${d.nuevoStock})`).join(', ');
+        showToast(`📦 Inventario descontado: ${resumenDesc}`, 'info');
+      }
     }
 
     showToast(`¡Orden de Taller ${nuevoProyecto.code} generada con éxito!`, 'success');
     if (global.NovaprintMain && typeof global.NovaprintMain.cambiarVista === 'function') {
       global.NovaprintMain.cambiarVista('fabrication');
     } else if (global.NovaprintMain && typeof global.NovaprintMain.refrescarDatos === 'function') {
-      global.NovaprintMain.refrescarDatos();
+      if (global.NovaprintMain && typeof global.NovaprintMain.refrescarDatos === 'function') {
+        global.NovaprintMain.refrescarDatos();
+      }
     }
   }
 
@@ -3573,7 +3597,9 @@
     if (confirm(`¿Eliminar la orden de fabricación "${p ? p.name : projectId}"?`)) {
       storage.deleteProject(projectId);
       showToast('Orden de fabricación eliminada.', 'info');
-      global.NovaprintMain.refrescarDatos();
+      if (global.NovaprintMain && typeof global.NovaprintMain.refrescarDatos === 'function') {
+        global.NovaprintMain.refrescarDatos();
+      }
     }
   }
 
@@ -4021,7 +4047,9 @@
       const todosAsientos = acc.generarLibroDiario(pedidos, compras, gastos, trans);
       renderAccountingJournal(todosAsientos, sales);
     } else if (global.NovaprintMain && typeof global.NovaprintMain.refrescarDatos === 'function') {
-      global.NovaprintMain.refrescarDatos();
+      if (global.NovaprintMain && typeof global.NovaprintMain.refrescarDatos === 'function') {
+        global.NovaprintMain.refrescarDatos();
+      }
     }
   }
 
@@ -4161,7 +4189,9 @@
 
     refrescarVistaLibroDiario();
     if (global.NovaprintMain && typeof global.NovaprintMain.refrescarDatos === 'function') {
-      global.NovaprintMain.refrescarDatos();
+      if (global.NovaprintMain && typeof global.NovaprintMain.refrescarDatos === 'function') {
+        global.NovaprintMain.refrescarDatos();
+      }
     }
   }
 
@@ -4409,7 +4439,9 @@
     showToast(`Gasto "${description}" guardado con éxito.`, 'success');
 
     if (global.NovaprintMain && typeof global.NovaprintMain.refrescarDatos === 'function') {
-      global.NovaprintMain.refrescarDatos();
+      if (global.NovaprintMain && typeof global.NovaprintMain.refrescarDatos === 'function') {
+        global.NovaprintMain.refrescarDatos();
+      }
     }
   }
 
@@ -5009,7 +5041,9 @@
   function refrescarContabilidadCompleta() {
     const storage = global.NovaprintStorage;
     if (global.NovaprintMain && typeof global.NovaprintMain.refrescarDatos === 'function') {
-      global.NovaprintMain.refrescarDatos();
+      if (global.NovaprintMain && typeof global.NovaprintMain.refrescarDatos === 'function') {
+        global.NovaprintMain.refrescarDatos();
+      }
     } else if (global.NovaprintMain && typeof global.NovaprintMain.refrescarContabilidad === 'function') {
       global.NovaprintMain.refrescarContabilidad();
     } else if (typeof global.refrescarContabilidad === 'function') {
@@ -5052,7 +5086,9 @@
     }
 
     if (global.NovaprintMain && typeof global.NovaprintMain.refrescarDatos === 'function') {
-      global.NovaprintMain.refrescarDatos();
+      if (global.NovaprintMain && typeof global.NovaprintMain.refrescarDatos === 'function') {
+        global.NovaprintMain.refrescarDatos();
+      }
     } else {
       const storage = global.NovaprintStorage;
       const acc = global.NovaprintAccounting;
