@@ -10,7 +10,7 @@ Registro de todo lo que debe preservarse entre sesiones de trabajo: arquitectura
 ### A. Claves en `localStorage`
 - **`novaprint_settings`:** Configuración de la empresa (nombre, RUT, teléfono/WhatsApp, dirección, moneda `$`, mensaje pie de ticket, preferencia de tema `theme: 'light' | 'dark' | 'system'`, banderas de control como `inventoryZeroStockApplied_v1`, `kinderBRecoveryApplied_v1`, `kinderBOrderDeleted`).
 - **`novaprint_clients`:** Directorio de clientes (`id, name, phone, email, rut, address, notes, createdAt`).
-- **`novaprint_orders`:** Registro de pedidos con prendas (poleras, polerones, buzos, gorras), técnicas de estampado (DTF, serigrafía, sublimación, vinilo, bordado), tallas, colores, montos, desglose de IVA (19%), Delivery, abonos y estado.
+- **`novaprint_orders`:** Registro de pedidos con prendas (poleras, polerones, buzos, gorras), técnicas de estampado (DTF, serigrafía, sublimación, vinilo, bordado), tallas, colores, ítems enlazados a bodega (`inventoryCode`, `inventoryItemId`), montos, desglose de IVA (19%), Delivery, abonos y estado.
 - **`novaprint_suppliers`:** Catálogo de proveedores (`id, name, contact, phone, email, category, address, notes, createdAt, updatedAt`).
 - **`novaprint_inventory`:** Existencias de insumos y prendas base (`id, code, name, category, garmentType, color, size, unit, currentStock, minStock, unitCost, supplierId, supplierName, createdAt, updatedAt`).
 - **`novaprint_purchases`:** Historial de compras de insumos/prendas a proveedores (`id, supplierId, supplierName, invoiceNumber, date, items, subtotalNeto, applyIva, ivaPercent, ivaAmount, applyDelivery, deliveryAmount, totalAmount, notes, createdAt`).
@@ -22,6 +22,13 @@ Registro de todo lo que debe preservarse entre sesiones de trabajo: arquitectura
 ---
 
 ## 2. Decisiones vigentes
+
+- **Enlace de Ítems de Pedido con Código de Inventario (Spec 042):**
+  - **Selector Desplegable en Detalle de Prendas:** En la tabla de prendas del diálogo de nuevo/editar pedido (`#dialog-order`), se incorporó la columna "Cód. Inventario" con un `<select>` poblado dinámicamente mediante `generarOpcionesCodigoInventario`. Presenta los códigos de artículos de tipo prenda y gorras con existencia disponible (`[CÓDIGO] Prenda Color Talla (Stock: N)`), junto a la opción predeterminada `"(Sin código / Prenda nueva)"`.
+  - **Sincronización Bidireccional Inteligente:** Al seleccionar un código del desplegable, se autocompletan de inmediato el tipo de prenda (`garmentType`), el color y la talla en la fila, recalculando precios unitarios y subtotales en vivo. A su vez, si el usuario cambia manualmente el tipo de prenda, color o talla, el sistema busca en el catálogo de inventario y auto-selecciona el código coincidente si existe en bodega.
+  - **Tratamiento de Prendas Nuevas sin Código:** Si se mantiene o selecciona `"(Sin código / Prenda nueva)"`, el pedido se guarda normalmente y el sistema invoca `storage.asegurarItemInventarioPrenda`, registrando automáticamente el artículo en `novaprint_inventory` con stock 0 y asignándole su código estructurado oficial (`POL-...`, `POLR-...`, `BUZ-...`, `GOR-...`). Dicho código e ID quedan asociados al pedido.
+  - **Resolución Directa en Producción y Bodega (`production.js`):** `verificarDisponibilidadPrenda`, `descontarInventarioPorPedido` y `restituirInventarioPorPedido` priorizan la búsqueda directa y exacta por `inventoryItemId` o `inventoryCode`. Si un ítem antiguo carece de código, opera el fallback por terna `garmentType`, `color` y `size`.
+  - **Trazabilidad en Comprobantes Imprimibles (`ticket.js`):** En el ticket de taller y cliente, los ítems enlazados muestran su código de bodega entre corchetes `[CÓDIGO]` junto a la descripción de la prenda, facilitando la identificación física en bodega y taller.
 
 - **Descuento Automático e Idempotente de Inventario al Culminar o Avanzar Pedido (Spec 041):**
   - **Deducción de Existencias en Transición de Estados:** Al avanzar o modificar el estado de un pedido (`storage.updateOrderStatus`, `storage.saveOrder`, `NovaprintUI.cambiarEstado`, `NovaprintUI.seleccionarNuevoEstado`) a `'En producción'`, `'Listo para entrega'` o `'Entregado'`, el sistema deduce automáticamente las cantidades físicas de prendas del inventario de bodega (`novaprint_inventory`).
@@ -277,6 +284,22 @@ Registro de todo lo que debe preservarse entre sesiones de trabajo: arquitectura
 ---
 
 ## 3. Historial de cambios
+
+### 2026-11-15 (Enlace de Ítems de Pedido con Código de Inventario — Spec 042)
+- **Interfaz de Usuario y Sincronización Bidireccional (`assets/js/ui.js` & `index.html`):**
+  - Se agregó la columna "Cód. Inventario" a la tabla de prendas en el modal de pedidos (`#dialog-order`).
+  - Implementación de `generarOpcionesCodigoInventario(codigoSeleccionado)` que construye el `<select>` con artículos de prendas y gorras con stock disponible y la opción `"(Sin código / Prenda nueva)"`.
+  - Sincronización bidireccional en `actualizarItemProp`: al cambiar el código se rellenan prenda, color y talla; al cambiar prenda, color o talla se auto-detecta y selecciona el código si existe en bodega.
+  - Al guardar el pedido, las prendas nuevas o sin código son creadas automáticamente en inventario mediante `storage.asegurarItemInventarioPrenda`, asignándoles su código estructurado.
+  - Precarga transparente y resolución de código en `editarPedido` y `duplicarPedido`.
+- **Motor de Producción y Bodega (`assets/js/production.js`):**
+  - Búsqueda primaria y exacta por `inventoryItemId` o `inventoryCode` en `verificarDisponibilidadPrenda`, `descontarInventarioPorPedido` y `restituirInventarioPorPedido`, con fallback por terna (tipo/color/talla).
+- **Comprobantes y Tickets Imprimibles (`assets/js/ticket.js`):**
+  - Presentación del código de inventario entre corchetes `[CÓDIGO]` junto a la descripción de la prenda en los comprobantes de taller y cliente.
+- **Pruebas Automatizadas (`tests/order_inventory_code_link.test.js`):**
+  - 7 pruebas unitarias nuevas validando opciones de selector, sincronización bidireccional, verificación y descuento directo por código, resolución de códigos en edición y visualización en tickets.
+  - Suite global completa: 34 suites, 327 pruebas unitarias pasando al 100% con 0 fallos.
+- **Metodología SDD:** Especificación formal en `specs/042-enlace-codigo-inventario-pedido/` (`spec.md`, `plan.md`, `tasks.md`).
 
 ### 2026-11-15 (Descuento Automático e Idempotente de Inventario al Culminar o Avanzar Pedido — Spec 041)
 - **Motor de Producción y Bodega (`assets/js/production.js`):**

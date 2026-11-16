@@ -510,15 +510,44 @@
 
   function agregarFilaPrenda(datos = {}) {
     const sales = global.NovaprintSales;
+    const storage = global.NovaprintStorage;
+
+    const garmentType = datos.garmentType || 'Polera';
+    const color = datos.color || 'Negro';
+    const size = datos.size || 'L';
+
+    let inventoryCode = datos.inventoryCode || '';
+    let inventoryItemId = datos.inventoryItemId || null;
+
+    // Spec 042: Si no viene código, buscar coincidencia en inventario
+    if (!inventoryCode && storage) {
+      const normalizar = (txt) => (txt || '').toString().toLowerCase().trim();
+      const pB = normalizar(garmentType);
+      const cB = normalizar(color);
+      const tB = normalizar(size);
+      const invMatch = storage.getInventory().find(inv => {
+        const mPrenda = normalizar(inv.garmentType) === pB || normalizar(inv.name).includes(pB);
+        const mColor = normalizar(inv.color) === cB || normalizar(inv.name).includes(cB);
+        const mTalla = normalizar(inv.size) === tB || normalizar(inv.name).includes(tB);
+        return mPrenda && mColor && mTalla;
+      });
+      if (invMatch) {
+        inventoryCode = invMatch.code || '';
+        inventoryItemId = invMatch.id || null;
+      }
+    }
+
     const item = {
       id: datos.id || `item-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`,
-      garmentType: datos.garmentType || 'Polera',
-      color: datos.color || 'Negro',
-      size: datos.size || 'L',
+      inventoryCode,
+      inventoryItemId,
+      garmentType,
+      color,
+      size,
       technique: datos.technique || 'DTF',
       printLocation: datos.printLocation || 'Adelante',
       quantity: datos.quantity || 1,
-      unitPrice: datos.unitPrice || (sales ? sales.calcularPrecioSugeridoPrenda({ garmentType: datos.garmentType || 'Polera', color: datos.color || 'Negro', size: datos.size || 'L', technique: datos.technique || 'DTF', printLocation: datos.printLocation || 'Adelante' }) : 6700),
+      unitPrice: datos.unitPrice || (sales ? sales.calcularPrecioSugeridoPrenda({ garmentType, color, size, technique: datos.technique || 'DTF', printLocation: datos.printLocation || 'Adelante' }) : 6700),
       notes: datos.notes || ''
     };
     currentOrderItems.push(item);
@@ -649,6 +678,31 @@
     return 'Adelante';
   }
 
+  // Spec 042: Generar opciones desplegables con los códigos de inventario
+  function generarOpcionesCodigoInventario(codigoSeleccionado = '') {
+    const storage = global.NovaprintStorage;
+    const inventario = storage ? storage.getInventory() : [];
+    const valNorm = (codigoSeleccionado || '').toString().trim().toLowerCase();
+
+    // Filtrar prendas y gorras de inventario
+    const articulos = inventario.filter(inv => {
+      const cat = (inv.category || '').toLowerCase();
+      const gType = (inv.garmentType || '').toLowerCase();
+      return !cat.includes('insumos') && !cat.includes('estampado') && gType !== 'estampado';
+    });
+
+    let html = `<option value="">(Sin código / Prenda nueva)</option>`;
+    html += articulos.map(inv => {
+      const cod = inv.code || '';
+      const nom = inv.name || `${inv.garmentType || 'Prenda'} ${inv.color || ''} Talla ${inv.size || ''}`.trim();
+      const stock = Math.max(0, Number(inv.currentStock) || 0);
+      const isSelected = cod && cod.toLowerCase() === valNorm;
+      return `<option value="${cod}" data-id="${inv.id || ''}" ${isSelected ? 'selected' : ''}>${cod} — ${nom} (Stock: ${stock})</option>`;
+    }).join('');
+
+    return html;
+  }
+
   function renderTablaItemsFormulario() {
     const tbody = document.getElementById('order-items-tbody');
     if (!tbody) return;
@@ -656,6 +710,11 @@
     tbody.innerHTML = currentOrderItems.map((it, idx) => `
       <tr class="border-b border-gray-200 text-xs">
         <td class="py-2 pr-1">
+          <select class="w-36 p-1.5 border border-gray-300 rounded font-bold text-gray-800 text-[11px] bg-slate-50 focus:bg-white" onchange="NovaprintUI.actualizarItemProp('${it.id}', 'inventoryCode', this.value)">
+            ${generarOpcionesCodigoInventario(it.inventoryCode)}
+          </select>
+        </td>
+        <td class="py-2 px-1">
           <select class="w-full p-1.5 border border-gray-300 rounded font-semibold text-gray-800" onchange="NovaprintUI.actualizarItemProp('${it.id}', 'garmentType', this.value)">
             <option value="Polera" ${it.garmentType === 'Polera' ? 'selected' : ''}>Polera</option>
             <option value="Polerón" ${it.garmentType === 'Polerón' ? 'selected' : ''}>Polerón</option>
@@ -719,14 +778,57 @@
   function actualizarItemProp(itemId, prop, value) {
     const item = currentOrderItems.find(it => it.id === itemId);
     const sales = global.NovaprintSales;
+    const storage = global.NovaprintStorage;
+
     if (item) {
       if (prop === 'quantity') {
         item.quantity = Math.max(0, parseInt(value, 10) || 0);
       } else if (prop === 'unitPrice') {
         item.unitPrice = Number(value) || 0;
         item._manualPrice = true;
+      } else if (prop === 'inventoryCode') {
+        item.inventoryCode = (value || '').toString().trim();
+        if (item.inventoryCode && storage) {
+          const inv = storage.getInventory().find(i => (i.code || '').toLowerCase() === item.inventoryCode.toLowerCase());
+          if (inv) {
+            item.inventoryItemId = inv.id;
+            if (inv.garmentType) item.garmentType = inv.garmentType;
+            if (inv.color) item.color = inv.color;
+            if (inv.size) item.size = inv.size;
+          }
+        } else {
+          item.inventoryItemId = null;
+          item.inventoryCode = '';
+        }
+        if (!item._manualPrice && sales && typeof sales.calcularPrecioSugeridoPrenda === 'function') {
+          item.unitPrice = sales.calcularPrecioSugeridoPrenda(item);
+        }
       } else {
         item[prop] = value;
+
+        // Spec 042: Sincronización inversa si se modifica garmentType, color o size
+        if ((prop === 'garmentType' || prop === 'color' || prop === 'size') && storage) {
+          const normalizar = (txt) => (txt || '').toString().toLowerCase().trim();
+          const pB = normalizar(item.garmentType);
+          const cB = normalizar(item.color);
+          const tB = normalizar(item.size);
+
+          const invMatch = storage.getInventory().find(inv => {
+            const mPrenda = normalizar(inv.garmentType) === pB || normalizar(inv.name).includes(pB);
+            const mColor = normalizar(inv.color) === cB || normalizar(inv.name).includes(cB);
+            const mTalla = normalizar(inv.size) === tB || normalizar(inv.name).includes(tB);
+            return mPrenda && mColor && mTalla;
+          });
+
+          if (invMatch) {
+            item.inventoryCode = invMatch.code || '';
+            item.inventoryItemId = invMatch.id || null;
+          } else {
+            item.inventoryCode = '';
+            item.inventoryItemId = null;
+          }
+        }
+
         if (!item._manualPrice && sales && typeof sales.calcularPrecioSugeridoPrenda === 'function') {
           item.unitPrice = sales.calcularPrecioSugeridoPrenda(item);
         }
@@ -1026,10 +1128,14 @@
       notes
     };
 
-    // Spec 008: Asegurar que las prendas del pedido queden registradas en el catálogo de inventario
+    // Spec 008 & Spec 042: Asegurar que las prendas del pedido queden registradas en el catálogo de inventario
     if (storage && typeof storage.asegurarItemInventarioPrenda === 'function') {
       currentOrderItems.forEach(it => {
-        storage.asegurarItemInventarioPrenda(it.garmentType, it.color, it.size);
+        const itemAsegurado = storage.asegurarItemInventarioPrenda(it.garmentType, it.color, it.size);
+        if (!it.inventoryCode && itemAsegurado) {
+          it.inventoryCode = itemAsegurado.code;
+          it.inventoryItemId = itemAsegurado.id;
+        }
       });
     }
 
@@ -1038,7 +1144,9 @@
     showToast(`Pedido ${saved.id} guardado con éxito.`, 'success');
 
     // Refrescar vistas
-    global.NovaprintMain.refrescarDatos();
+    if (global.NovaprintMain && typeof global.NovaprintMain.refrescarDatos === 'function') {
+      global.NovaprintMain.refrescarDatos();
+    }
   }
 
   function editarPedido(orderId) {
@@ -1082,6 +1190,27 @@
     }
 
     currentOrderItems = (pedido.items && pedido.items.length > 0) ? JSON.parse(JSON.stringify(pedido.items)) : [];
+    // Spec 042: Auto-resolver código si el ítem preexistente no lo tenía
+    if (storage) {
+      const normalizar = (txt) => (txt || '').toString().toLowerCase().trim();
+      currentOrderItems.forEach(it => {
+        if (!it.inventoryCode) {
+          const pB = normalizar(it.garmentType);
+          const cB = normalizar(it.color);
+          const tB = normalizar(it.size);
+          const invMatch = storage.getInventory().find(inv => {
+            const mPrenda = normalizar(inv.garmentType) === pB || normalizar(inv.name).includes(pB);
+            const mColor = normalizar(inv.color) === cB || normalizar(inv.name).includes(cB);
+            const mTalla = normalizar(inv.size) === tB || normalizar(inv.name).includes(tB);
+            return mPrenda && mColor && mTalla;
+          });
+          if (invMatch) {
+            it.inventoryCode = invMatch.code || '';
+            it.inventoryItemId = invMatch.id || null;
+          }
+        }
+      });
+    }
     if (currentOrderItems.length === 0) agregarFilaPrenda();
     renderTablaItemsFormulario();
     recalcularTotalesFormulario();
@@ -1149,6 +1278,27 @@
     }
 
     currentOrderItems = (pedido.items && pedido.items.length > 0) ? JSON.parse(JSON.stringify(pedido.items)) : [];
+    // Spec 042: Auto-resolver código si el ítem preexistente no lo tenía
+    if (storage) {
+      const normalizar = (txt) => (txt || '').toString().toLowerCase().trim();
+      currentOrderItems.forEach(it => {
+        if (!it.inventoryCode) {
+          const pB = normalizar(it.garmentType);
+          const cB = normalizar(it.color);
+          const tB = normalizar(it.size);
+          const invMatch = storage.getInventory().find(inv => {
+            const mPrenda = normalizar(inv.garmentType) === pB || normalizar(inv.name).includes(pB);
+            const mColor = normalizar(inv.color) === cB || normalizar(inv.name).includes(cB);
+            const mTalla = normalizar(inv.size) === tB || normalizar(inv.name).includes(tB);
+            return mPrenda && mColor && mTalla;
+          });
+          if (invMatch) {
+            it.inventoryCode = invMatch.code || '';
+            it.inventoryItemId = invMatch.id || null;
+          }
+        }
+      });
+    }
     if (currentOrderItems.length === 0) agregarFilaPrenda();
     renderTablaItemsFormulario();
     recalcularTotalesFormulario();
@@ -5235,7 +5385,9 @@
     cambiarModoVistaUso,
     limpiarFiltroMesUso,
     // Spec 040: Enlace de Categoría de Gastos con Plan de Cuentas
-    poblarSelectorCategoriasGasto
+    poblarSelectorCategoriasGasto,
+    // Spec 042: Enlace de Pedido con Código de Inventario
+    generarOpcionesCodigoInventario
   };
 
   if (typeof module !== 'undefined' && module.exports) {

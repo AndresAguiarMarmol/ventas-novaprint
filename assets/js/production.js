@@ -337,7 +337,8 @@
   }
 
   /**
-   * Spec 004 — Cruza una prenda de pedido con el inventario por prenda, color y talla
+   * Spec 004 & Spec 042 — Cruza una prenda de pedido con el inventario
+   * Prioriza coincidencia directa por inventoryItemId o inventoryCode, con fallback por terna (prenda, color, talla)
    */
   function verificarDisponibilidadPrenda(inventario = [], itemPedido = {}) {
     if (!Array.isArray(inventario)) inventario = [];
@@ -346,12 +347,28 @@
     const tallaBuscada = normalizarTexto(itemPedido.size);
     const cantidadRequerida = Math.max(0, Number(itemPedido.quantity) || 0);
 
-    const encontrado = inventario.find(inv => {
-      const matchPrenda = normalizarTexto(inv.garmentType) === prendaBuscada || normalizarTexto(inv.name).includes(prendaBuscada);
-      const matchColor = normalizarTexto(inv.color) === colorBuscado || normalizarTexto(inv.name).includes(colorBuscado);
-      const matchTalla = normalizarTexto(inv.size) === tallaBuscada || normalizarTexto(inv.name).includes(tallaBuscada);
-      return matchPrenda && matchColor && matchTalla;
-    }) || null;
+    let encontrado = null;
+    const invId = (itemPedido.inventoryItemId || '').toString().trim();
+    const invCode = (itemPedido.inventoryCode || '').toString().trim().toLowerCase();
+
+    // 1. Coincidencia primaria directa por ID o Código de inventario (Spec 042)
+    if (invId || invCode) {
+      encontrado = inventario.find(inv => {
+        if (invId && inv.id && inv.id.toString().trim() === invId) return true;
+        if (invCode && inv.code && inv.code.toString().trim().toLowerCase() === invCode) return true;
+        return false;
+      }) || null;
+    }
+
+    // 2. Fallback por coincidencia de terna prenda-color-talla
+    if (!encontrado) {
+      encontrado = inventario.find(inv => {
+        const matchPrenda = normalizarTexto(inv.garmentType) === prendaBuscada || normalizarTexto(inv.name).includes(prendaBuscada);
+        const matchColor = normalizarTexto(inv.color) === colorBuscado || normalizarTexto(inv.name).includes(colorBuscado);
+        const matchTalla = normalizarTexto(inv.size) === tallaBuscada || normalizarTexto(inv.name).includes(tallaBuscada);
+        return matchPrenda && matchColor && matchTalla;
+      }) || null;
+    }
 
     if (!encontrado) {
       return {
@@ -509,12 +526,28 @@
       const tallaBuscada = normalizarTexto(it.size);
       const cantidad = Math.max(0, Number(it.quantity) || 0);
 
-      const invItem = nuevoInventario.find(inv => {
-        const matchPrenda = normalizarTexto(inv.garmentType) === prendaBuscada || normalizarTexto(inv.name).includes(prendaBuscada);
-        const matchColor = normalizarTexto(inv.color) === colorBuscado || normalizarTexto(inv.name).includes(colorBuscado);
-        const matchTalla = normalizarTexto(inv.size) === tallaBuscada || normalizarTexto(inv.name).includes(tallaBuscada);
-        return matchPrenda && matchColor && matchTalla;
-      });
+      let invItem = null;
+      const invId = (it.inventoryItemId || '').toString().trim();
+      const invCode = (it.inventoryCode || '').toString().trim().toLowerCase();
+
+      // 1. Coincidencia primaria por ID o Código de inventario (Spec 042)
+      if (invId || invCode) {
+        invItem = nuevoInventario.find(inv => {
+          if (invId && inv.id && inv.id.toString().trim() === invId) return true;
+          if (invCode && inv.code && inv.code.toString().trim().toLowerCase() === invCode) return true;
+          return false;
+        });
+      }
+
+      // 2. Fallback por terna prenda-color-talla
+      if (!invItem) {
+        invItem = nuevoInventario.find(inv => {
+          const matchPrenda = normalizarTexto(inv.garmentType) === prendaBuscada || normalizarTexto(inv.name).includes(prendaBuscada);
+          const matchColor = normalizarTexto(inv.color) === colorBuscado || normalizarTexto(inv.name).includes(colorBuscado);
+          const matchTalla = normalizarTexto(inv.size) === tallaBuscada || normalizarTexto(inv.name).includes(tallaBuscada);
+          return matchPrenda && matchColor && matchTalla;
+        });
+      }
 
       if (invItem) {
         const stockAnterior = Math.max(0, Number(invItem.currentStock) || 0);
@@ -567,12 +600,28 @@
       const tallaBuscada = normalizarTexto(it.size);
       const cantidad = Math.max(0, Number(it.quantity) || 0);
 
-      const invItem = nuevoInventario.find(inv => {
-        const matchPrenda = normalizarTexto(inv.garmentType) === prendaBuscada || normalizarTexto(inv.name).includes(prendaBuscada);
-        const matchColor = normalizarTexto(inv.color) === colorBuscado || normalizarTexto(inv.name).includes(colorBuscado);
-        const matchTalla = normalizarTexto(inv.size) === tallaBuscada || normalizarTexto(inv.name).includes(tallaBuscada);
-        return matchPrenda && matchColor && matchTalla;
-      });
+      let invItem = null;
+      const invId = (it.inventoryItemId || '').toString().trim();
+      const invCode = (it.inventoryCode || '').toString().trim().toLowerCase();
+
+      // 1. Coincidencia primaria por ID o Código de inventario (Spec 042)
+      if (invId || invCode) {
+        invItem = nuevoInventario.find(inv => {
+          if (invId && inv.id && inv.id.toString().trim() === invId) return true;
+          if (invCode && inv.code && inv.code.toString().trim().toLowerCase() === invCode) return true;
+          return false;
+        });
+      }
+
+      // 2. Fallback por terna prenda-color-talla
+      if (!invItem) {
+        invItem = nuevoInventario.find(inv => {
+          const matchPrenda = normalizarTexto(inv.garmentType) === prendaBuscada || normalizarTexto(inv.name).includes(prendaBuscada);
+          const matchColor = normalizarTexto(inv.color) === colorBuscado || normalizarTexto(inv.name).includes(colorBuscado);
+          const matchTalla = normalizarTexto(inv.size) === tallaBuscada || normalizarTexto(inv.name).includes(tallaBuscada);
+          return matchPrenda && matchColor && matchTalla;
+        });
+      }
 
       if (invItem) {
         const stockAnterior = Math.max(0, Number(invItem.currentStock) || 0);
