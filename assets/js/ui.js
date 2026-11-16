@@ -729,13 +729,13 @@
             ${generarOpcionesColor(it.color)}
           </select>
         </td>
-        <td class="py-2 px-1">
-          <select class="w-20 p-1.5 border border-gray-300 rounded font-medium" onchange="NovaprintUI.actualizarItemProp('${it.id}', 'size', this.value)">
+        <td class="py-2 px-1 text-center">
+          <select class="w-14 px-1 py-1.5 border border-gray-300 rounded font-medium text-center text-xs" onchange="NovaprintUI.actualizarItemProp('${it.id}', 'size', this.value)">
             ${generarOpcionesTalla(it.size)}
           </select>
         </td>
         <td class="py-2 px-1">
-          <select class="w-28 p-1.5 border border-gray-300 rounded font-semibold text-blue-700" onchange="NovaprintUI.actualizarItemProp('${it.id}', 'technique', this.value)">
+          <select class="w-28 p-1.5 border border-gray-300 rounded font-semibold text-blue-700 text-[11px]" onchange="NovaprintUI.actualizarItemProp('${it.id}', 'technique', this.value)">
             <option value="DTF" ${it.technique === 'DTF' ? 'selected' : ''}>DTF</option>
             <option value="Serigrafía" ${it.technique === 'Serigrafía' ? 'selected' : ''}>Serigrafía</option>
             <option value="Sublimación" ${it.technique === 'Sublimación' ? 'selected' : ''}>Sublimación</option>
@@ -759,8 +759,8 @@
             <option value="Ambos" ${normalizarUbicacionEstampado(it.printLocation) === 'Ambos' ? 'selected' : ''}>Ambos ($3.500)</option>
           </select>
         </td>
-        <td class="py-2 px-1">
-          <input type="number" min="1" value="${it.quantity}" class="w-16 p-1.5 border border-gray-300 rounded text-center font-bold" oninput="NovaprintUI.actualizarItemProp('${it.id}', 'quantity', this.value)">
+        <td class="py-2 px-1 text-center">
+          <input type="number" min="1" max="999" value="${it.quantity}" class="w-12 p-1 border border-gray-300 rounded text-center font-bold text-xs" oninput="NovaprintUI.actualizarItemProp('${it.id}', 'quantity', this.value)">
         </td>
         <td class="py-2 px-1">
           <input id="input-price-${it.id}" type="number" step="any" value="${it.unitPrice ?? 0}" placeholder="0" class="w-24 p-1.5 border border-gray-300 rounded text-right font-medium focus:bg-white" oninput="NovaprintUI.actualizarItemProp('${it.id}', 'unitPrice', this.value)">
@@ -782,7 +782,8 @@
 
     if (item) {
       if (prop === 'quantity') {
-        item.quantity = Math.max(0, parseInt(value, 10) || 0);
+        const parsed = parseInt(value, 10) || 0;
+        item.quantity = Math.min(999, Math.max(0, parsed));
       } else if (prop === 'unitPrice') {
         item.unitPrice = Number(value) || 0;
         item._manualPrice = true;

@@ -23,6 +23,13 @@ Registro de todo lo que debe preservarse entre sesiones de trabajo: arquitectura
 
 ## 2. Decisiones vigentes
 
+- **Optimización y Ajuste de Anchos en Detalle de Prendas de Pedido (Spec 043):**
+  - **Alineación y Dimensiones en `#dialog-order` (`index.html` & `ui.js`):**
+    - **Talla (2 caracteres):** Selector ajustado a `w-14` (56px) con padding horizontal compacto `px-1` y texto centrado en `renderTablaItemsFormulario()`, junto a la cabecera `<th class="py-2 px-1 w-14 text-center">Talla</th>`. Muestra con holgura tallas de 2 caracteres (`10`, `12`, `14`, `16`, `18`, `XS`, `S`, `M`, `L`, `XL`) y especiales (`XXL`).
+    - **Técnica (11 caracteres):** Selector ajustado a `w-28` (112px) con tipografía `text-[11px]` y cabecera `<th class="py-2 px-1 w-28">Técnica</th>`, permitiendo alojar y leer con total claridad palabras de hasta 11 caracteres (`Sublimación`, `Serigrafía`, `Bordado`, `DTF`).
+    - **Cantidad (3 caracteres):** Input ajustado a `w-12` (48px) centrado (`text-center font-bold text-xs`) con cabecera `<th class="py-2 px-1 w-12 text-center">Cant.</th>`, con atributos `min="1"` y `max="999"`.
+  - **Restricción Dura en Entrada:** `actualizarItemProp(itemId, 'quantity', value)` impone el tope estricto `Math.min(999, Math.max(0, parsed))`, asegurando consistencia de datos y previniendo desbordes visuales en el modal.
+
 - **Enlace de Ítems de Pedido con Código de Inventario (Spec 042):**
   - **Selector Desplegable en Detalle de Prendas:** En la tabla de prendas del diálogo de nuevo/editar pedido (`#dialog-order`), se incorporó la columna "Cód. Inventario" con un `<select>` poblado dinámicamente mediante `generarOpcionesCodigoInventario`. Presenta los códigos de artículos de tipo prenda y gorras con existencia disponible (`[CÓDIGO] Prenda Color Talla (Stock: N)`), junto a la opción predeterminada `"(Sin código / Prenda nueva)"`.
   - **Sincronización Bidireccional Inteligente:** Al seleccionar un código del desplegable, se autocompletan de inmediato el tipo de prenda (`garmentType`), el color y la talla en la fila, recalculando precios unitarios y subtotales en vivo. A su vez, si el usuario cambia manualmente el tipo de prenda, color o talla, el sistema busca en el catálogo de inventario y auto-selecciona el código coincidente si existe en bodega.
@@ -284,6 +291,17 @@ Registro de todo lo que debe preservarse entre sesiones de trabajo: arquitectura
 ---
 
 ## 3. Historial de cambios
+
+### 2026-11-15 (Optimización y Ajuste de Anchos en Detalle de Prendas — Spec 043)
+- **Interfaz de Usuario y Presentación en Pantalla (`index.html` & `assets/js/ui.js`):**
+  - Ajuste del ancho de Talla a 2 caracteres en el selector (`w-14 px-1 text-center text-xs`) y en la cabecera `<th>` (`w-14 text-center`).
+  - Ajuste del ancho de Técnica a 11 caracteres en el selector (`w-28 text-[11px]`) y en la cabecera `<th>` (`w-28`), facilitando la lectura completa de `Sublimación`.
+  - Ajuste del ancho de Cantidad a 3 caracteres en el input (`w-12 text-center font-bold text-xs`), atributos `min="1"`, `max="999"` y cabecera `<th>` (`w-12 text-center`).
+  - Restricción dura en `actualizarItemProp(itemId, 'quantity', value)` para topar el rango entre 0 y 999 prendas por fila.
+- **Pruebas Automatizadas (`tests/order_items_dimensions.test.js`):**
+  - 3 pruebas unitarias nuevas comprobando clases de cabecera en `index.html`, renderizado de clases compactas y atributos `min`/`max` en `ui.js`, y validación del límite 0-999 en `actualizarItemProp`.
+  - Suite global completa: 35 suites, 330 pruebas unitarias pasando al 100% con 0 fallos.
+- **Metodología SDD:** Especificación formal en `specs/043-ajuste-anchos-detalle-prendas/` (`spec.md`, `plan.md`, `tasks.md`).
 
 ### 2026-11-15 (Enlace de Ítems de Pedido con Código de Inventario — Spec 042)
 - **Interfaz de Usuario y Sincronización Bidireccional (`assets/js/ui.js` & `index.html`):**

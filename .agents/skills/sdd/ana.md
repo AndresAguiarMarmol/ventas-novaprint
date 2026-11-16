@@ -1,6 +1,7 @@
 description: Planifica una nueva funcionalidad antes de tocar código
 agent: plan
 ---
+Coordinator :
 Quiero añadir esta funcionalidad: $ARGUMENTS
 Antes de escribir código, prepárame un plan con:
 1. Cómo la vas a implementar, respetando las reglas de AGENTS.md.
