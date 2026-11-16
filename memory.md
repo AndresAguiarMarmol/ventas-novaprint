@@ -23,6 +23,13 @@ Registro de todo lo que debe preservarse entre sesiones de trabajo: arquitectura
 
 ## 2. Decisiones vigentes
 
+- **Fusión Vertical de "Cód. Inventario" y "Artículo/Detalle" en Detalle de Prendas (Spec 044):**
+  - **Reorganización en una Sola Columna en `#dialog-order` (`index.html` & `ui.js`):**
+    - Se eliminó la columna separada y redundante de "Prenda", unificando la cabecera en `<th class="py-2 px-1 min-w-[160px]">Cód. Inventario / Artículo</th>`.
+    - En la celda `<td>`, se apilaron verticalmente los dos controles: arriba el `<select>` de `Cód. Inventario` (`generarOpcionesCodigoInventario`) a ancho completo (`w-full`), y abajo el `<select>` de tipo de prenda / artículo (`garmentType`: Polera, Polerón, Buzo, Gorra, Otro) agrupado en línea con la insignia de stock de bodega (`#badge-stock-${it.id}`).
+    - Reduce de 10 a 9 las columnas horizontales de la tabla, logrando mayor holgura horizontal, legibilidad óptima y agrupamiento contextual entre el código de bodega y la prenda seleccionada sin desbordamientos de pantalla.
+    - Preserva de forma 100% íntegra la sincronización bidireccional de la Spec 042 y las reglas de validación y cálculo de precios.
+
 - **Optimización y Ajuste de Anchos en Detalle de Prendas de Pedido (Spec 043):**
   - **Alineación y Dimensiones en `#dialog-order` (`index.html` & `ui.js`):**
     - **Talla (2 caracteres):** Selector ajustado a `w-14` (56px) con padding horizontal compacto `px-1` y texto centrado en `renderTablaItemsFormulario()`, junto a la cabecera `<th class="py-2 px-1 w-14 text-center">Talla</th>`. Muestra con holgura tallas de 2 caracteres (`10`, `12`, `14`, `16`, `18`, `XS`, `S`, `M`, `L`, `XL`) y especiales (`XXL`).
@@ -291,6 +298,16 @@ Registro de todo lo que debe preservarse entre sesiones de trabajo: arquitectura
 ---
 
 ## 3. Historial de cambios
+
+### 2026-11-15 (Fusión Vertical de Cód. Inventario y Artículo/Detalle — Spec 044)
+- **Interfaz de Usuario y Presentación en Pantalla (`index.html` & `assets/js/ui.js`):**
+  - Unificación de las cabeceras `<th>` en `<th class="py-2 px-1 min-w-[160px]">Cód. Inventario / Artículo</th>`, reduciendo la tabla a 9 columnas horizontales.
+  - En `renderTablaItemsFormulario()`, la primera celda `<td>` organiza verticalmente arriba el selector de código de inventario (`inventoryCode`) a ancho completo y abajo el selector de tipo de prenda (`garmentType`) junto a la insignia de stock de bodega (`#badge-stock-${it.id}`).
+  - Preservación íntegra de la sincronización bidireccional de la Spec 042 y el cálculo reactivo de precios y subtotales.
+- **Pruebas Automatizadas (`tests/order_item_details_layout.test.js`):**
+  - 3 pruebas unitarias nuevas validando la cabecera unificada en `index.html`, la estructura apilada de la celda en `ui.js` y la sincronización bidireccional con stock de bodega.
+  - Suite global completa: 36 suites, 333 pruebas unitarias pasando al 100% con 0 fallos.
+- **Metodología SDD:** Especificación formal en `specs/044-columna-codigo-articulo-detalle/` (`spec.md`, `plan.md`, `tasks.md`).
 
 ### 2026-11-15 (Optimización y Ajuste de Anchos en Detalle de Prendas — Spec 043)
 - **Interfaz de Usuario y Presentación en Pantalla (`index.html` & `assets/js/ui.js`):**
