@@ -96,11 +96,11 @@ describe('Spec 046 — Ampliación de Modal y Columnas Horizontales de Cód. Inv
     const htmlPath = path.join(__dirname, '..', 'index.html');
     const html = fs.readFileSync(htmlPath, 'utf8');
 
-    // Verificar ampliación del modal a max-w-6xl o superior (max-w-7xl)
+    // Verificar ampliación del modal a max-w-6xl
     assert.match(
       html,
-      /<dialog[^>]*id="dialog-order"[^>]*class="[^"]*max-w-(?:6|7)xl[^"]*"/i,
-      '#dialog-order debe tener la clase max-w-6xl o max-w-7xl para mayor holgura horizontal'
+      /<dialog[^>]*id="dialog-order"[^>]*class="[^"]*max-w-6xl[^"]*"/i,
+      '#dialog-order debe tener la clase max-w-6xl para mayor holgura horizontal'
     );
 
     // Verificar cabecera Cód. Inventario

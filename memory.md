@@ -10,7 +10,7 @@ Registro de todo lo que debe preservarse entre sesiones de trabajo: arquitectura
 ### A. Claves en `localStorage`
 - **`novaprint_settings`:** Configuración de la empresa (nombre, RUT, teléfono/WhatsApp, dirección, moneda `$`, mensaje pie de ticket, preferencia de tema `theme: 'light' | 'dark' | 'system'`, banderas de control como `inventoryZeroStockApplied_v1`, `kinderBRecoveryApplied_v1`, `kinderBOrderDeleted`).
 - **`novaprint_clients`:** Directorio de clientes (`id, name, phone, email, rut, address, notes, createdAt`).
-- **`novaprint_orders`:** Registro de pedidos con prendas (poleras, polerones, buzos, gorras), técnicas de estampado (DTF, serigrafía, sublimación, vinilo, bordado), tallas, colores, especificaciones (`details`), ítems enlazados a bodega (`inventoryCode`, `inventoryItemId`), montos, desglose de IVA (19%), Delivery, abonos y estado.
+- **`novaprint_orders`:** Registro de pedidos con prendas (poleras, polerones, buzos, gorras), técnicas de estampado (DTF, serigrafía, sublimación, vinilo, bordado), tallas, colores, ítems enlazados a bodega (`inventoryCode`, `inventoryItemId`), montos, desglose de IVA (19%), Delivery, abonos y estado.
 - **`novaprint_suppliers`:** Catálogo de proveedores (`id, name, contact, phone, email, category, address, notes, createdAt, updatedAt`).
 - **`novaprint_inventory`:** Existencias de insumos y prendas base (`id, code, name, category, garmentType, color, size, unit, currentStock, minStock, unitCost, supplierId, supplierName, createdAt, updatedAt`).
 - **`novaprint_purchases`:** Historial de compras de insumos/prendas a proveedores (`id, supplierId, supplierName, invoiceNumber, date, items, subtotalNeto, applyIva, ivaPercent, ivaAmount, applyDelivery, deliveryAmount, totalAmount, notes, createdAt`).
@@ -22,13 +22,6 @@ Registro de todo lo que debe preservarse entre sesiones de trabajo: arquitectura
 ---
 
 ## 2. Decisiones vigentes
-
-- **Incorporación del Campo "Detalles" y Ampliación de Modal a max-w-7xl (Spec 047):**
-  - **Ampliación a `max-w-7xl` (1280px) (`index.html`):** El contenedor de `#dialog-order` se amplió a 1280px para alojar cómodamente las 11 columnas horizontales (Cód. Inventario, Artículo, Detalles, Color, Talla, Técnica, Estampado, Cantidad, P. Unit, Subtotal, Acciones) sin barras de desplazamiento forzado.
-  - **Columna "Detalles" en la Misma Fila (`index.html` & `ui.js`):**
-    - Cabecera `<th class="py-2 px-1 w-40">Detalles</th>` situada inmediatamente después de `Artículo`.
-    - Input interactivo `<input type="text" ... class="w-40 p-1.5 ...">` en cada fila que permite especificar anotaciones libres ("Corte Dama", "Cuello V", "Manga Larga") y se auto-completa con el nombre del artículo (`inv.name`) al seleccionar un código de inventario.
-  - **Trazabilidad en Comprobantes Imprimibles (`ticket.js`):** El detalle de la prenda se imprime en los tickets de taller y cliente (`Detalle: [texto]`), orientando a los operarios durante la producción.
 
 - **Ampliación del Modal de Pedidos y Disposición Horizontal de Cód. Inventario y Artículo (Spec 046):**
   - **Ampliación a `max-w-6xl` (`index.html`):** El contenedor del diálogo `#dialog-order` se amplió de `max-w-4xl` (896px) a `max-w-6xl` (1152px), aportando +256px de espacio libre para desplegar todas las columnas en la misma fila horizontal sin desplazamiento forzado ni cortes de texto en laptops y pantallas estándar.
@@ -318,19 +311,6 @@ Registro de todo lo que debe preservarse entre sesiones de trabajo: arquitectura
 ---
 
 ## 3. Historial de cambios
-
-### 2026-11-16 (Campo Detalles y Ampliación de Modal a max-w-7xl — Spec 047)
-- **Interfaz de Usuario y Presentación en Pantalla (`index.html` & `assets/js/ui.js`):**
-  - Ampliación del diálogo modal `#dialog-order` a `max-w-7xl` (1280px), otorgando espacio libre panorámico para las 11 columnas en la misma fila horizontal sin scroll horizontal.
-  - Incorporación de la cabecera `<th class="py-2 px-1 w-40">Detalles</th>` situada inmediatamente después de `Artículo`.
-  - En `renderTablaItemsFormulario()`, inserción del input interactivo `details` (`w-40`) contiguo a `Artículo` que permite registrar especificaciones ("Cuello V", "Corte Dama", etc.) y se auto-completa con `inv.name` al elegir código de inventario.
-  - En `actualizarItemProp()`, soporte reactivo para la propiedad `details` sin pérdida de foco al escribir.
-- **Comprobantes y Tickets Imprimibles (`assets/js/ticket.js`):**
-  - Inclusión del detalle de la prenda (`Detalle: [texto]`) en los comprobantes físicos de taller y cliente.
-- **Pruebas Automatizadas (`tests/order_details_field.test.js`):**
-  - 5 pruebas unitarias verificando modal `max-w-7xl`, cabecera `w-40`, persistencia en pedido, auto-relleno y visualización en comprobante.
-  - Suite global completa: 38 suites, 341 pruebas unitarias pasando al 100% con 0 fallos.
-- **Metodología SDD:** Especificación formal en `specs/047-campo-detalles-y-ampliacion-modal-pedido/` (`spec.md`, `plan.md`, `tasks.md`).
 
 ### 2026-11-16 (Ampliación de Modal y Filas Horizontales de Código y Artículo — Spec 046)
 - **Interfaz de Usuario y Presentación en Pantalla (`index.html` & `assets/js/ui.js`):**

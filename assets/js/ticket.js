@@ -69,12 +69,10 @@
       const sub = sales ? sales.formatearMoneda(it.subtotal || (it.quantity * it.unitPrice)) : `$${it.subtotal}`;
       const precioU = sales ? sales.formatearMoneda(it.unitPrice) : `$${it.unitPrice}`;
       const codInvStr = it.inventoryCode ? ` <span class="text-[10px] font-mono font-bold text-gray-500 bg-gray-100 px-1 py-0.5 rounded border border-gray-200">[${it.inventoryCode}]</span>` : '';
-      const detalleStr = it.details ? `<div class="text-xs text-gray-600 font-medium">Detalle: ${it.details}</div>` : '';
       return `
         <tr class="border-b border-gray-200">
           <td class="py-2 text-left">
             <span class="font-bold text-gray-800">${it.quantity}x ${it.garmentType}${codInvStr}</span>
-            ${detalleStr}
             <div class="text-xs text-gray-500">Talla: ${it.size} | Color: ${it.color}</div>
             <div class="text-xs font-medium text-indigo-700">Técnica: ${it.technique} (${it.printLocation || 'Pecho'})</div>
             ${it.notes ? `<div class="text-xs italic text-gray-400">${it.notes}</div>` : ''}
