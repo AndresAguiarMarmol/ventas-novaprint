@@ -23,6 +23,11 @@ Registro de todo lo que debe preservarse entre sesiones de trabajo: arquitectura
 
 ## 2. Decisiones vigentes
 
+- **Calibración y Longitud del Campo P. Unitario a 7 Caracteres en Pedidos (Spec 045):**
+  - **Alineación y Dimensiones en `#dialog-order` (`index.html` & `ui.js`):**
+    - **P. Unit (7 caracteres):** Input `<input id="input-price-${it.id}">` calibrado a `w-20` (80px) con padding horizontal compacto `px-2 py-1`, texto alineado a la derecha `text-right` y tipografía `text-xs`, junto a la cabecera `<th class="py-2 px-1 text-right w-20">P. Unit</th>` en `index.html`.
+    - **Restricción de Rango (0 a 9999999):** Atributos `min="0"` y `max="9999999"` en el DOM, complementados con la validación estricta en `actualizarItemProp(itemId, 'unitPrice', value)` que acota el valor mediante `Math.min(9999999, Math.max(0, parsed))`, previniendo errores de digitación y garantizando un diseño limpio para precios unitarios de hasta $9.999.999 CLP.
+
 - **Fusión Vertical de "Cód. Inventario" y "Artículo/Detalle" en Detalle de Prendas (Spec 044):**
   - **Reorganización en una Sola Columna en `#dialog-order` (`index.html` & `ui.js`):**
     - Se eliminó la columna separada y redundante de "Prenda", unificando la cabecera en `<th class="py-2 px-1 min-w-[160px]">Cód. Inventario / Artículo</th>`.
@@ -298,6 +303,16 @@ Registro de todo lo que debe preservarse entre sesiones de trabajo: arquitectura
 ---
 
 ## 3. Historial de cambios
+
+### 2026-11-16 (Calibración y Longitud del Campo P. Unitario a 7 Caracteres — Spec 045)
+- **Interfaz de Usuario y Presentación en Pantalla (`index.html` & `assets/js/ui.js`):**
+  - Sincronización de la cabecera `<th>` en `<th class="py-2 px-1 text-right w-20">P. Unit</th>`.
+  - Calibración del input `<input id="input-price-${it.id}">` reduciendo su ancho a `w-20` (80px / 7 caracteres), con padding `px-2 py-1`, texto alineado a la derecha y atributos `min="0"` y `max="9999999"`.
+  - Validación en `actualizarItemProp(itemId, 'unitPrice', value)` limitando los precios unitarios al rango de `$0` a `$9.999.999 CLP`.
+- **Pruebas Automatizadas (`tests/order_unit_price_dimension.test.js`):**
+  - 3 pruebas unitarias nuevas comprobando la cabecera sincronizada en `index.html`, renderizado de clases compactas y atributos `min`/`max` en `ui.js`, y validación del límite 0-9999999 en `actualizarItemProp`.
+  - Suite global completa: 37 suites, 336 pruebas unitarias pasando al 100% con 0 fallos.
+- **Metodología SDD:** Especificación formal en `specs/045-longitud-precio-unitario-pedidos/` (`spec.md`, `plan.md`, `tasks.md`).
 
 ### 2026-11-15 (Fusión Vertical de Cód. Inventario y Artículo/Detalle — Spec 044)
 - **Interfaz de Usuario y Presentación en Pantalla (`index.html` & `assets/js/ui.js`):**

@@ -763,7 +763,7 @@
           <input type="number" min="1" max="999" value="${it.quantity}" class="w-12 p-1 border border-gray-300 rounded text-center font-bold text-xs" oninput="NovaprintUI.actualizarItemProp('${it.id}', 'quantity', this.value)">
         </td>
         <td class="py-2 px-1">
-          <input id="input-price-${it.id}" type="number" step="any" value="${it.unitPrice ?? 0}" placeholder="0" class="w-24 p-1.5 border border-gray-300 rounded text-right font-medium focus:bg-white" oninput="NovaprintUI.actualizarItemProp('${it.id}', 'unitPrice', this.value)">
+          <input id="input-price-${it.id}" type="number" step="any" min="0" max="9999999" value="${it.unitPrice ?? 0}" placeholder="0" class="w-20 px-2 py-1 border border-gray-300 rounded text-right font-medium focus:bg-white text-xs" oninput="NovaprintUI.actualizarItemProp('${it.id}', 'unitPrice', this.value)">
         </td>
         <td class="py-2 px-1 text-right font-bold text-gray-900 subtotal-cell">
           $${it.quantity * it.unitPrice}
@@ -785,7 +785,8 @@
         const parsed = parseInt(value, 10) || 0;
         item.quantity = Math.min(999, Math.max(0, parsed));
       } else if (prop === 'unitPrice') {
-        item.unitPrice = Number(value) || 0;
+        const parsed = Number(value) || 0;
+        item.unitPrice = Math.min(9999999, Math.max(0, parsed));
         item._manualPrice = true;
       } else if (prop === 'inventoryCode') {
         item.inventoryCode = (value || '').toString().trim();
