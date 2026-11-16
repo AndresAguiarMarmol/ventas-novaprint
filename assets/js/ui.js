@@ -518,6 +518,7 @@
 
     let inventoryCode = datos.inventoryCode || '';
     let inventoryItemId = datos.inventoryItemId || null;
+    let invMatch = null;
 
     // Spec 042: Si no viene código, buscar coincidencia en inventario
     if (!inventoryCode && storage) {
@@ -525,7 +526,7 @@
       const pB = normalizar(garmentType);
       const cB = normalizar(color);
       const tB = normalizar(size);
-      const invMatch = storage.getInventory().find(inv => {
+      invMatch = storage.getInventory().find(inv => {
         const mPrenda = normalizar(inv.garmentType) === pB || normalizar(inv.name).includes(pB);
         const mColor = normalizar(inv.color) === cB || normalizar(inv.name).includes(cB);
         const mTalla = normalizar(inv.size) === tB || normalizar(inv.name).includes(tB);
@@ -548,6 +549,7 @@
       printLocation: datos.printLocation || 'Adelante',
       quantity: datos.quantity || 1,
       unitPrice: datos.unitPrice || (sales ? sales.calcularPrecioSugeridoPrenda({ garmentType, color, size, technique: datos.technique || 'DTF', printLocation: datos.printLocation || 'Adelante' }) : 6700),
+      details: datos.details || (invMatch ? invMatch.name : '') || '',
       notes: datos.notes || ''
     };
     currentOrderItems.push(item);
@@ -725,6 +727,9 @@
           <div id="badge-stock-${it.id}" class="mt-1">${obtenerBadgeStockHtml(it)}</div>
         </td>
         <td class="py-2 px-1">
+          <input type="text" placeholder="Detalles de prenda" value="${it.details || ''}" class="w-40 p-1.5 border border-gray-300 rounded text-xs font-medium focus:bg-white" oninput="NovaprintUI.actualizarItemProp('${it.id}', 'details', this.value)" title="Detalles específicos de la prenda">
+        </td>
+        <td class="py-2 px-1">
           <select class="w-28 p-1.5 border border-gray-300 rounded font-medium text-gray-800" onchange="NovaprintUI.manejarCambioColor('${it.id}', this.value)">
             ${generarOpcionesColor(it.color)}
           </select>
@@ -788,6 +793,8 @@
         const parsed = Number(value) || 0;
         item.unitPrice = Math.min(9999999, Math.max(0, parsed));
         item._manualPrice = true;
+      } else if (prop === 'details') {
+        item.details = (value || '').toString();
       } else if (prop === 'inventoryCode') {
         item.inventoryCode = (value || '').toString().trim();
         if (item.inventoryCode && storage) {
@@ -797,6 +804,7 @@
             if (inv.garmentType) item.garmentType = inv.garmentType;
             if (inv.color) item.color = inv.color;
             if (inv.size) item.size = inv.size;
+            if (inv.name && !item.details) item.details = inv.name;
           }
         } else {
           item.inventoryItemId = null;
@@ -837,8 +845,8 @@
       }
       item.subtotal = (item.quantity || 0) * (item.unitPrice || 0);
 
-      // Si cambió un selector (no el input de cantidad/precio), re-renderizar para reflejar precio sugerido y subtotales
-      if (prop !== 'quantity' && prop !== 'unitPrice') {
+      // Si cambió un selector (no el input de cantidad/precio/detalles), re-renderizar para reflejar precio sugerido y subtotales
+      if (prop !== 'quantity' && prop !== 'unitPrice' && prop !== 'details') {
         renderTablaItemsFormulario();
       } else {
         const badgeEl = document.getElementById(`badge-stock-${itemId}`);
