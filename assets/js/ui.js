@@ -709,20 +709,20 @@
 
     tbody.innerHTML = currentOrderItems.map((it, idx) => `
       <tr class="border-b border-gray-200 text-xs">
-        <td class="py-2 px-1 min-w-[160px] space-y-1">
-          <select class="w-full p-1.5 border border-gray-300 rounded font-bold text-gray-800 text-[11px] bg-slate-50 focus:bg-white" onchange="NovaprintUI.actualizarItemProp('${it.id}', 'inventoryCode', this.value)" title="Código de Inventario">
+        <td class="py-2 pr-1">
+          <select class="w-36 p-1.5 border border-gray-300 rounded font-bold text-gray-800 text-[11px] bg-slate-50 focus:bg-white" onchange="NovaprintUI.actualizarItemProp('${it.id}', 'inventoryCode', this.value)" title="Código de Inventario">
             ${generarOpcionesCodigoInventario(it.inventoryCode)}
           </select>
-          <div class="flex items-center gap-1.5">
-            <select class="flex-1 p-1 border border-gray-300 rounded font-semibold text-gray-800 text-xs bg-white" onchange="NovaprintUI.actualizarItemProp('${it.id}', 'garmentType', this.value)" title="Artículo / Tipo de Prenda">
-              <option value="Polera" ${it.garmentType === 'Polera' ? 'selected' : ''}>Polera</option>
-              <option value="Polerón" ${it.garmentType === 'Polerón' ? 'selected' : ''}>Polerón</option>
-              <option value="Buzo" ${it.garmentType === 'Buzo' ? 'selected' : ''}>Buzo</option>
-              <option value="Gorra" ${it.garmentType === 'Gorra' ? 'selected' : ''}>Gorra</option>
-              <option value="Otro" ${it.garmentType === 'Otro' ? 'selected' : ''}>Otro</option>
-            </select>
-            <div id="badge-stock-${it.id}" class="shrink-0">${obtenerBadgeStockHtml(it)}</div>
-          </div>
+        </td>
+        <td class="py-2 px-1">
+          <select class="w-full p-1.5 border border-gray-300 rounded font-semibold text-gray-800" onchange="NovaprintUI.actualizarItemProp('${it.id}', 'garmentType', this.value)" title="Artículo">
+            <option value="Polera" ${it.garmentType === 'Polera' ? 'selected' : ''}>Polera</option>
+            <option value="Polerón" ${it.garmentType === 'Polerón' ? 'selected' : ''}>Polerón</option>
+            <option value="Buzo" ${it.garmentType === 'Buzo' ? 'selected' : ''}>Buzo</option>
+            <option value="Gorra" ${it.garmentType === 'Gorra' ? 'selected' : ''}>Gorra</option>
+            <option value="Otro" ${it.garmentType === 'Otro' ? 'selected' : ''}>Otro</option>
+          </select>
+          <div id="badge-stock-${it.id}" class="mt-1">${obtenerBadgeStockHtml(it)}</div>
         </td>
         <td class="py-2 px-1">
           <select class="w-28 p-1.5 border border-gray-300 rounded font-medium text-gray-800" onchange="NovaprintUI.manejarCambioColor('${it.id}', this.value)">

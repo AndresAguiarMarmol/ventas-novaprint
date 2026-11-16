@@ -23,6 +23,14 @@ Registro de todo lo que debe preservarse entre sesiones de trabajo: arquitectura
 
 ## 2. Decisiones vigentes
 
+- **Ampliación del Modal de Pedidos y Disposición Horizontal de Cód. Inventario y Artículo (Spec 046):**
+  - **Ampliación a `max-w-6xl` (`index.html`):** El contenedor del diálogo `#dialog-order` se amplió de `max-w-4xl` (896px) a `max-w-6xl` (1152px), aportando +256px de espacio libre para desplegar todas las columnas en la misma fila horizontal sin desplazamiento forzado ni cortes de texto en laptops y pantallas estándar.
+  - **Columnas Horizontales Separadas en la Misma Fila (`index.html` & `ui.js`):**
+    - Se definieron columnas individuales: `<th class="py-2 pr-1 w-36">Cód. Inventario</th>` y `<th class="py-2 px-1">Artículo</th>`.
+    - En `renderTablaItemsFormulario()`, la primera celda `<td>` renderiza el selector de `Cód. Inventario` (`w-36`) y la segunda celda `<td>` renderiza el selector de `Artículo` (`garmentType`) con su insignia de stock en bodega (`#badge-stock-${it.id}`) en la misma fila horizontal.
+    - Las 10 columnas se presentan fluidamente alineadas en una sola fila (Cód. Inventario, Artículo, Color, Talla, Técnica, Estampado, Cantidad, P. Unit, Subtotal y Acciones).
+    - Preserva intacta la sincronización bidireccional de la Spec 042.
+
 - **Calibración y Longitud del Campo P. Unitario a 7 Caracteres en Pedidos (Spec 045):**
   - **Alineación y Dimensiones en `#dialog-order` (`index.html` & `ui.js`):**
     - **P. Unit (7 caracteres):** Input `<input id="input-price-${it.id}">` calibrado a `w-20` (80px) con padding horizontal compacto `px-2 py-1`, texto alineado a la derecha `text-right` y tipografía `text-xs`, junto a la cabecera `<th class="py-2 px-1 text-right w-20">P. Unit</th>` en `index.html`.
@@ -303,6 +311,17 @@ Registro de todo lo que debe preservarse entre sesiones de trabajo: arquitectura
 ---
 
 ## 3. Historial de cambios
+
+### 2026-11-16 (Ampliación de Modal y Filas Horizontales de Código y Artículo — Spec 046)
+- **Interfaz de Usuario y Presentación en Pantalla (`index.html` & `assets/js/ui.js`):**
+  - Ampliación del diálogo modal `#dialog-order` a `max-w-6xl` (1152px), otorgando +256px de ancho libre.
+  - Reestructuración de la tabla de prendas separando en dos columnas horizontales independientes: `<th class="py-2 pr-1 w-36">Cód. Inventario</th>` y `<th class="py-2 px-1">Artículo</th>`.
+  - En `renderTablaItemsFormulario()`, separación de celdas en la misma fila: primera celda `<td>` para el selector de `Cód. Inventario` (`w-36`) y segunda celda `<td>` para el selector de `Artículo` (`garmentType`) con insignia de stock en bodega (`#badge-stock-${it.id}`).
+  - Despliegue fluido de los 10 conceptos en una única fila horizontal sin desbordamiento ni barras de scroll.
+- **Pruebas Automatizadas (`tests/order_item_details_layout.test.js`):**
+  - Actualización de pruebas unitarias verificando la clase `max-w-6xl` en `#dialog-order`, las cabeceras individuales `Cód. Inventario` y `Artículo`, la separación en celdas horizontales y la sincronización bidireccional con stock.
+  - Suite global completa: 37 suites, 336 pruebas unitarias pasando al 100% con 0 fallos.
+- **Metodología SDD:** Especificación formal en `specs/046-agrandar-modal-pedido-fila-horizontal/` (`spec.md`, `plan.md`, `tasks.md`).
 
 ### 2026-11-16 (Calibración y Longitud del Campo P. Unitario a 7 Caracteres — Spec 045)
 - **Interfaz de Usuario y Presentación en Pantalla (`index.html` & `assets/js/ui.js`):**

@@ -1,5 +1,5 @@
 // tests/order_item_details_layout.test.js
-// Spec 044 — Fusión Vertical de "Cód. Inventario" y "Artículo/Detalle"
+// Spec 046 — Ampliación de Modal a max-w-6xl y Columnas Horizontales de Cód. Inventario y Artículo
 
 const { describe, it, beforeEach } = require('node:test');
 const assert = require('node:assert');
@@ -90,20 +90,35 @@ function createMinimalDOM() {
   return { doc, elements };
 }
 
-describe('Spec 044 — Fusión Vertical de "Cód. Inventario" y "Artículo/Detalle"', () => {
+describe('Spec 046 — Ampliación de Modal y Columnas Horizontales de Cód. Inventario y Artículo', () => {
 
-  it('index.html debe contener la cabecera unificada "Cód. Inventario / Artículo" con clase min-w-[160px]', () => {
+  it('index.html debe configurar #dialog-order con max-w-6xl y cabeceras horizontales Cód. Inventario y Artículo', () => {
     const htmlPath = path.join(__dirname, '..', 'index.html');
     const html = fs.readFileSync(htmlPath, 'utf8');
 
+    // Verificar ampliación del modal a max-w-6xl
     assert.match(
       html,
-      /<th[^>]*class="[^"]*min-w-\[160px\][^"]*"[^>]*>C[oó]d\. Inventario \/ Art[íi]culo<\/th>/i,
-      'index.html debe contener la cabecera Cód. Inventario / Artículo con min-w-[160px]'
+      /<dialog[^>]*id="dialog-order"[^>]*class="[^"]*max-w-6xl[^"]*"/i,
+      '#dialog-order debe tener la clase max-w-6xl para mayor holgura horizontal'
+    );
+
+    // Verificar cabecera Cód. Inventario
+    assert.match(
+      html,
+      /<th[^>]*class="[^"]*w-36[^"]*"[^>]*>C[oó]d\. Inventario<\/th>/i,
+      'index.html debe contener la cabecera Cód. Inventario con clase w-36'
+    );
+
+    // Verificar cabecera Artículo
+    assert.match(
+      html,
+      /<th[^>]*>Art[íi]culo<\/th>/i,
+      'index.html debe contener la cabecera Artículo'
     );
   });
 
-  describe('Renderizado agrupado y sincronización en ui.js', () => {
+  describe('Renderizado de celdas horizontales y sincronización en ui.js', () => {
     let mockStorage;
     let storage;
     let prod;
@@ -140,40 +155,32 @@ describe('Spec 044 — Fusión Vertical de "Cód. Inventario" y "Artículo/Detal
       global.NovaprintMain = { refrescarDatos: () => {} };
     });
 
-    it('renderTablaItemsFormulario debe generar celda inicial con selector de código y debajo el selector de prenda con badge de stock', () => {
+    it('renderTablaItemsFormulario debe generar celdas horizontales independientes para Cód. Inventario y Artículo', () => {
       ui.abrirModalNuevoPedido();
 
       const tbody = dom.elements['order-items-tbody'];
       assert.ok(tbody.innerHTML.length > 0, 'El tbody debe tener contenido');
 
-      // Verificar celda con min-w-[160px] y space-y-1
-      assert.match(tbody.innerHTML, /<td[^>]*class="[^"]*min-w-\[160px\][^"]*space-y-1[^"]*"/,
-        'La celda inicial debe tener clases min-w-[160px] y space-y-1');
+      // Verificar que Cód. Inventario tiene su propia celda td
+      assert.match(tbody.innerHTML, /<td[^>]*class="[^"]*py-2\s+pr-1[^"]*"[^>]*>[\s\S]*?inventoryCode/,
+        'La primera celda td debe alojar el selector de inventoryCode');
 
-      // Verificar que contiene el selector de inventoryCode
-      assert.match(tbody.innerHTML, /NovaprintUI\.actualizarItemProp\('[^']+', 'inventoryCode', this\.value\)/,
-        'Debe incluir el selector de inventoryCode');
-
-      // Verificar que contiene el selector de garmentType en la misma celda
-      assert.match(tbody.innerHTML, /NovaprintUI\.actualizarItemProp\('[^']+', 'garmentType', this\.value\)/,
-        'Debe incluir el selector de garmentType');
-
-      // Verificar que contiene el contenedor del badge de stock
-      assert.match(tbody.innerHTML, /id="badge-stock-[^"]+"/,
-        'Debe incluir el badge de stock en la misma celda agrupada');
+      // Verificar que Artículo tiene su propia celda td en la misma fila
+      assert.match(tbody.innerHTML, /<td[^>]*class="[^"]*py-2\s+px-1[^"]*"[^>]*>[\s\S]*?garmentType[\s\S]*?badge-stock-/,
+        'La segunda celda td debe alojar el selector de garmentType y el badge de stock');
     });
 
-    it('sincronización bidireccional entre código de inventario y prenda/artículo opera correctamente en la celda agrupada', () => {
-      // Registrar un ítem de inventario con stock
+    it('sincronización bidireccional entre código y artículo opera correctamente en las celdas horizontales', () => {
+      // Registrar ítem en inventario
       storage.saveInventoryItem({
-        id: 'INV-TEST-001',
+        id: 'INV-TEST-002',
         code: 'POL-ROJ-S',
         name: 'Polera Algodón Roja S',
         category: 'Prendas Lisas',
         garmentType: 'Polera',
         color: 'Rojo',
         size: 'S',
-        currentStock: 15,
+        currentStock: 18,
         minStock: 2,
         unitCost: 3500
       });
@@ -192,7 +199,7 @@ describe('Spec 044 — Fusión Vertical de "Cód. Inventario" y "Artículo/Detal
       assert.ok(tbodyAfter.innerHTML.includes('selected>Polera<'), 'Debe seleccionarse Polera');
       assert.ok(tbodyAfter.innerHTML.includes('selected>Rojo<'), 'Debe seleccionarse Rojo');
       assert.ok(tbodyAfter.innerHTML.includes('selected>S<'), 'Debe seleccionarse talla S');
-      assert.ok(tbodyAfter.innerHTML.includes('Bodega: 15 un.'), 'Debe reflejar el stock disponible de 15 un.');
+      assert.ok(tbodyAfter.innerHTML.includes('Bodega: 18 un.'), 'Debe reflejar el stock disponible de 18 un.');
     });
   });
 });
