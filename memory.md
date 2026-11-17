@@ -23,6 +23,11 @@ Registro de todo lo que debe preservarse entre sesiones de trabajo: arquitectura
 
 ## 2. Decisiones vigentes
 
+- **Botón para Modificar Escala de Descuentos en Ajustes de Novaprint (Spec 047):**
+  - **Ubicación en Diálogo `#dialog-settings` (`index.html`):** Se incorporó la subsección "Políticas Comerciales & Descuentos" inmediatamente después de Apariencia/Tema y antes de la Copia de Seguridad JSON.
+  - **Botón Interactivo `#btn-settings-volume-discounts`:** Diseñado con formato ancho, estilo azul suave (`bg-blue-50 border border-blue-200 text-blue-700`), icono `🏷️`, texto `"Modificar Escala de Descuentos"` y badge `Configurar ➔`.
+  - **Integración Funcional Inmutable (`main.js`):** Al presionar el botón se dispara `NovaprintUI.abrirModalDescuentosVolumen()`, abriendo el diálogo oficial `#dialog-volume-discounts` para consultar los tramos vigentes (1-5: 0%, 6-11: 5%, 12-24: 10%, 25-49: 15%, 50+: 20%) sin modificar datos ni la lógica de cálculo financiero actual.
+
 - **Ampliación del Modal de Pedidos y Disposición Horizontal de Cód. Inventario y Artículo (Spec 046):**
   - **Ampliación a `max-w-6xl` (`index.html`):** El contenedor del diálogo `#dialog-order` se amplió de `max-w-4xl` (896px) a `max-w-6xl` (1152px), aportando +256px de espacio libre para desplegar todas las columnas en la misma fila horizontal sin desplazamiento forzado ni cortes de texto en laptops y pantallas estándar.
   - **Columnas Horizontales Separadas en la Misma Fila (`index.html` & `ui.js`):**
@@ -311,6 +316,16 @@ Registro de todo lo que debe preservarse entre sesiones de trabajo: arquitectura
 ---
 
 ## 3. Historial de cambios
+
+### 2026-11-17 (Botón para Modificar Escala de Descuentos en Ajustes — Spec 047)
+- **Interfaz de Usuario y Presentación en Pantalla (`index.html` & `assets/js/main.js`):**
+  - En `#dialog-settings`, incorporación de la sección "Políticas Comerciales & Descuentos" antes de la Copia de Seguridad.
+  - Creación del botón `#btn-settings-volume-discounts` con icono `🏷️`, etiqueta "Modificar Escala de Descuentos" y flecha `Configurar ➔`.
+  - En `main.js` (`setupBackupAndSettings`), enlace del evento de clic para invocar `NovaprintUI.abrirModalDescuentosVolumen()`, abriendo el modal oficial `#dialog-volume-discounts` de tramos de volumen sin mutar datos existentes.
+- **Pruebas Automatizadas (`tests/settings_volume_discounts_button.test.js`):**
+  - 4 pruebas unitarias verificando la existencia del diálogo `#dialog-settings`, el botón `#btn-settings-volume-discounts`, su ubicación y el escuchador de clic en `main.js`.
+  - Suite global completa: 38 suites, 340 pruebas unitarias pasando al 100% con 0 fallos.
+- **Metodología SDD:** Especificación formal en `specs/047-boton-escala-descuentos-ajustes/` (`spec.md`, `plan.md`, `tasks.md`).
 
 ### 2026-11-16 (Ampliación de Modal y Filas Horizontales de Código y Artículo — Spec 046)
 - **Interfaz de Usuario y Presentación en Pantalla (`index.html` & `assets/js/ui.js`):**

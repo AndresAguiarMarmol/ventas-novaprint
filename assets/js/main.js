@@ -717,6 +717,16 @@
       });
     }
 
+    // Botón para consultar/modificar escala de descuentos desde Ajustes (Spec 047)
+    const btnSettingsDiscounts = document.getElementById('btn-settings-volume-discounts');
+    if (btnSettingsDiscounts) {
+      btnSettingsDiscounts.addEventListener('click', () => {
+        if (global.NovaprintUI && typeof global.NovaprintUI.abrirModalDescuentosVolumen === 'function') {
+          global.NovaprintUI.abrirModalDescuentosVolumen();
+        }
+      });
+    }
+
     const btnExportBackup = document.getElementById('btn-export-backup');
     if (btnExportBackup) {
       btnExportBackup.addEventListener('click', () => {
