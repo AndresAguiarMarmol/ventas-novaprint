@@ -1273,18 +1273,32 @@
               <span class="text-[10px] text-emerald-700 font-bold bg-white px-1.5 py-0.5 rounded border border-emerald-200">Ver Escala ➔</span>
             </button>
 
-            <!-- Subtotal Bruto y Descuento por Volumen (skill.md) -->
-            <div id="form-subtotal-container" class="mt-1 hidden flex justify-between text-xs text-gray-600">
+            <!-- Subtotal Bruto, Descuento por Volumen Editable y Neto (Spec 049) -->
+            <div id="form-subtotal-container" class="mt-1 flex justify-between text-xs text-gray-600">
               <span>Subtotal:</span>
               <span id="form-subtotal-amount" class="font-semibold text-gray-700">$0</span>
             </div>
-            <div id="form-discount-container" class="mt-1 hidden">
-              <label class="flex items-center justify-between gap-1 text-[11px] font-bold text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200 cursor-pointer">
-                <span id="form-discount-label">Desc. Volumen (10%): -$0</span>
-                <input id="form-apply-discount" type="checkbox" checked class="rounded text-blue-600 cursor-pointer" onchange="NovaprintUI.recalcularTotalesFormulario()" title="Aplicar escala de descuento por volumen">
-              </label>
+            <div id="form-discount-container" class="mt-1.5 bg-emerald-50/70 border border-emerald-200 rounded-lg p-2 space-y-1.5">
+              <div class="flex items-center justify-between">
+                <label class="flex items-center gap-1.5 text-[11px] font-bold text-emerald-900 cursor-pointer">
+                  <input id="form-apply-discount" type="checkbox" checked class="rounded text-emerald-600 cursor-pointer" onchange="NovaprintUI.recalcularTotalesFormulario()">
+                  <span>¿Aplica Descuento por Volumen?</span>
+                </label>
+                <span id="form-discount-badge" class="text-[10px] bg-emerald-100 text-emerald-800 px-1.5 py-0.5 rounded font-semibold">Escala</span>
+              </div>
+              <div class="flex items-center justify-between gap-2 pt-1 border-t border-emerald-200/60 text-xs">
+                <div class="flex items-center gap-1">
+                  <span class="text-[11px] font-bold text-gray-700">Descuento:</span>
+                  <input id="form-discount-percent-input" type="number" min="0" max="100" value="0" class="w-14 p-1 border border-emerald-300 bg-white rounded text-xs text-center font-bold text-emerald-700 focus:outline-none focus:ring-1 focus:ring-emerald-400" oninput="NovaprintUI.recalcularTotalesFormulario(true)" title="Porcentaje de descuento por volumen (editable)">
+                  <span class="text-xs font-bold text-emerald-700">%</span>
+                </div>
+                <div class="flex items-center gap-1 text-xs font-bold text-emerald-700">
+                  <span id="form-discount-label">Ahorro:</span>
+                  <span id="form-discount-amount">-$0</span>
+                </div>
+              </div>
             </div>
-            <div id="form-neto-container" class="mt-1 hidden flex justify-between text-xs text-gray-600">
+            <div id="form-neto-container" class="mt-1 flex justify-between text-xs text-gray-600">
               <span>Neto:</span>
               <span id="form-neto-amount" class="font-semibold text-gray-800">$0</span>
             </div>

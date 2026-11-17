@@ -207,6 +207,7 @@
     let aplicarDescuentoVolumen = false;
     let aplicarIva = false;
     let montoDelivery = 0;
+    let porcentajeManual = null;
 
     if (typeof opciones === 'boolean') {
       aplicarDescuentoVolumen = opciones;
@@ -214,6 +215,12 @@
       aplicarDescuentoVolumen = Boolean(opciones.aplicarDescuentoVolumen);
       aplicarIva = Boolean(opciones.aplicarIva);
       montoDelivery = Math.max(0, Number(opciones.montoDelivery) || 0);
+      if (opciones.porcentajeDescuentoManual !== undefined && opciones.porcentajeDescuentoManual !== null) {
+        const parsedManual = Number(opciones.porcentajeDescuentoManual);
+        if (!isNaN(parsedManual)) {
+          porcentajeManual = Math.min(100, Math.max(0, parsedManual));
+        }
+      }
     }
 
     const applyIva = Boolean(aplicarIva);
@@ -232,7 +239,7 @@
         totalQuantity: 0,
         subtotalBruto: 0,
         applyDiscount,
-        volumeDiscountPercent: 0,
+        volumeDiscountPercent: porcentajeManual !== null ? porcentajeManual : 0,
         volumeDiscountAmount: 0,
         netAmount: 0,
         applyIva,
@@ -257,9 +264,22 @@
       subtotalBruto += Math.round(q * p);
     });
 
-    const desc = calcularDescuentoVolumen(totalQuantity, subtotalBruto);
-    const volumeDiscountPercent = aplicarDescuentoVolumen ? desc.porcentaje : 0;
-    const volumeDiscountAmount = aplicarDescuentoVolumen ? desc.montoDescuento : 0;
+    let porcentajeEfectivo = 0;
+    let montoDescuentoEfectivo = 0;
+
+    if (aplicarDescuentoVolumen) {
+      if (porcentajeManual !== null) {
+        porcentajeEfectivo = porcentajeManual;
+        montoDescuentoEfectivo = Math.round((subtotalBruto * porcentajeEfectivo) / 100);
+      } else {
+        const desc = calcularDescuentoVolumen(totalQuantity, subtotalBruto);
+        porcentajeEfectivo = desc.porcentaje;
+        montoDescuentoEfectivo = desc.montoDescuento;
+      }
+    }
+
+    const volumeDiscountPercent = porcentajeEfectivo;
+    const volumeDiscountAmount = montoDescuentoEfectivo;
     const netAmount = subtotalBruto - volumeDiscountAmount;
     const ivaAmount = applyIva ? Math.round(netAmount * TASA_IVA_CHILE) : 0;
     const totalAmount = netAmount + ivaAmount + deliveryAmount;

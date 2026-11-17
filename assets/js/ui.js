@@ -8,6 +8,7 @@
   // Contenedor temporal de items para el formulario de pedidos activo
   let currentOrderItems = [];
   let editingOrderId = null;
+  let discountPercentManualEdited = false;
 
   /**
    * Muestra notificaciones flotantes tipo Toast
@@ -471,9 +472,16 @@
   function abrirModalNuevoPedido(clientePreseleccionado = null) {
     editingOrderId = null;
     currentOrderItems = [];
+    discountPercentManualEdited = false;
     document.getElementById('form-order').reset();
     document.getElementById('order-modal-title').textContent = 'Registrar Nuevo Pedido de Estampado';
     document.getElementById('order-id-display').textContent = 'Correlativo Automático';
+
+    // Descuento por Volumen (Spec 049): activo por defecto, sugerencia automática
+    const checkDesc = document.getElementById('form-apply-discount');
+    if (checkDesc) checkDesc.checked = true;
+    const inputDescPercent = document.getElementById('form-discount-percent-input');
+    if (inputDescPercent) inputDescPercent.value = 0;
 
     // Resetear IVA y Delivery
     const checkIva = document.getElementById('order-apply-iva');
@@ -851,7 +859,7 @@
     }
   }
 
-  function recalcularTotalesFormulario() {
+  function recalcularTotalesFormulario(esEdicionManualPercent = false) {
     const sales = global.NovaprintSales;
     const inputAbono = document.getElementById('order-deposit-input');
     const montoAbono = inputAbono ? Number(inputAbono.value) || 0 : 0;
@@ -864,10 +872,32 @@
     const inputDeliv = document.getElementById('order-delivery-input');
     const montoDelivery = (aplicarDeliv && inputDeliv) ? Math.max(0, Number(inputDeliv.value) || 0) : 0;
 
+    // Spec 049: Descuento por Volumen editable
+    if (esEdicionManualPercent === true) {
+      discountPercentManualEdited = true;
+    }
+
+    const percentInput = document.getElementById('form-discount-percent-input');
+    let porcentajeManual = undefined;
+
+    if (percentInput) {
+      if (!discountPercentManualEdited) {
+        const totalQty = currentOrderItems.reduce((acc, it) => acc + (Number(it.quantity) || 0), 0);
+        const subtotalBrutoItems = currentOrderItems.reduce((acc, it) => acc + (Number(it.total) || 0), 0);
+        const sugerido = (sales && typeof sales.calcularDescuentoVolumen === 'function')
+          ? sales.calcularDescuentoVolumen(totalQty, subtotalBrutoItems).percent
+          : 0;
+        percentInput.value = sugerido;
+      }
+      const val = Number(percentInput.value);
+      porcentajeManual = isNaN(val) ? 0 : Math.max(0, Math.min(100, val));
+    }
+
     const totales = sales.calcularTotalesPedido(currentOrderItems, montoAbono, {
       aplicarDescuentoVolumen: aplicarDesc,
       aplicarIva,
-      montoDelivery
+      montoDelivery,
+      porcentajeDescuentoManual: (percentInput ? porcentajeManual : undefined)
     });
 
     document.getElementById('form-total-quantity').textContent = `${totales.totalQuantity} un.`;
@@ -878,30 +908,70 @@
     const subtotalContainer = document.getElementById('form-subtotal-container');
     const discountContainer = document.getElementById('form-discount-container');
     const discountLabel = document.getElementById('form-discount-label');
+    const discountBadge = document.getElementById('form-discount-badge');
+    const discountAmountEl = document.getElementById('form-discount-amount');
     const subtotalEl = document.getElementById('form-subtotal-amount');
     const netoContainer = document.getElementById('form-neto-container');
     const netoEl = document.getElementById('form-neto-amount');
 
-    if (totales.volumeDiscountPercent > 0) {
-      if (subtotalContainer) {
-        subtotalContainer.classList.remove('hidden');
-        if (subtotalEl) subtotalEl.textContent = sales.formatearMoneda(totales.subtotalBruto);
-      }
-      if (discountContainer) {
-        discountContainer.classList.remove('hidden');
-        if (discountLabel) {
-          discountLabel.textContent = `Desc. Volumen (${totales.volumeDiscountPercent}%): -${sales.formatearMoneda(totales.volumeDiscountAmount)}`;
-        }
-      }
-    } else {
-      if (subtotalContainer) subtotalContainer.classList.add('hidden');
-      if (discountContainer) discountContainer.classList.add('hidden');
+    if (subtotalEl) {
+      subtotalEl.textContent = sales.formatearMoneda(totales.subtotalBruto);
     }
 
-    if (netoContainer && netoEl) {
+    if (percentInput) {
+      // Formulario con tarjeta de descuento editable (Spec 049)
+      if (subtotalContainer) subtotalContainer.classList.remove('hidden');
+      if (discountContainer) discountContainer.classList.remove('hidden');
+      if (netoContainer) netoContainer.classList.remove('hidden');
+
+      if (discountBadge) {
+        if (!totales.applyDiscount) {
+          discountBadge.textContent = 'Inactivo';
+          discountBadge.className = 'text-[10px] bg-gray-100 text-gray-500 px-1.5 py-0.5 rounded font-semibold';
+        } else if (discountPercentManualEdited) {
+          discountBadge.textContent = 'Manual';
+          discountBadge.className = 'text-[10px] bg-amber-100 text-amber-800 px-1.5 py-0.5 rounded font-semibold';
+        } else {
+          discountBadge.textContent = 'Escala';
+          discountBadge.className = 'text-[10px] bg-emerald-100 text-emerald-800 px-1.5 py-0.5 rounded font-semibold';
+        }
+      }
+
+      if (discountAmountEl) {
+        discountAmountEl.textContent = `-${sales.formatearMoneda(totales.volumeDiscountAmount)}`;
+      }
+
+      if (discountLabel) {
+        discountLabel.textContent = 'Ahorro:';
+      }
+
+      if (percentInput && typeof document !== 'undefined' && document.activeElement !== percentInput) {
+        percentInput.value = totales.volumeDiscountPercent;
+      }
+    } else {
+      // Retrocompatibilidad con DOM simple o mocks de tests previos
+      if (totales.volumeDiscountPercent > 0) {
+        if (subtotalContainer) {
+          subtotalContainer.classList.remove('hidden');
+        }
+        if (discountContainer) {
+          discountContainer.classList.remove('hidden');
+          if (discountLabel) {
+            discountLabel.textContent = `Desc. Volumen (${totales.volumeDiscountPercent}%): -${sales.formatearMoneda(totales.volumeDiscountAmount)}`;
+          }
+        }
+      } else {
+        if (subtotalContainer) subtotalContainer.classList.add('hidden');
+        if (discountContainer) discountContainer.classList.add('hidden');
+      }
+    }
+
+    if (netoEl) {
+      netoEl.textContent = sales.formatearMoneda(totales.netAmount);
+    }
+    if (!percentInput && netoContainer) {
       if (totales.volumeDiscountAmount > 0 || totales.applyIva || totales.deliveryAmount > 0) {
         netoContainer.classList.remove('hidden');
-        netoEl.textContent = sales.formatearMoneda(totales.netAmount);
       } else {
         netoContainer.classList.add('hidden');
       }
@@ -1207,6 +1277,8 @@
 
     const checkboxDesc = document.getElementById('form-apply-discount');
     const aplicarDesc = checkboxDesc ? checkboxDesc.checked : true;
+    const percentInput = document.getElementById('form-discount-percent-input');
+    const porcentajeManual = percentInput ? Math.max(0, Math.min(100, Number(percentInput.value) || 0)) : undefined;
     const checkboxIva = document.getElementById('order-apply-iva');
     const aplicarIva = checkboxIva ? checkboxIva.checked : false;
     const checkboxDeliv = document.getElementById('order-apply-delivery');
@@ -1217,7 +1289,8 @@
     const totals = sales.calcularTotalesPedido(currentOrderItems, depositAmount, {
       aplicarDescuentoVolumen: aplicarDesc,
       aplicarIva,
-      montoDelivery
+      montoDelivery,
+      porcentajeDescuentoManual: porcentajeManual
     });
 
     const orderPayload = {
@@ -1271,7 +1344,7 @@
     document.getElementById('order-notes-input').value = pedido.notes || '';
     document.getElementById('order-deposit-input').value = pedido.totals?.depositAmount || 0;
 
-    // Spec 037: Cargar Descuento por Volumen, IVA y Delivery preservando selecciones del usuario
+    // Spec 037 & 049: Cargar Descuento por Volumen, IVA y Delivery preservando selecciones del usuario
     const checkDesc = document.getElementById('form-apply-discount');
     if (checkDesc) {
       if (pedido.totals && typeof pedido.totals.applyDiscount === 'boolean') {
@@ -1280,6 +1353,13 @@
         // Retrocompatibilidad con pedidos anteriores: si no está definido applyDiscount, inferir si tuvo descuento
         checkDesc.checked = Boolean(pedido.totals?.volumeDiscountAmount > 0 || (pedido.totals?.volumeDiscountPercent > 0 && pedido.totals?.subtotalBruto > 0));
       }
+    }
+    const inputDescPercent = document.getElementById('form-discount-percent-input');
+    if (inputDescPercent) {
+      inputDescPercent.value = (pedido.totals && typeof pedido.totals.volumeDiscountPercent === 'number')
+        ? pedido.totals.volumeDiscountPercent
+        : 0;
+      discountPercentManualEdited = true;
     }
 
     const checkIva = document.getElementById('order-apply-iva');
@@ -1360,7 +1440,7 @@
     const depInput = document.getElementById('order-deposit-input');
     if (depInput) depInput.value = 0; // Iniciar abono en 0 para nuevo pedido
 
-    // Spec 037: Preservar selecciones de Descuento por Volumen, IVA y Delivery del pedido clonado
+    // Spec 037 & 049: Preservar selecciones de Descuento por Volumen, IVA y Delivery del pedido clonado
     const checkDesc = document.getElementById('form-apply-discount');
     if (checkDesc) {
       if (pedido.totals && typeof pedido.totals.applyDiscount === 'boolean') {
@@ -1368,6 +1448,13 @@
       } else {
         checkDesc.checked = Boolean(pedido.totals?.volumeDiscountAmount > 0 || (pedido.totals?.volumeDiscountPercent > 0 && pedido.totals?.subtotalBruto > 0));
       }
+    }
+    const inputDescPercent = document.getElementById('form-discount-percent-input');
+    if (inputDescPercent) {
+      inputDescPercent.value = (pedido.totals && typeof pedido.totals.volumeDiscountPercent === 'number')
+        ? pedido.totals.volumeDiscountPercent
+        : 0;
+      discountPercentManualEdited = true;
     }
 
     const checkIva = document.getElementById('order-apply-iva');

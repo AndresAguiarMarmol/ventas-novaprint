@@ -10,7 +10,7 @@ Registro de todo lo que debe preservarse entre sesiones de trabajo: arquitectura
 ### A. Claves en `localStorage`
 - **`novaprint_settings`:** Configuración de la empresa (nombre, RUT, teléfono/WhatsApp, dirección, moneda `$`, mensaje pie de ticket, preferencia de tema `theme: 'light' | 'dark' | 'system'`, escala personalizada de descuentos por volumen `volumeDiscountTiers`, banderas de control como `inventoryZeroStockApplied_v1`, `kinderBRecoveryApplied_v1`, `kinderBOrderDeleted`).
 - **`novaprint_clients`:** Directorio de clientes (`id, name, phone, email, rut, address, notes, createdAt`).
-- **`novaprint_orders`:** Registro de pedidos con prendas (poleras, polerones, buzos, gorras), técnicas de estampado (DTF, serigrafía, sublimación, vinilo, bordado), tallas, colores, ítems enlazados a bodega (`inventoryCode`, `inventoryItemId`), montos, desglose de IVA (19%), Delivery, abonos y estado.
+- **`novaprint_orders`:** Registro de pedidos con prendas (poleras, polerones, buzos, gorras), técnicas de estampado (DTF, serigrafía, sublimación, vinilo, bordado), tallas, colores, ítems enlazados a bodega (`inventoryCode`, `inventoryItemId`), montos, desglose de Descuento por Volumen editable (`applyDiscount`, `volumeDiscountPercent`, `volumeDiscountAmount`), IVA (19%), Delivery, abonos y estado.
 - **`novaprint_suppliers`:** Catálogo de proveedores (`id, name, contact, phone, email, category, address, notes, createdAt, updatedAt`).
 - **`novaprint_inventory`:** Existencias de insumos y prendas base (`id, code, name, category, garmentType, color, size, unit, currentStock, minStock, unitCost, supplierId, supplierName, createdAt, updatedAt`).
 - **`novaprint_purchases`:** Historial de compras de insumos/prendas a proveedores (`id, supplierId, supplierName, invoiceNumber, date, items, subtotalNeto, applyIva, ivaPercent, ivaAmount, applyDelivery, deliveryAmount, totalAmount, notes, createdAt`).
@@ -22,6 +22,13 @@ Registro de todo lo que debe preservarse entre sesiones de trabajo: arquitectura
 ---
 
 ## 2. Decisiones vigentes
+
+- **Descuento por Volumen Visible y Editable en Pedidos (Spec 049):**
+  - **Tarjeta Financiera Permanente en `#dialog-order` (`index.html`):** `#form-discount-container` permanece visible y contiene la casilla de aceptación del vendedor `[x] ¿Aplica Descuento por Volumen?` (`#form-apply-discount`), el campo numérico editable de porcentaje `<input id="form-discount-percent-input" type="number" min="0" max="100">`, el badge descriptivo de origen (`#form-discount-badge`, 'Escala', 'Manual' o 'Inactivo') y el desglose monetario del ahorro (`#form-discount-amount`, `-$X.XXX`).
+  - **Comportamiento Dual Inteligente (`ui.js`):** Al abrir un nuevo pedido o añadir prendas, el sistema sugiere automáticamente el porcentaje oficial de la escala. Si el vendedor edita manualmente el input (`recalcularTotalesFormulario(true)`), se activa el flag `discountPercentManualEdited`, cambiando el badge a `Manual` y respetando estrictamente el valor negociado por el vendedor ante futuros cambios de prendas.
+  - **Casilla de Aceptación del Vendedor (`#form-apply-discount`):** Marcada por defecto (`true`). Si el vendedor la desmarca, el descuento se anula (`volumeDiscountAmount: 0`, `volumeDiscountPercent: 0`, badge `Inactivo`), permitiendo omitir el beneficio en cualquier momento.
+  - **Cálculo Financiero y Persistencia (`sales.js`):** `calcularTotalesPedido` procesa `opciones.porcentajeDescuentoManual` cuando `aplicarDescuentoVolumen: true`, deduciendo el monto del subtotal bruto antes del cálculo de IVA (19%) y Delivery, guardando `totals.volumeDiscountPercent`, `totals.volumeDiscountAmount` y `totals.applyDiscount` en el pedido.
+  - **Restauración en Edición y Clonación:** `editarPedido` y `duplicarPedido` restauran fielmente el porcentaje guardado y preservan el estado manual para evitar sobreescrituras no deseadas.
 
 - **Edición Interactiva de la Escala de Descuentos por Volumen (Spec 048):**
   - **Inputs Editables en Diálogo `#dialog-volume-discounts` (`index.html` & `ui.js`):** Cada tramo de la tabla de descuentos incorpora campos numéricos interactivos para las cantidades del rango (`min` y `max`) y para el porcentaje de descuento (`0` a `100% OFF`), con categorías comerciales visibles.
@@ -325,6 +332,19 @@ Registro de todo lo que debe preservarse entre sesiones de trabajo: arquitectura
 ---
 
 ## 3. Historial de cambios
+
+### 2026-11-17 (Descuento por Volumen Visible y Editable en Pedidos — Spec 049)
+- **Interfaz de Usuario y Modal de Pedidos (`index.html` & `assets/js/ui.js`):**
+  - Actualización de `#form-discount-container` en `#dialog-order`: se convirtió en una tarjeta financiera visible y permanente con la casilla de aceptación `[x] ¿Aplica Descuento por Volumen?` (`#form-apply-discount`), input numérico editable para el porcentaje de descuento (`#form-discount-percent-input`), badge dinámico (`#form-discount-badge`, 'Escala', 'Manual' o 'Inactivo') y visor del monto deducido (`#form-discount-amount`, `-$X.XXX`).
+  - Dinamismo reactivo inteligente: auto-sugiere el porcentaje de la escala oficial mientras el vendedor no lo edite; al editar manualmente el campo, se activa el modo manual y se respeta la cifra personalizada.
+  - Sincronización en `abrirModalNuevoPedido()` (activo y en 0% por defecto), `editarPedido()` y `duplicarPedido()` (restauración fiel del porcentaje previo en modo manual).
+- **Cálculo Financiero (`assets/js/sales.js`):**
+  - Soporte de `opciones.porcentajeDescuentoManual` en `calcularTotalesPedido()`, deduciendo el porcentaje manual indicado si la casilla está activa.
+  - Subtotal bruto, IVA (19%) sobre el neto con descuento y Delivery posterior preservados con rigor contable.
+- **Pruebas Automatizadas (`tests/order_editable_volume_discount.test.js`):**
+  - 7 pruebas unitarias nuevas cubriendo cálculo financiero con porcentaje manual, anulación al desmarcar casilla, combinación con IVA/Delivery, presencia de componentes en el DOM y reactividad en la UI.
+  - Suite completa: 40 suites, 353 pruebas pasando al 100% con 0 fallos.
+- **Metodología SDD:** Especificación formal en `specs/049-descuento-volumen-editable-en-pedido/` (`spec.md`, `plan.md`, `tasks.md`).
 
 ### 2026-11-17 (Edición Interactiva de la Escala de Descuentos por Volumen — Spec 048)
 - **Interfaz de Usuario y Modal de Descuentos (`index.html` & `assets/js/ui.js`):**
