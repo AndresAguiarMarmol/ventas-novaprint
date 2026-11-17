@@ -60,22 +60,46 @@
   };
 
   /**
-   * Escala de descuentos por volumen según skill.md:
+   * Escala de descuentos por volumen (Spec 013 & Spec 048):
+   * Soporta tramos personalizados desde almacenamiento o escala oficial predeterminada
    * 1 a 5 un: 0% | 6 a 11 un: 5% | 12 a 24 un: 10% | 25 a 49 un: 15% | 50+ un: 20%
    */
-  function calcularDescuentoVolumen(totalCantidad, subtotalBruto = 0) {
+  function calcularDescuentoVolumen(totalCantidad, subtotalBruto = 0, escalaOpciones = null) {
     const qty = Math.max(0, Number(totalCantidad) || 0);
     const sub = Math.max(0, Number(subtotalBruto) || 0);
 
+    let tiers = null;
+    if (Array.isArray(escalaOpciones) && escalaOpciones.length > 0) {
+      tiers = escalaOpciones;
+    } else if (global.NovaprintStorage && typeof global.NovaprintStorage.getVolumeDiscountTiers === 'function') {
+      try {
+        tiers = global.NovaprintStorage.getVolumeDiscountTiers();
+      } catch (_) {}
+    }
+
     let porcentaje = 0;
-    if (qty >= 50) {
-      porcentaje = 20;
-    } else if (qty >= 25) {
-      porcentaje = 15;
-    } else if (qty >= 12) {
-      porcentaje = 10;
-    } else if (qty >= 6) {
-      porcentaje = 5;
+    if (Array.isArray(tiers) && tiers.length > 0) {
+      // Ordenar descendentemente por min
+      const sorted = [...tiers].sort((a, b) => (Number(b.min) || 0) - (Number(a.min) || 0));
+      for (const tier of sorted) {
+        const min = Number(tier.min) || 0;
+        const max = tier.max != null ? Number(tier.max) : 999999;
+        if (qty >= min && qty <= max) {
+          const rawPct = tier.percent != null ? tier.percent : tier.porcentaje;
+          porcentaje = Math.min(100, Math.max(0, Number(rawPct) || 0));
+          break;
+        }
+      }
+    } else {
+      if (qty >= 50) {
+        porcentaje = 20;
+      } else if (qty >= 25) {
+        porcentaje = 15;
+      } else if (qty >= 12) {
+        porcentaje = 10;
+      } else if (qty >= 6) {
+        porcentaje = 5;
+      }
     }
 
     const montoDescuento = Math.round((sub * porcentaje) / 100);

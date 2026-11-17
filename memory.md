@@ -8,7 +8,7 @@ Registro de todo lo que debe preservarse entre sesiones de trabajo: arquitectura
 ## 1. Estructura de datos y persistencia
 
 ### A. Claves en `localStorage`
-- **`novaprint_settings`:** Configuración de la empresa (nombre, RUT, teléfono/WhatsApp, dirección, moneda `$`, mensaje pie de ticket, preferencia de tema `theme: 'light' | 'dark' | 'system'`, banderas de control como `inventoryZeroStockApplied_v1`, `kinderBRecoveryApplied_v1`, `kinderBOrderDeleted`).
+- **`novaprint_settings`:** Configuración de la empresa (nombre, RUT, teléfono/WhatsApp, dirección, moneda `$`, mensaje pie de ticket, preferencia de tema `theme: 'light' | 'dark' | 'system'`, escala personalizada de descuentos por volumen `volumeDiscountTiers`, banderas de control como `inventoryZeroStockApplied_v1`, `kinderBRecoveryApplied_v1`, `kinderBOrderDeleted`).
 - **`novaprint_clients`:** Directorio de clientes (`id, name, phone, email, rut, address, notes, createdAt`).
 - **`novaprint_orders`:** Registro de pedidos con prendas (poleras, polerones, buzos, gorras), técnicas de estampado (DTF, serigrafía, sublimación, vinilo, bordado), tallas, colores, ítems enlazados a bodega (`inventoryCode`, `inventoryItemId`), montos, desglose de IVA (19%), Delivery, abonos y estado.
 - **`novaprint_suppliers`:** Catálogo de proveedores (`id, name, contact, phone, email, category, address, notes, createdAt, updatedAt`).
@@ -22,6 +22,15 @@ Registro de todo lo que debe preservarse entre sesiones de trabajo: arquitectura
 ---
 
 ## 2. Decisiones vigentes
+
+- **Edición Interactiva de la Escala de Descuentos por Volumen (Spec 048):**
+  - **Inputs Editables en Diálogo `#dialog-volume-discounts` (`index.html` & `ui.js`):** Cada tramo de la tabla de descuentos incorpora campos numéricos interactivos para las cantidades del rango (`min` y `max`) y para el porcentaje de descuento (`0` a `100% OFF`), con categorías comerciales visibles.
+  - **Botones de Guardado y Restablecimiento en el Modal:**
+    - `[💾 Guardar Escala]` (`#btn-save-volume-discounts` / `NovaprintUI.guardarEscalaDescuentosDesdeFormulario`): Valida y persiste los tramos en `novaprint_settings.volumeDiscountTiers`, recalculando reactivamente los totales si el modal de pedido está abierto.
+    - `[🔄 Restablecer]` (`#btn-reset-volume-discounts` / `NovaprintUI.restablecerEscalaDescuentos`): Restaura inmediatamente los valores canónicos predeterminados (1-5 un: 0%, 6-11 un: 5%, 12-24 un: 10%, 25-49 un: 15%, 50+ un: 20%).
+    - `[Cerrar]` (`#btn-close-volume-discounts`): Cierra el modal sin guardar cambios no confirmados.
+  - **Capa de Persistencia (`storage.js`):** Métodos `getVolumeDiscountTiers()`, `saveVolumeDiscountTiers(tiers)` y `resetVolumeDiscountTiers()` con sanitización de rangos y porcentajes, plenamente respaldados en export/import JSON.
+  - **Cálculo Comercial Reactivo (`sales.js`):** `calcularDescuentoVolumen()` consulta dinámicamente los tramos vigentes guardados en bodega/configuración, manteniendo total retrocompatibilidad e inmutabilidad sobre pedidos registrados previamente.
 
 - **Botón para Modificar Escala de Descuentos en Ajustes de Novaprint (Spec 047):**
   - **Ubicación en Diálogo `#dialog-settings` (`index.html`):** Se incorporó la subsección "Políticas Comerciales & Descuentos" inmediatamente después de Apariencia/Tema y antes de la Copia de Seguridad JSON.
@@ -316,6 +325,20 @@ Registro de todo lo que debe preservarse entre sesiones de trabajo: arquitectura
 ---
 
 ## 3. Historial de cambios
+
+### 2026-11-17 (Edición Interactiva de la Escala de Descuentos por Volumen — Spec 048)
+- **Interfaz de Usuario y Modal de Descuentos (`index.html` & `assets/js/ui.js`):**
+  - Actualización de `#dialog-volume-discounts` reemplazando el texto estático por inputs numéricos interactivos para rangos (`min`, `max`) y porcentajes (`0` a `100% OFF`) en cada uno de los 5 tramos.
+  - Incorporación en el pie del modal de los botones interactivos `[💾 Guardar Escala]` (`#btn-save-volume-discounts`), `[🔄 Restablecer]` (`#btn-reset-volume-discounts`) y `[Cerrar]` (`#btn-close-volume-discounts`).
+  - En `ui.js`, `abrirModalDescuentosVolumen()` hidrata dinámicamente los inputs y resalta el tramo activo si hay un pedido en curso.
+  - Implementación de `guardarEscalaDescuentosDesdeFormulario()` y `restablecerEscalaDescuentos()` con recalculo reactivo de pedidos abiertos.
+- **Capa de Persistencia y Lógica de Negocio (`assets/js/storage.js` & `assets/js/sales.js`):**
+  - En `storage.js`, funciones `getVolumeDiscountTiers()`, `saveVolumeDiscountTiers()` y `resetVolumeDiscountTiers()` persistiendo en `novaprint_settings.volumeDiscountTiers`.
+  - En `sales.js`, `calcularDescuentoVolumen()` consulta dinámicamente la escala configurada en almacenamiento, preservando por defecto los porcentajes oficiales (0%, 5%, 10%, 15%, 20%).
+- **Pruebas Automatizadas (`tests/volume_discounts_editable.test.js`):**
+  - 6 pruebas unitarias cubriendo tramos por defecto, guardado de tramos personalizados, cálculo dinámico, restablecimiento, presencia de inputs en DOM y controladores en UI.
+  - Suite global completa: 39 suites, 346 pruebas unitarias pasando al 100% con 0 fallos.
+- **Metodología SDD:** Especificación formal en `specs/048-edicion-escala-descuentos/` (`spec.md`, `plan.md`, `tasks.md`).
 
 ### 2026-11-17 (Botón para Modificar Escala de Descuentos en Ajustes — Spec 047)
 - **Interfaz de Usuario y Presentación en Pantalla (`index.html` & `assets/js/main.js`):**

@@ -993,9 +993,41 @@
    * Si el formulario de pedido está abierto, resalta el tramo actual e indica cuántas prendas
    * faltan para alcanzar el siguiente porcentaje de ahorro.
    */
+  /**
+   * Abre el modal interactivo de la escala de descuentos por volumen (Spec 013 & Spec 048).
+   * Carga los tramos configurados en los inputs editables. Si el formulario de pedido está abierto,
+   * resalta el tramo actual e indica cuántas prendas faltan para el siguiente porcentaje de ahorro.
+   */
   function abrirModalDescuentosVolumen() {
     const dialog = document.getElementById('dialog-volume-discounts');
     if (!dialog) return;
+
+    const storage = global.NovaprintStorage;
+    const tiers = (storage && typeof storage.getVolumeDiscountTiers === 'function')
+      ? storage.getVolumeDiscountTiers()
+      : [
+          { min: 1, max: 5, percent: 0, category: 'Precio regular base' },
+          { min: 6, max: 11, percent: 5, category: 'Medio volumen' },
+          { min: 12, max: 24, percent: 10, category: 'Docena' },
+          { min: 25, max: 49, percent: 15, category: 'Mayorista' },
+          { min: 50, max: 999999, percent: 20, category: 'Gran volumen' }
+        ];
+
+    // Hidratar inputs editables con los tramos configurados (Spec 048)
+    tiers.forEach((t, i) => {
+      const minInput = document.getElementById(`tier-min-${i}`);
+      const maxInput = document.getElementById(`tier-max-${i}`);
+      const pctInput = document.getElementById(`tier-percent-${i}`);
+      if (minInput) minInput.value = t.min;
+      if (maxInput) maxInput.value = t.max;
+      if (pctInput) pctInput.value = t.percent != null ? t.percent : t.porcentaje;
+
+      const row = document.querySelector(`.volume-tier-row[data-tier-index="${i}"]`);
+      if (row) {
+        row.setAttribute('data-min', t.min);
+        row.setAttribute('data-max', t.max);
+      }
+    });
 
     // Contabilizar prendas actuales en el formulario si está abierto
     const orderDialog = document.getElementById('dialog-order');
@@ -1008,27 +1040,24 @@
     if (statusEl) {
       if (isOrderOpen && totalPrendas > 0) {
         let activePercent = 0;
-        let nextMessage = '';
+        let nextTier = null;
+        const sorted = [...tiers].sort((a, b) => (Number(a.min) || 0) - (Number(b.min) || 0));
+        for (let idx = 0; idx < sorted.length; idx++) {
+          const t = sorted[idx];
+          if (totalPrendas >= t.min && totalPrendas <= t.max) {
+            activePercent = t.percent != null ? t.percent : t.porcentaje;
+            nextTier = sorted[idx + 1] || null;
+            break;
+          }
+        }
 
-        if (totalPrendas >= 50) {
-          activePercent = 20;
-          nextMessage = '🏆 ¡Has alcanzado el tramo máximo de ahorro (20% OFF)!';
-        } else if (totalPrendas >= 25) {
-          activePercent = 15;
-          const falta = 50 - totalPrendas;
-          nextMessage = `💡 Agrega <strong>${falta}</strong> prenda${falta > 1 ? 's' : ''} más para subir al <strong>20% OFF (Gran volumen)</strong>.`;
-        } else if (totalPrendas >= 12) {
-          activePercent = 10;
-          const falta = 25 - totalPrendas;
-          nextMessage = `💡 Agrega <strong>${falta}</strong> prenda${falta > 1 ? 's' : ''} más para subir al <strong>15% OFF (Mayorista)</strong>.`;
-        } else if (totalPrendas >= 6) {
-          activePercent = 5;
-          const falta = 12 - totalPrendas;
-          nextMessage = `💡 Agrega <strong>${falta}</strong> prenda${falta > 1 ? 's' : ''} más para subir al <strong>10% OFF (Docena)</strong>.`;
+        let nextMessage = '';
+        if (nextTier) {
+          const falta = nextTier.min - totalPrendas;
+          const nextPct = nextTier.percent != null ? nextTier.percent : nextTier.porcentaje;
+          nextMessage = `💡 Agrega <strong>${falta}</strong> prenda${falta > 1 ? 's' : ''} más para subir al <strong>${nextPct}% OFF (${nextTier.category || nextTier.label || ''})</strong>.`;
         } else {
-          activePercent = 0;
-          const falta = 6 - totalPrendas;
-          nextMessage = `💡 Agrega <strong>${falta}</strong> prenda${falta > 1 ? 's' : ''} más para activar tu primer descuento (<strong>5% OFF</strong>).`;
+          nextMessage = `🏆 ¡Has alcanzado el tramo máximo de ahorro (${activePercent}% OFF)!`;
         }
 
         statusEl.innerHTML = `
@@ -1070,6 +1099,81 @@
     if (typeof dialog.showModal === 'function') {
       dialog.showModal();
     }
+  }
+
+  /**
+   * Guarda los tramos modificados por el usuario desde el modal de escala de descuentos (Spec 048).
+   */
+  function guardarEscalaDescuentosDesdeFormulario() {
+    const storage = global.NovaprintStorage;
+    if (!storage || typeof storage.saveVolumeDiscountTiers !== 'function') return;
+
+    const CATEGORIAS = ['Precio regular base', 'Medio volumen', 'Docena', 'Mayorista', 'Gran volumen'];
+    const newTiers = [];
+
+    for (let i = 0; i < 5; i++) {
+      const minInput = document.getElementById(`tier-min-${i}`);
+      const maxInput = document.getElementById(`tier-max-${i}`);
+      const pctInput = document.getElementById(`tier-percent-${i}`);
+
+      const min = minInput ? Math.max(1, parseInt(minInput.value, 10) || 1) : 1;
+      const isLast = i === 4;
+      const rawMax = maxInput ? parseInt(maxInput.value, 10) : NaN;
+      const max = isLast ? 999999 : (isNaN(rawMax) || rawMax < min ? min : rawMax);
+      const percent = pctInput ? Math.min(100, Math.max(0, parseInt(pctInput.value, 10) || 0)) : 0;
+
+      newTiers.push({
+        min,
+        max,
+        percent,
+        label: isLast ? `${min} o más unidades` : `${min} a ${max} unidades`,
+        category: CATEGORIAS[i]
+      });
+    }
+
+    storage.saveVolumeDiscountTiers(newTiers);
+
+    const orderDialog = document.getElementById('dialog-order');
+    if (orderDialog && orderDialog.open) {
+      recalcularTotalesFormulario();
+    }
+
+    showToast('Escala de descuentos guardada con éxito.', 'success');
+    const dialog = document.getElementById('dialog-volume-discounts');
+    if (dialog && typeof dialog.close === 'function') {
+      dialog.close();
+    }
+  }
+
+  /**
+   * Restablece los tramos de la escala de descuentos a sus valores oficiales de fábrica (Spec 048).
+   */
+  function restablecerEscalaDescuentos() {
+    const storage = global.NovaprintStorage;
+    if (!storage || typeof storage.resetVolumeDiscountTiers !== 'function') return;
+
+    const defaultTiers = storage.resetVolumeDiscountTiers();
+    defaultTiers.forEach((t, i) => {
+      const minInput = document.getElementById(`tier-min-${i}`);
+      const maxInput = document.getElementById(`tier-max-${i}`);
+      const pctInput = document.getElementById(`tier-percent-${i}`);
+      if (minInput) minInput.value = t.min;
+      if (maxInput) maxInput.value = t.max;
+      if (pctInput) pctInput.value = t.percent;
+
+      const row = document.querySelector(`.volume-tier-row[data-tier-index="${i}"]`);
+      if (row) {
+        row.setAttribute('data-min', t.min);
+        row.setAttribute('data-max', t.max);
+      }
+    });
+
+    const orderDialog = document.getElementById('dialog-order');
+    if (orderDialog && orderDialog.open) {
+      recalcularTotalesFormulario();
+    }
+
+    showToast('Escala de descuentos restablecida a los valores oficiales.', 'info');
   }
 
   function guardarPedidoDesdeFormulario() {
@@ -5274,6 +5378,8 @@
     toggleOrderDeliveryInput,
     recalcularTotalesFormulario,
     abrirModalDescuentosVolumen,
+    guardarEscalaDescuentosDesdeFormulario,
+    restablecerEscalaDescuentos,
     guardarPedidoDesdeFormulario,
     editarPedido,
     duplicarPedido,

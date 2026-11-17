@@ -30,6 +30,15 @@
     theme: 'system'
   };
 
+  // Escala oficial de descuentos por volumen predeterminada (Spec 013 & Spec 048)
+  const DEFAULT_VOLUME_TIERS = Object.freeze([
+    { min: 1, max: 5, percent: 0, label: '1 a 5 unidades', category: 'Precio regular base' },
+    { min: 6, max: 11, percent: 5, label: '6 a 11 unidades', category: 'Medio volumen' },
+    { min: 12, max: 24, percent: 10, label: '12 a 24 unidades', category: 'Docena' },
+    { min: 25, max: 49, percent: 15, label: '25 a 49 unidades', category: 'Mayorista' },
+    { min: 50, max: 999999, percent: 20, label: '50 o más unidades', category: 'Gran volumen' }
+  ]);
+
   const memoryStore = {};
 
   function isLocalStorageAvailable() {
@@ -109,6 +118,40 @@
     const updated = { ...current, ...newSettings };
     setItem(STORAGE_KEYS.SETTINGS, updated);
     return updated;
+  }
+
+  // --- ESCALA DE DESCUENTOS POR VOLUMEN (Spec 048) ---
+  function getVolumeDiscountTiers() {
+    const settings = getSettings();
+    if (Array.isArray(settings.volumeDiscountTiers) && settings.volumeDiscountTiers.length > 0) {
+      return settings.volumeDiscountTiers.map(t => ({ ...t }));
+    }
+    return DEFAULT_VOLUME_TIERS.map(t => ({ ...t }));
+  }
+
+  function saveVolumeDiscountTiers(tiers) {
+    if (!Array.isArray(tiers) || tiers.length === 0) {
+      return getVolumeDiscountTiers();
+    }
+    const sanitizados = tiers.map((t, idx) => {
+      const min = Math.max(1, parseInt(t.min, 10) || 1);
+      const rawMax = parseInt(t.max, 10);
+      const isLast = idx === tiers.length - 1;
+      const max = isLast ? (isNaN(rawMax) || rawMax < min ? 999999 : rawMax) : (isNaN(rawMax) || rawMax < min ? min : rawMax);
+      const rawPercent = parseInt(t.percent != null ? t.percent : t.porcentaje, 10);
+      const percent = Math.min(100, Math.max(0, isNaN(rawPercent) ? 0 : rawPercent));
+      const label = t.label || (max >= 99999 ? `${min} o más unidades` : `${min} a ${max} unidades`);
+      const category = t.category || (DEFAULT_VOLUME_TIERS[idx]?.category || 'Volumen');
+      return { min, max, percent, label, category };
+    });
+    saveSettings({ volumeDiscountTiers: sanitizados });
+    return sanitizados;
+  }
+
+  function resetVolumeDiscountTiers() {
+    const defaultTiers = DEFAULT_VOLUME_TIERS.map(t => ({ ...t }));
+    saveSettings({ volumeDiscountTiers: defaultTiers });
+    return defaultTiers;
   }
 
   // --- CLIENTES ---
@@ -1872,6 +1915,10 @@
   const storageModule = {
     STORAGE_KEYS,
     DEFAULT_SETTINGS,
+    DEFAULT_VOLUME_TIERS,
+    getVolumeDiscountTiers,
+    saveVolumeDiscountTiers,
+    resetVolumeDiscountTiers,
     clearAll,
     clearAllData,
     getSettings,
