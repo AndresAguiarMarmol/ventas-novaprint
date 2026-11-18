@@ -23,6 +23,11 @@ Registro de todo lo que debe preservarse entre sesiones de trabajo: arquitectura
 
 ## 2. Decisiones vigentes
 
+- **Comprobante de Venta & Taller Completo en Ticket y WhatsApp (Spec 050):**
+  - **Mensaje de WhatsApp Enriquecido (`sales.generarTextoWhatsApp`):** Título oficial *"👕 Comprobante de Venta & Taller"*, N° de comprobante, fecha de emisión, estado de taller (`pedido.status`), datos ampliados del cliente (RUT, dirección si existen), desglose exhaustivo por prenda (cantidad, prenda, código de bodega `[POL-XXX]`, talla, color, técnica, ubicación de estampado, precio unitario, subtotal de línea y observaciones técnicas `↳ Obs:`), resumen financiero transparente con total de prendas, subtotal bruto, descuentos por volumen, monto neto, IVA, delivery, total, abono, saldo pendiente, estado de pago (`Pagado Total`, `Abonado`, `Pendiente`), observaciones del pedido y datos formales de la empresa (RUT, dirección, teléfono).
+  - **Ticket Impreso Estructurado (`ticket.generarTicketHTML`):** Incorpora el Estado de Taller destacado en cabecera, RUT y dirección del cliente, observaciones técnicas por prenda, visibilidad incondicional de Subtotal Bruto y Monto Neto en el desglose financiero, y preservación de desgloses de impuestos y fletes.
+  - **Estilos de Impresión Optimizados (`assets/css/custom.css` `@media print`):** Eliminación de restricciones de altura (`max-height: none`), overflow libre (`overflow: visible`), reglas `break-inside: avoid` / `page-break-inside: avoid` en tablas y bloques, y ancho adaptable de 90mm que asegura compatibilidad perfecta tanto en impresoras térmicas de rollo de 80mm como en hojas sueltas Carta/A4 o exportación PDF sin recortes de página.
+
 - **Descuento por Volumen Visible y Editable en Pedidos (Spec 049):**
   - **Tarjeta Financiera Permanente en `#dialog-order` (`index.html`):** `#form-discount-container` permanece visible y contiene la casilla de aceptación del vendedor `[x] ¿Aplica Descuento por Volumen?` (`#form-apply-discount`), el campo numérico editable de porcentaje `<input id="form-discount-percent-input" type="number" min="0" max="100">`, el badge descriptivo de origen (`#form-discount-badge`, 'Escala', 'Manual' o 'Inactivo') y el desglose monetario del ahorro (`#form-discount-amount`, `-$X.XXX`).
   - **Comportamiento Dual Inteligente (`ui.js`):** Al abrir un nuevo pedido o añadir prendas, el sistema sugiere automáticamente el porcentaje oficial de la escala. Si el vendedor edita manualmente el input (`recalcularTotalesFormulario(true)`), se activa el flag `discountPercentManualEdited`, cambiando el badge a `Manual` y respetando estrictamente el valor negociado por el vendedor ante futuros cambios de prendas.
@@ -332,6 +337,19 @@ Registro de todo lo que debe preservarse entre sesiones de trabajo: arquitectura
 ---
 
 ## 3. Historial de cambios
+
+### 2026-11-18 (Comprobante de Venta & Taller Completo en Ticket & WhatsApp — Spec 050)
+- **Mensaje de WhatsApp Enriquecido (`assets/js/sales.js`):**
+  - Actualización de `generarTextoWhatsApp`: cada prenda incluye ahora precio unitario, subtotal de línea, código de bodega `[POL-XXX]` y observaciones particulares.
+  - Inclusión de fecha de emisión, estado de taller (`pedido.status`), datos ampliados del cliente (RUT, dirección si existen), subtotal bruto, monto neto, total de prendas acumuladas, estado de pago explícito (`Pagado Total`, `Abonado`, `Pendiente`), observaciones generales del taller y datos de empresa.
+- **Ticket Impreso HTML (`assets/js/ticket.js`):**
+  - Actualización de `generarTicketHTML`: inclusión del Estado de Taller en el encabezado, RUT y dirección del cliente, observaciones técnicas por prenda, y visibilidad permanente de Subtotal Bruto y Monto Neto en el resumen financiero.
+- **Estilos de Impresión CSS (`assets/css/custom.css`):**
+  - Supresión de recortes en impresión (`@media print`): deshabilitación de `max-height`, overflow no restrictivo, `break-inside: avoid; page-break-inside: avoid` en tablas y contenedores, garantizando impresión completa en rollo térmico de 80mm y formatos A4/Carta/PDF.
+- **Pruebas Automatizadas (`tests/comprobante_venta_taller_completo.test.js`):**
+  - 6 pruebas unitarias nuevas cubriendo WhatsApp completo, ticket HTML enriquecido y reglas antipaginación cortada en CSS.
+  - Suite global completa: 41 suites, 359 pruebas unitarias pasando al 100% con 0 fallos.
+- **Metodología SDD:** Especificación formal en `specs/050-comprobante-venta-taller-completo/` (`spec.md`, `plan.md`, `tasks.md`).
 
 ### 2026-11-17 (Descuento por Volumen Visible y Editable en Pedidos — Spec 049)
 - **Interfaz de Usuario y Modal de Pedidos (`index.html` & `assets/js/ui.js`):**

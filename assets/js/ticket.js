@@ -58,6 +58,25 @@
       pedido.clientPhone = clienteTelefono;
     }
 
+    // Resolver RUT y dirección del cliente si están disponibles en storage
+    let rutCliente = '';
+    let direccionCliente = '';
+    const storage = global.NovaprintStorage;
+    if (storage) {
+      let cliente = null;
+      if (pedido.clientId && typeof storage.getClientById === 'function') {
+        cliente = storage.getClientById(pedido.clientId);
+      }
+      if (!cliente && pedido.clientName && typeof storage.getClients === 'function') {
+        const norm = String(pedido.clientName).trim().toLowerCase();
+        cliente = (storage.getClients() || []).find(c => c.name && c.name.trim().toLowerCase() === norm);
+      }
+      if (cliente) {
+        if (cliente.rut && cliente.rut.trim()) rutCliente = cliente.rut.trim();
+        if (cliente.address && cliente.address.trim()) direccionCliente = cliente.address.trim();
+      }
+    }
+
     const totalStr = sales ? sales.formatearMoneda(pedido.totals?.totalAmount || 0) : `$${pedido.totals?.totalAmount || 0}`;
     const abonoStr = sales ? sales.formatearMoneda(pedido.totals?.depositAmount || 0) : `$${pedido.totals?.depositAmount || 0}`;
     const saldoStr = sales ? sales.formatearMoneda(pedido.totals?.balanceAmount || 0) : `$${pedido.totals?.balanceAmount || 0}`;
@@ -75,7 +94,7 @@
             <span class="font-bold text-gray-800">${it.quantity}x ${it.garmentType}${codInvStr}</span>
             <div class="text-xs text-gray-500">Talla: ${it.size} | Color: ${it.color}</div>
             <div class="text-xs font-medium text-indigo-700">Técnica: ${it.technique} (${it.printLocation || 'Pecho'})</div>
-            ${it.notes ? `<div class="text-xs italic text-gray-400">${it.notes}</div>` : ''}
+            ${it.notes ? `<div class="text-xs italic text-gray-500 mt-0.5">Obs: ${it.notes}</div>` : ''}
           </td>
           <td class="py-2 text-right text-gray-600 align-top">${precioU}</td>
           <td class="py-2 text-right font-bold text-gray-900 align-top">${sub}</td>
@@ -100,6 +119,16 @@
             <span class="text-xs text-gray-500 uppercase font-semibold">N° Comprobante:</span>
             <span class="font-mono font-bold text-base text-blue-700">${pedido.id}</span>
           </div>
+          <div class="flex justify-between items-center">
+            <span class="text-xs text-gray-500">Estado de Taller:</span>
+            <span class="font-bold text-xs uppercase px-2 py-0.5 rounded border ${
+              pedido.status === 'Entregado' ? 'bg-emerald-50 text-emerald-800 border-emerald-200' :
+              pedido.status === 'Listo para entrega' ? 'bg-purple-50 text-purple-800 border-purple-200' :
+              pedido.status === 'En producción' ? 'bg-amber-50 text-amber-800 border-amber-200' :
+              pedido.status === 'Confirmado' ? 'bg-blue-50 text-blue-800 border-blue-200' :
+              'bg-gray-100 text-gray-700 border-gray-300'
+            }">${pedido.status || 'Cotización'}</span>
+          </div>
           <div class="flex justify-between">
             <span class="text-xs text-gray-500">Fecha Emisión:</span>
             <span class="font-medium text-gray-700">${fechaCreacion}</span>
@@ -112,6 +141,8 @@
             <div class="text-xs text-gray-500 font-semibold uppercase">Cliente:</div>
             <div class="font-bold text-gray-900 text-base">${pedido.clientName}</div>
             ${clienteTelefono ? `<div class="text-xs text-gray-600 font-medium">Tel: ${clienteTelefono}</div>` : ''}
+            ${rutCliente ? `<div class="text-xs text-gray-600 font-medium">RUT: ${rutCliente}</div>` : ''}
+            ${direccionCliente ? `<div class="text-xs text-gray-600 font-medium">Dirección: ${direccionCliente}</div>` : ''}
           </div>
         </div>
 
@@ -135,34 +166,32 @@
         <div class="py-3 border-t border-dashed border-gray-300 space-y-1.5 text-xs">
           <div class="flex justify-between text-gray-600">
             <span>Total Prendas:</span>
-            <span class="font-bold text-gray-800">${pedido.totals?.totalQuantity || 0} un.</span>
+            <span class="font-bold text-gray-800">${pedido.totals?.totalQuantity || (pedido.items ? pedido.items.reduce((acc, it) => acc + (Number(it.quantity) || 0), 0) : 0)} un.</span>
+          </div>
+          <div class="flex justify-between text-gray-600">
+            <span>Subtotal Bruto:</span>
+            <span class="font-medium">${sales ? sales.formatearMoneda(pedido.totals?.subtotalBruto ?? (pedido.totals?.totalAmount || 0)) : `$${pedido.totals?.subtotalBruto ?? (pedido.totals?.totalAmount || 0)}`}</span>
           </div>
           ${pedido.totals?.volumeDiscountAmount > 0 ? `
-            <div class="flex justify-between text-gray-600">
-              <span>Subtotal Bruto:</span>
-              <span class="font-medium">${sales.formatearMoneda(pedido.totals.subtotalBruto)}</span>
-            </div>
             <div class="flex justify-between text-emerald-700 font-semibold">
               <span>Descuento Volumen (${pedido.totals.volumeDiscountPercent}%):</span>
-              <span>-${sales.formatearMoneda(pedido.totals.volumeDiscountAmount)}</span>
+              <span>-${sales ? sales.formatearMoneda(pedido.totals.volumeDiscountAmount) : `$${pedido.totals.volumeDiscountAmount}`}</span>
             </div>
           ` : ''}
-          ${(pedido.totals?.volumeDiscountAmount > 0 || pedido.totals?.applyIva || (pedido.totals?.deliveryAmount > 0)) ? `
-            <div class="flex justify-between text-gray-700 font-semibold">
-              <span>Monto Neto:</span>
-              <span>${sales.formatearMoneda(pedido.totals?.netAmount ?? (pedido.totals?.subtotalBruto || 0))}</span>
-            </div>
-          ` : ''}
+          <div class="flex justify-between text-gray-700 font-semibold">
+            <span>Monto Neto:</span>
+            <span>${sales ? sales.formatearMoneda(pedido.totals?.netAmount ?? (pedido.totals?.subtotalBruto ?? (pedido.totals?.totalAmount || 0))) : `$${pedido.totals?.netAmount ?? (pedido.totals?.subtotalBruto ?? (pedido.totals?.totalAmount || 0))}`}</span>
+          </div>
           ${pedido.totals?.ivaAmount > 0 ? `
             <div class="flex justify-between text-slate-800">
               <span>IVA (19%):</span>
-              <span>+${sales.formatearMoneda(pedido.totals.ivaAmount)}</span>
+              <span>+${sales ? sales.formatearMoneda(pedido.totals.ivaAmount) : `$${pedido.totals.ivaAmount}`}</span>
             </div>
           ` : ''}
           ${pedido.totals?.deliveryAmount > 0 ? `
             <div class="flex justify-between text-slate-800">
               <span>Delivery / Envío:</span>
-              <span>+${sales.formatearMoneda(pedido.totals.deliveryAmount)}</span>
+              <span>+${sales ? sales.formatearMoneda(pedido.totals.deliveryAmount) : `$${pedido.totals.deliveryAmount}`}</span>
             </div>
           ` : ''}
           <div class="flex justify-between text-base font-bold text-gray-900 border-t pt-1">

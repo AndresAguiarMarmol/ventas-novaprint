@@ -419,17 +419,51 @@
 
   function generarTextoWhatsApp(pedido, settings = {}) {
     const empresa = settings.businessName || 'Novaprint Estampados';
+    const rutEmpresa = settings.rut || '76.890.123-4';
+    const direccionEmpresa = settings.address || 'Taller Central Novaprint';
+    const telEmpresa = settings.phone || '+56987654321';
+    const pieMensaje = settings.ticketFooter || '¡Muchas gracias por preferirnos!';
+
     const total = formatearMoneda(pedido.totals?.totalAmount || 0);
     const abono = formatearMoneda(pedido.totals?.depositAmount || 0);
     const saldo = formatearMoneda(pedido.totals?.balanceAmount || 0);
     const fecha = pedido.dates?.deliveryDate || 'A coordinar';
+    const fechaEmision = pedido.dates?.createdAt ? new Date(pedido.dates.createdAt).toLocaleDateString('es-CL') : new Date().toLocaleDateString('es-CL');
+
+    // Resolver RUT y Dirección del cliente si existen en storage
+    let rutCliente = '';
+    let direccionCliente = '';
+    const storage = global.NovaprintStorage;
+    if (storage) {
+      let cliente = null;
+      if (pedido.clientId && typeof storage.getClientById === 'function') {
+        cliente = storage.getClientById(pedido.clientId);
+      }
+      if (!cliente && pedido.clientName && typeof storage.getClients === 'function') {
+        const norm = String(pedido.clientName).trim().toLowerCase();
+        cliente = (storage.getClients() || []).find(c => c.name && c.name.trim().toLowerCase() === norm);
+      }
+      if (cliente) {
+        if (cliente.rut && cliente.rut.trim()) rutCliente = cliente.rut.trim();
+        if (cliente.address && cliente.address.trim()) direccionCliente = cliente.address.trim();
+      }
+    }
 
     let itemsTexto = '';
     if (Array.isArray(pedido.items)) {
-      itemsTexto = pedido.items.map(it => 
-        `• ${it.quantity}x ${it.garmentType} (${it.size}, ${it.color}) - ${it.technique} [${it.printLocation || 'Pecho'}]`
-      ).join('\n');
+      itemsTexto = pedido.items.map(it => {
+        const codInv = it.inventoryCode ? ` [${it.inventoryCode}]` : '';
+        const precioU = formatearMoneda(it.unitPrice || 0);
+        const subtotalLinea = formatearMoneda(it.subtotal || ((it.quantity || 1) * (it.unitPrice || 0)));
+        const obsPrenda = it.notes ? `\n   ↳ Obs: ${it.notes}` : '';
+        return `• ${it.quantity}x ${it.garmentType}${codInv} (${it.size}, ${it.color}) - ${it.technique} [${it.printLocation || 'Adelante'}] a ${precioU} = ${subtotalLinea}${obsPrenda}`;
+      }).join('\n');
     }
+
+    const totalPrendas = pedido.totals?.totalQuantity || (Array.isArray(pedido.items) ? pedido.items.reduce((acc, it) => acc + (Number(it.quantity) || 0), 0) : 0);
+    const subtotalBruto = formatearMoneda(pedido.totals?.subtotalBruto ?? (pedido.totals?.totalAmount || 0));
+    const montoNeto = formatearMoneda(pedido.totals?.netAmount ?? (pedido.totals?.subtotalBruto ?? (pedido.totals?.totalAmount || 0)));
+    const estadoPago = pedido.totals?.paymentStatus || (pedido.totals?.balanceAmount <= 0 && pedido.totals?.totalAmount > 0 ? 'Pagado Total' : (pedido.totals?.depositAmount > 0 ? 'Abonado' : 'Pendiente'));
 
     let descuentoTexto = '';
     if (pedido.totals?.volumeDiscountAmount > 0) {
@@ -447,21 +481,32 @@
     }
 
     return (
-      `👕 *${empresa}* — Comprobante de Pedido\n` +
+      `👕 *${empresa}* — Comprobante de Venta & Taller\n` +
       `━━━━━━━━━━━━━━━━━━━━━━\n` +
-      `🔖 *Pedido:* ${pedido.id}\n` +
+      `🔖 *N° Comprobante:* ${pedido.id}\n` +
+      `📅 *Fecha de Emisión:* ${fechaEmision}\n` +
       `👤 *Cliente:* ${pedido.clientName}\n` +
-      `📅 *Entrega estimada:* ${fecha}\n` +
-      `⚡ *Estado:* ${pedido.status}\n\n` +
-      `📦 *Detalle de prendas:*\n${itemsTexto}\n\n` +
+      (rutCliente ? `🆔 *RUT Cliente:* ${rutCliente}\n` : '') +
+      (direccionCliente ? `📍 *Dirección Entrega:* ${direccionCliente}\n` : '') +
+      `📅 *Compromiso Entrega:* ${fecha}\n` +
+      `⚡ *Estado de Taller:* ${pedido.status}\n\n` +
+      `📦 *Detalle de Prendas & Taller:*\n${itemsTexto}\n\n` +
+      `📊 *Resumen Financiero:*\n` +
+      `• *Total Prendas:* ${totalPrendas} un.\n` +
+      `• *Subtotal:* ${subtotalBruto}\n` +
       descuentoTexto +
+      `• *Monto Neto:* ${montoNeto}\n` +
       ivaTexto +
       deliveryTexto +
-      `💰 *Total:* ${total}\n` +
-      `💵 *Abonado:* ${abono}\n` +
-      `⏳ *Saldo pendiente:* ${saldo}\n` +
+      `💰 *TOTAL A PAGAR:* ${total}\n` +
+      `💵 *Monto Abonado:* ${abono}\n` +
+      `⏳ *SALDO PENDIENTE:* ${saldo}\n` +
+      `💳 *Estado de Pago:* ${estadoPago}\n` +
+      (pedido.notes ? `\n📝 *Observaciones / Taller:* ${pedido.notes}\n` : '\n') +
       `━━━━━━━━━━━━━━━━━━━━━━\n` +
-      `¡Muchas gracias por preferirnos!`
+      `🏢 ${empresa} | RUT: ${rutEmpresa}\n` +
+      `📍 ${direccionEmpresa} | Tel: ${telEmpresa}\n` +
+      `${pieMensaje}`
     );
   }
 
