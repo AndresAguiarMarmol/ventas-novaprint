@@ -400,6 +400,7 @@ html.dark .search-highlight {
 
 /* ==========================================================================
    Estilos de Impresión Optimizados (Ctrl + P / Guardar PDF / Comprobante)
+   Paginación natural continua y sin recortes (Spec 051)
    ========================================================================== */
 @media print {
   @page {
@@ -420,7 +421,7 @@ html.dark .search-highlight {
     padding: 0 !important;
   }
 
-  /* Ocultar elementos de navegación, cabecera, vistas completas e interfaz */
+  /* Ocultar elementos de navegación, cabecera, vistas e interfaz, así como todos los dialogs */
   .no-print,
   header,
   nav,
@@ -428,7 +429,7 @@ html.dark .search-highlight {
   footer,
   #toast-container,
   .floating-contact-pill,
-  dialog:not(#dialog-ticket) {
+  dialog {
     display: none !important;
   }
 
@@ -436,43 +437,14 @@ html.dark .search-highlight {
     display: none !important;
   }
 
-  /* Desplegar e imprimir única y exclusivamente el comprobante de venta & taller */
-  dialog#dialog-ticket,
-  dialog#dialog-ticket[open],
-  body.printing-ticket dialog#dialog-ticket {
+  /* Contenedor directo de impresión montado en body para salto de página real (Spec 051) */
+  #print-mount-point {
     display: block !important;
     position: static !important;
     width: 100% !important;
-    max-width: 100% !important;
-    height: auto !important;
-    max-height: none !important;
-    margin: 0 auto !important;
-    padding: 0 !important;
-    border: none !important;
-    box-shadow: none !important;
-    background: #ffffff !important;
-    overflow: visible !important;
-  }
-
-  dialog#dialog-ticket > div {
-    display: block !important;
-    border: none !important;
-    box-shadow: none !important;
-    border-radius: 0 !important;
-    padding: 0 !important;
-    margin: 0 auto !important;
-    width: 100% !important;
     max-width: 90mm !important; /* Compatible con rollo térmico de 80mm y centrado en hoja A4/Carta */
-    height: auto !important;
-    max-height: none !important;
-    overflow: visible !important;
-    background: #ffffff !important;
-  }
-
-  #ticket-container-render {
-    display: block !important;
-    padding: 0 !important;
     margin: 0 auto !important;
+    padding: 0 !important;
     height: auto !important;
     max-height: none !important;
     overflow: visible !important;
@@ -500,10 +472,24 @@ html.dark .search-highlight {
     background: transparent !important;
   }
 
-  /* Reglas antipaginación cortada para saltos de página fluidos en pedidos largos */
-  #printable-ticket-content tr,
-  #printable-ticket-content table,
-  #printable-ticket-content > div {
+  /* Reglas antipaginación cortada y salto de página fluido */
+  #printable-ticket-content table {
+    width: 100% !important;
+    border-collapse: collapse !important;
+  }
+
+  #printable-ticket-content thead {
+    display: table-header-group !important; /* Repite cabecera en cada hoja si la tabla se extiende */
+  }
+
+  #printable-ticket-content tr {
+    break-inside: avoid !important;
+    page-break-inside: avoid !important;
+  }
+
+  #printable-ticket-content .ticket-header-section,
+  #printable-ticket-content .ticket-client-section,
+  #printable-ticket-content .ticket-totals-section {
     break-inside: avoid !important;
     page-break-inside: avoid !important;
   }

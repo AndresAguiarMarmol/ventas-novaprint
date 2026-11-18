@@ -23,6 +23,11 @@ Registro de todo lo que debe preservarse entre sesiones de trabajo: arquitectura
 
 ## 2. Decisiones vigentes
 
+- **Paginación Continua, Visibilidad de Totales y Orden por Código en Comprobante (Spec 051):**
+  - **Montaje Directo de Impresión en Body (`index.html` & `assets/js/ticket.js`):** Se introdujo el contenedor `#print-mount-point` como elemento directo de `<body>`, desacoplado del modal `<dialog>`. Al disparar la impresión (botón "Imprimir Ticket" o `Ctrl+P`), el HTML del comprobante se monta en `#print-mount-point` y se ocultan los diálogos en `@media print`, eliminando el confinamiento al Top Layer de Chromium y permitiendo que el navegador fragmente y pagine de forma natural y continua a lo largo de 1, 2, 3 o más páginas sin truncamientos.
+  - **Blindaje de Visibilidad de Subtotales y Totales:** En la tabla de prendas, las columnas de `P. Unit` y `Subtotal` cuentan con anchos fijos dedicados (`w-20` y `w-24`) y la clase `whitespace-nowrap`, impidiendo que las descripciones largas fragmenten o desplacen las cifras numéricas. El resumen financiero cuenta con la clase `.ticket-totals-section` con `break-inside: avoid !important`, garantizando que Subtotal Bruto, Descuentos, Monto Neto, IVA, Delivery, Total, Abonos y Saldo Pendiente permanezcan siempre 100% visibles e indivisibles.
+  - **Ordenamiento Alfanumérico Natural por Código de Producto (`sales.js` & `ticket.js`):** Tanto en el ticket impreso como en el mensaje de WhatsApp, los ítems de prendas se ordenan de forma natural y numérica por su código de inventario (`inventoryCode`: ej. `BUZ-001`, `POL-2`, `POL-10`), ubicando al final aquellas prendas que no tengan código asignado.
+
 - **Comprobante de Venta & Taller Completo en Ticket y WhatsApp (Spec 050):**
   - **Mensaje de WhatsApp Enriquecido (`sales.generarTextoWhatsApp`):** Título oficial *"👕 Comprobante de Venta & Taller"*, N° de comprobante, fecha de emisión, estado de taller (`pedido.status`), datos ampliados del cliente (RUT, dirección si existen), desglose exhaustivo por prenda (cantidad, prenda, código de bodega `[POL-XXX]`, talla, color, técnica, ubicación de estampado, precio unitario, subtotal de línea y observaciones técnicas `↳ Obs:`), resumen financiero transparente con total de prendas, subtotal bruto, descuentos por volumen, monto neto, IVA, delivery, total, abono, saldo pendiente, estado de pago (`Pagado Total`, `Abonado`, `Pendiente`), observaciones del pedido y datos formales de la empresa (RUT, dirección, teléfono).
   - **Ticket Impreso Estructurado (`ticket.generarTicketHTML`):** Incorpora el Estado de Taller destacado en cabecera, RUT y dirección del cliente, observaciones técnicas por prenda, visibilidad incondicional de Subtotal Bruto y Monto Neto en el desglose financiero, y preservación de desgloses de impuestos y fletes.
@@ -337,6 +342,21 @@ Registro de todo lo que debe preservarse entre sesiones de trabajo: arquitectura
 ---
 
 ## 3. Historial de cambios
+
+### 2026-11-18 (Paginación Continua, Visibilidad de Totales y Orden por Código en Comprobante — Spec 051)
+- **Área de Impresión Desacoplada y Paginación Continua (`index.html`, `assets/js/ticket.js` & `assets/css/custom.css`):**
+  - Incorporación de `#print-mount-point` como contenedor directo en `body` fuera del top-layer de `<dialog>`.
+  - En `ticket.js`, `imprimirTicket()` y el escuchador `beforeprint` montan dinámicamente el comprobante en `#print-mount-point` y activan `printing-ticket`.
+  - En `custom.css` `@media print`, se ocultan los modales y se estiliza `#print-mount-point` con `table-header-group` y `break-inside: avoid` en secciones críticas, logrando saltos de página fluidos y continuos a través de múltiples hojas sin recortes de contenido.
+- **Blindaje de Visibilidad de Subtotales y Totales:**
+  - Asignación de anchos calibrados y `whitespace-nowrap` a `P. Unit` y `Subtotal` en la tabla de prendas para que las cifras no se partan ni desborden.
+  - Asignación de la clase `.ticket-totals-section` al resumen financiero, garantizando su visibilidad íntegra en papel y PDF.
+- **Ordenamiento Alfanumérico Natural por Código de Producto (`assets/js/ticket.js` & `assets/js/sales.js`):**
+  - Implementación de ordenamiento con `localeCompare(..., { numeric: true })` en `generarTicketHTML` y `generarTextoWhatsApp`. Las prendas con código (ej. `BUZ-001`, `POL-2`, `POL-10`) se listan en secuencia lógica estricta y las prendas sin código quedan agrupadas al final.
+- **Pruebas Automatizadas (`tests/comprobante_paginacion_totales_orden.test.js`):**
+  - 7 pruebas unitarias nuevas cubriendo ordenamiento natural en WhatsApp y Ticket, blindaje de subtotales/totales y montaje de impresión directo en DOM.
+  - Suite global completa: 42 suites, 366 pruebas unitarias pasando al 100% con 0 fallos.
+- **Metodología SDD:** Especificación formal en `specs/051-comprobante-salto-pagina-totales-orden/` (`spec.md`, `plan.md`, `tasks.md`).
 
 ### 2026-11-18 (Comprobante de Venta & Taller Completo en Ticket & WhatsApp — Spec 050)
 - **Mensaje de WhatsApp Enriquecido (`assets/js/sales.js`):**

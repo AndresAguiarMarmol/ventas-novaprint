@@ -451,7 +451,21 @@
 
     let itemsTexto = '';
     if (Array.isArray(pedido.items)) {
-      itemsTexto = pedido.items.map(it => {
+      // Spec 051: Ordenar prendas alfanuméricamente por código de inventario (códigos vacíos al final)
+      const itemsOrdenados = pedido.items.slice().sort((a, b) => {
+        const codA = (a.inventoryCode || '').trim();
+        const codB = (b.inventoryCode || '').trim();
+        if (codA && codB) {
+          return codA.localeCompare(codB, 'es', { numeric: true, sensitivity: 'base' });
+        }
+        if (codA && !codB) return -1;
+        if (!codA && codB) return 1;
+        const prendaA = (a.garmentType || '').trim();
+        const prendaB = (b.garmentType || '').trim();
+        return prendaA.localeCompare(prendaB, 'es', { sensitivity: 'base' });
+      });
+
+      itemsTexto = itemsOrdenados.map(it => {
         const codInv = it.inventoryCode ? ` [${it.inventoryCode}]` : '';
         const precioU = formatearMoneda(it.unitPrice || 0);
         const subtotalLinea = formatearMoneda(it.subtotal || ((it.quantity || 1) * (it.unitPrice || 0)));

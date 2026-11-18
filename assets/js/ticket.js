@@ -84,20 +84,34 @@
     const fechaCreacion = pedido.dates?.createdAt ? new Date(pedido.dates.createdAt).toLocaleDateString('es-CL') : 'Hoy';
     const fechaEntrega = pedido.dates?.deliveryDate || 'A coordinar';
 
-    const itemsFilas = (pedido.items || []).map((it, idx) => {
+    // Spec 051: Ordenar prendas alfanuméricamente por código de inventario (códigos vacíos al final)
+    const itemsOrdenados = (pedido.items || []).slice().sort((a, b) => {
+      const codA = (a.inventoryCode || '').trim();
+      const codB = (b.inventoryCode || '').trim();
+      if (codA && codB) {
+        return codA.localeCompare(codB, 'es', { numeric: true, sensitivity: 'base' });
+      }
+      if (codA && !codB) return -1;
+      if (!codA && codB) return 1;
+      const prendaA = (a.garmentType || '').trim();
+      const prendaB = (b.garmentType || '').trim();
+      return prendaA.localeCompare(prendaB, 'es', { sensitivity: 'base' });
+    });
+
+    const itemsFilas = itemsOrdenados.map((it, idx) => {
       const sub = sales ? sales.formatearMoneda(it.subtotal || (it.quantity * it.unitPrice)) : `$${it.subtotal}`;
       const precioU = sales ? sales.formatearMoneda(it.unitPrice) : `$${it.unitPrice}`;
       const codInvStr = it.inventoryCode ? ` <span class="text-[10px] font-mono font-bold text-gray-500 bg-gray-100 px-1 py-0.5 rounded border border-gray-200">[${it.inventoryCode}]</span>` : '';
       return `
         <tr class="border-b border-gray-200">
-          <td class="py-2 text-left">
+          <td class="py-2 text-left pr-2">
             <span class="font-bold text-gray-800">${it.quantity}x ${it.garmentType}${codInvStr}</span>
             <div class="text-xs text-gray-500">Talla: ${it.size} | Color: ${it.color}</div>
             <div class="text-xs font-medium text-indigo-700">Técnica: ${it.technique} (${it.printLocation || 'Pecho'})</div>
             ${it.notes ? `<div class="text-xs italic text-gray-500 mt-0.5">Obs: ${it.notes}</div>` : ''}
           </td>
-          <td class="py-2 text-right text-gray-600 align-top">${precioU}</td>
-          <td class="py-2 text-right font-bold text-gray-900 align-top">${sub}</td>
+          <td class="py-2 text-right text-gray-700 font-medium align-top whitespace-nowrap w-20">${precioU}</td>
+          <td class="py-2 text-right font-bold text-gray-900 align-top whitespace-nowrap w-24">${sub}</td>
         </tr>
       `;
     }).join('');
@@ -105,7 +119,7 @@
     return `
       <div id="printable-ticket-content" class="bg-white p-6 max-w-md mx-auto text-sm text-gray-800 font-sans border border-gray-200 rounded-lg shadow-sm">
         <!-- Encabezado de la Empresa -->
-        <div class="text-center pb-4 border-b border-dashed border-gray-300">
+        <div class="ticket-header-section text-center pb-4 border-b border-dashed border-gray-300">
           <img src="assets/img/logo.png" alt="Novaprint" class="w-14 h-14 mx-auto mb-2 rounded-xl object-contain shadow-2xs">
           <h2 class="text-xl font-black text-gray-900 uppercase tracking-tight">${businessName}</h2>
           <p class="text-xs text-gray-500">RUT: ${rut}</p>
@@ -114,7 +128,7 @@
         </div>
 
         <!-- Datos del Pedido y Cliente -->
-        <div class="py-3 border-b border-dashed border-gray-300 space-y-1">
+        <div class="ticket-client-section py-3 border-b border-dashed border-gray-300 space-y-1">
           <div class="flex justify-between items-center">
             <span class="text-xs text-gray-500 uppercase font-semibold">N° Comprobante:</span>
             <span class="font-mono font-bold text-base text-blue-700">${pedido.id}</span>
@@ -148,12 +162,12 @@
 
         <!-- Tabla de Prendas y Estampados -->
         <div class="py-3">
-          <table class="w-full text-xs">
+          <table class="w-full text-xs border-collapse">
             <thead>
               <tr class="border-b border-gray-300 text-gray-500 uppercase font-semibold">
                 <th class="py-1 text-left">Detalle Prenda</th>
-                <th class="py-1 text-right">P. Unit</th>
-                <th class="py-1 text-right">Subtotal</th>
+                <th class="py-1 text-right w-20 whitespace-nowrap">P. Unit</th>
+                <th class="py-1 text-right w-24 whitespace-nowrap">Subtotal</th>
               </tr>
             </thead>
             <tbody>
@@ -163,7 +177,7 @@
         </div>
 
         <!-- Resumen Financiero -->
-        <div class="py-3 border-t border-dashed border-gray-300 space-y-1.5 text-xs">
+        <div class="ticket-totals-section py-3 border-t border-dashed border-gray-300 space-y-1.5 text-xs">
           <div class="flex justify-between text-gray-600">
             <span>Total Prendas:</span>
             <span class="font-bold text-gray-800">${pedido.totals?.totalQuantity || (pedido.items ? pedido.items.reduce((acc, it) => acc + (Number(it.quantity) || 0), 0) : 0)} un.</span>
@@ -228,32 +242,70 @@
   }
 
   /**
-   * Dispara el diálogo nativo de impresión configurando la clase en body
+   * Dispara el diálogo nativo de impresión montando el ticket fuera de <dialog>
+   * para permitir salto de página natural y continuo sin recortes (Spec 051)
    */
   function imprimirTicket() {
-    if (typeof document !== 'undefined' && document.body) {
+    if (typeof document === 'undefined') return;
+
+    const mountPoint = document.getElementById('print-mount-point');
+    const renderEl = document.getElementById('ticket-container-render');
+
+    if (mountPoint && renderEl) {
+      mountPoint.innerHTML = renderEl.innerHTML;
+      mountPoint.classList.remove('hidden');
+    }
+
+    if (document.body) {
       document.body.classList.add('printing-ticket');
     }
+
     if (typeof window !== 'undefined' && typeof window.print === 'function') {
       window.print();
     }
-    setTimeout(() => {
-      if (typeof document !== 'undefined' && document.body) {
+
+    function limpiarImpresion() {
+      if (mountPoint) {
+        mountPoint.innerHTML = '';
+        mountPoint.classList.add('hidden');
+      }
+      if (document.body) {
         document.body.classList.remove('printing-ticket');
       }
-    }, 500);
+      if (typeof window !== 'undefined' && typeof window.removeEventListener === 'function') {
+        window.removeEventListener('afterprint', limpiarImpresion);
+      }
+    }
+
+    if (typeof window !== 'undefined' && typeof window.addEventListener === 'function') {
+      window.addEventListener('afterprint', limpiarImpresion);
+    }
+    setTimeout(limpiarImpresion, 1000);
   }
 
   // Listener para sincronizar Ctrl+P con el diálogo de ticket si está abierto
   if (typeof window !== 'undefined' && typeof window.addEventListener === 'function') {
     window.addEventListener('beforeprint', () => {
       const dialog = document.getElementById('dialog-ticket');
-      if (dialog && dialog.open && document.body) {
-        document.body.classList.add('printing-ticket');
+      if (dialog && dialog.open) {
+        const mountPoint = document.getElementById('print-mount-point');
+        const renderEl = document.getElementById('ticket-container-render');
+        if (mountPoint && renderEl) {
+          mountPoint.innerHTML = renderEl.innerHTML;
+          mountPoint.classList.remove('hidden');
+        }
+        if (document.body) {
+          document.body.classList.add('printing-ticket');
+        }
       }
     });
 
     window.addEventListener('afterprint', () => {
+      const mountPoint = document.getElementById('print-mount-point');
+      if (mountPoint) {
+        mountPoint.innerHTML = '';
+        mountPoint.classList.add('hidden');
+      }
       if (document.body) {
         document.body.classList.remove('printing-ticket');
       }
