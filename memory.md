@@ -23,6 +23,12 @@ Registro de todo lo que debe preservarse entre sesiones de trabajo: arquitectura
 
 ## 2. Decisiones vigentes
 
+- **Repetición de Cabecera de Tabla en Página 2 y Margen Superior en Impresión (Spec 052):**
+  - **Margen Superior de 15 mm en Todas las Páginas (`assets/css/custom.css` `@page`):** Se definió en `@media print` la directiva `@page { margin-top: 15mm; margin-bottom: 12mm; margin-left: 8mm; margin-right: 8mm; size: auto; }`, asegurando un margen superior limpio, uniforme y profesional de 15 mm en la primera, segunda y subsecuentes páginas de impresión física o exportación a PDF.
+  - **Desbloqueo de Paginación en Chromium (`html, body`):** Se sustituyó `min-height: 100% !important` por `min-height: 0 !important; height: auto !important; max-height: none !important; overflow: visible !important;`. Esto elimina el bloqueo que impedía a los motores Blink/Chromium calcular las alturas de página sucesivas y duplicar automáticamente las cabeceras `<thead>`.
+  - **Repetición Automática de Cabecera de Prendas (`ticket.js` & `custom.css`):** La tabla de prendas en `generarTicketHTML` incorpora la clase `.ticket-table`. En CSS se establecieron las reglas `table.ticket-table { display: table !important; border-collapse: collapse !important; }` y `table.ticket-table thead { display: table-header-group !important; break-inside: avoid !important; }`, garantizando que los títulos de columna (*Detalle Prenda*, *P. Unit*, *Subtotal*) se repitan en la cabecera de la hoja 2 y siguientes.
+  - **Estilo Visual Destacado de Cabecera Repetida:** Los encabezados `thead th` cuentan con fondo gris suave (`#f3f4f6`), tipografía oscura y legible (`#1f2937`, `font-weight: 700`) y borde inferior de 2px sólido (`#9ca3af`), brindando contraste y continuidad visual inmediata entre páginas sin interferir con la tinta de impresión.
+
 - **Paginación Continua, Visibilidad de Totales y Orden por Código en Comprobante (Spec 051):**
   - **Montaje Directo de Impresión en Body (`index.html` & `assets/js/ticket.js`):** Se introdujo el contenedor `#print-mount-point` como elemento directo de `<body>`, desacoplado del modal `<dialog>`. Al disparar la impresión (botón "Imprimir Ticket" o `Ctrl+P`), el HTML del comprobante se monta en `#print-mount-point` y se ocultan los diálogos en `@media print`, eliminando el confinamiento al Top Layer de Chromium y permitiendo que el navegador fragmente y pagine de forma natural y continua a lo largo de 1, 2, 3 o más páginas sin truncamientos.
   - **Blindaje de Visibilidad de Subtotales y Totales:** En la tabla de prendas, las columnas de `P. Unit` y `Subtotal` cuentan con anchos fijos dedicados (`w-20` y `w-24`) y la clase `whitespace-nowrap`, impidiendo que las descripciones largas fragmenten o desplacen las cifras numéricas. El resumen financiero cuenta con la clase `.ticket-totals-section` con `break-inside: avoid !important`, garantizando que Subtotal Bruto, Descuentos, Monto Neto, IVA, Delivery, Total, Abonos y Saldo Pendiente permanezcan siempre 100% visibles e indivisibles.
@@ -342,6 +348,19 @@ Registro de todo lo que debe preservarse entre sesiones de trabajo: arquitectura
 ---
 
 ## 3. Historial de cambios
+
+### 2026-11-18 (Repetición de Cabecera en Página 2 y Margen Superior — Spec 052)
+- **Margen Superior Estandarizado de 15 mm en Impresión (`assets/css/custom.css`):**
+  - Configuración de la directiva `@page` en `@media print` con `margin-top: 15mm; margin-bottom: 12mm; margin-left: 8mm; margin-right: 8mm; size: auto;`, proveyendo un margen superior consistente y equilibrado en todas las hojas.
+- **Desbloqueo de Paginación Chromium y Repetición Automática de Cabecera (`ticket.js` & `custom.css`):**
+  - Remoción de `min-height: 100%` en `html, body` dentro de `@media print`, reemplazado por `min-height: 0 !important; height: auto !important; overflow: visible !important;` para permitir la fragmentación libre de tablas en Blink.
+  - Asignación de la clase `.ticket-table` a la tabla de prendas en `generarTicketHTML`.
+  - Estilos de impresión para `table.ticket-table` con `thead { display: table-header-group !important; break-inside: avoid !important; }` y `tbody tr { break-inside: avoid !important; }`, forzando al navegador a duplicar automáticamente la fila de títulos (*Detalle Prenda*, *P. Unit*, *Subtotal*) en la página 2 y posteriores.
+  - Estilizado de la cabecera repetida con fondo `#f3f4f6`, texto oscuro `#1f2937` y borde inferior de 2px sólido `#9ca3af`.
+- **Pruebas Automatizadas (`tests/comprobante_cabecera_margen_print.test.js`):**
+  - 4 pruebas unitarias nuevas verificando la clase `ticket-table` y estructura `<thead>`, el margen superior de 15mm en `@page`, la no congelación de paginación en `html/body`, y las reglas de `table-header-group` con estilo destacado.
+  - Suite global completa: 43 suites, 370 pruebas unitarias pasando al 100% con 0 fallos.
+- **Metodología SDD:** Especificación formal en `specs/052-repeticion-cabecera-tabla-margen-superior-print/` (`spec.md`, `plan.md`, `tasks.md`).
 
 ### 2026-11-18 (Paginación Continua, Visibilidad de Totales y Orden por Código en Comprobante — Spec 051)
 - **Área de Impresión Desacoplada y Paginación Continua (`index.html`, `assets/js/ticket.js` & `assets/css/custom.css`):**

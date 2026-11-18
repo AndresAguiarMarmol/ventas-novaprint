@@ -400,18 +400,22 @@ html.dark .search-highlight {
 
 /* ==========================================================================
    Estilos de Impresión Optimizados (Ctrl + P / Guardar PDF / Comprobante)
-   Paginación natural continua y sin recortes (Spec 051)
+   Paginación natural continua, margen superior y cabecera repetida (Spec 051 & 052)
    ========================================================================== */
 @media print {
   @page {
-    margin: 4mm;
+    margin-top: 15mm;
+    margin-bottom: 12mm;
+    margin-left: 8mm;
+    margin-right: 8mm;
     size: auto;
   }
 
   html,
   body {
     height: auto !important;
-    min-height: 100% !important;
+    min-height: 0 !important;
+    max-height: none !important;
     overflow: visible !important;
     background: #ffffff !important;
     color: #000000 !important;
@@ -472,16 +476,44 @@ html.dark .search-highlight {
     background: transparent !important;
   }
 
-  /* Reglas antipaginación cortada y salto de página fluido */
+  /* Reglas de repetición de cabecera de tabla en cada hoja (Spec 052) */
+  table.ticket-table,
   #printable-ticket-content table {
+    display: table !important;
     width: 100% !important;
     border-collapse: collapse !important;
+    page-break-inside: auto !important;
+    break-inside: auto !important;
   }
 
+  table.ticket-table thead,
   #printable-ticket-content thead {
-    display: table-header-group !important; /* Repite cabecera en cada hoja si la tabla se extiende */
+    display: table-header-group !important; /* Repite cabecera en cada hoja en Chromium y navegadores */
+    break-inside: avoid !important;
+    page-break-inside: avoid !important;
   }
 
+  table.ticket-table thead tr,
+  #printable-ticket-content thead tr {
+    break-inside: avoid !important;
+    page-break-inside: avoid !important;
+  }
+
+  table.ticket-table thead th,
+  #printable-ticket-content thead th {
+    background-color: #f3f4f6 !important;
+    color: #1f2937 !important;
+    font-weight: 700 !important;
+    border-bottom: 2px solid #9ca3af !important;
+    padding: 6px 4px !important;
+  }
+
+  table.ticket-table tbody,
+  #printable-ticket-content tbody {
+    display: table-row-group !important;
+  }
+
+  table.ticket-table tbody tr,
   #printable-ticket-content tr {
     break-inside: avoid !important;
     page-break-inside: avoid !important;

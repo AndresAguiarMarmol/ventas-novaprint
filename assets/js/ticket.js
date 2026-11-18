@@ -160,9 +160,9 @@
           </div>
         </div>
 
-        <!-- Tabla de Prendas y Estampados -->
+        <!-- Tabla de Prendas y Estampados (Spec 051 & 052) -->
         <div class="py-3">
-          <table class="w-full text-xs border-collapse">
+          <table class="ticket-table w-full text-xs border-collapse">
             <thead>
               <tr class="border-b border-gray-300 text-gray-500 uppercase font-semibold">
                 <th class="py-1 text-left">Detalle Prenda</th>
